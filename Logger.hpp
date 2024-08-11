@@ -10,6 +10,8 @@
 class Logger final {
     static std::shared_ptr<Logger> pInstance;
 
+    /// @brief Disables buffering.
+    bool m_bInstantFlush;
     /// @brief Defines whether the Logger instance is initialized or not.
     bool m_bInitialized;
     /// @brief The size of the buffer.
@@ -29,7 +31,9 @@ public:
     static std::shared_ptr<Logger> GetSingleton();
 
     /// @brief Initializes the Logger instance by opening the standard pipes, setting up the buffer and its size.
-    void Initialize();
+    /// @param bInstantFlush Whether the logger should keep no buffer, and let the underlying implementation for stdio
+    /// and files handle it.
+    void Initialize(bool bInstantFlush);
 
     /// @brief Emits an Information with the given section name into the Logger's buffer.
     /// @param sectionName The name of the section that the code is running at
@@ -48,7 +52,7 @@ public:
 };
 
 /// @brief Defines a section for use in the logger
-#define DefineSectionName(varName, sectionName) __forceinline const auto varName = sectionName
+#define DefineSectionName(varName, sectionName) const auto varName = sectionName
 
 namespace RbxStu {
     DefineSectionName(Execution, "RbxStu::Execution");

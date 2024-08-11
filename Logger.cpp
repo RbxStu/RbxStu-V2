@@ -6,7 +6,10 @@
 
 #include <format>
 #include <iostream>
+#include <mutex>
+#include <shared_mutex>
 
+std::shared_mutex mutex;
 std::shared_ptr<Logger> Logger::pInstance; // Static var.
 
 std::shared_ptr<Logger> Logger::GetSingleton() {
@@ -28,21 +31,21 @@ void Logger::FlushIfFull() {
         throw std::exception(
                 std::format("The logger instance @ {} is not initialized!", reinterpret_cast<uintptr_t>(this)).c_str());
 
-    if (this->m_szMessageBuffer.length() >= this->m_dwBufferSize) {
+    if (this->m_bInstantFlush || this->m_szMessageBuffer.length() >= this->m_dwBufferSize)
         this->Flush();
-    }
 }
 
-void Logger::Initialize() {
+void Logger::Initialize(const bool bInstantFlush) {
     if (this->m_bInitialized)
         return;
 
-    freopen_s(nullptr, "CONOUT$", "w", stdout);
-    freopen_s(nullptr, "CONIN$", "r", stdin);
-    freopen_s(nullptr, "CONERR$", "w", stderr);
+    freopen_s(reinterpret_cast<FILE **>(stdout), "CONOUT$", "w", stdout);
+    freopen_s(reinterpret_cast<FILE **>(stdin), "CONIN$", "r", stdin);
+    freopen_s(reinterpret_cast<FILE **>(stderr), "CONERR$", "w", stderr);
     this->m_dwBufferSize = 0xffff;
     this->m_szMessageBuffer = std::string("");
     this->m_szMessageBuffer.reserve(this->m_dwBufferSize);
+    this->m_bInstantFlush = bInstantFlush;
     this->m_bInitialized = true;
     std::atexit([] {
         const auto logger = Logger::GetSingleton();
@@ -52,16 +55,19 @@ void Logger::Initialize() {
 }
 
 void Logger::PrintInformation(const std::string &sectionName, const std::string &msg) {
+    std::lock_guard lock{mutex};
     this->m_szMessageBuffer.append(std::format("[INFO/{}] {}", sectionName, msg));
     this->FlushIfFull();
 }
 
 void Logger::PrintWarning(const std::string &sectionName, const std::string &msg) {
+    std::lock_guard lock{mutex};
     this->m_szMessageBuffer.append(std::format("[WARN/{}] {}", sectionName, msg));
     this->FlushIfFull();
 }
 
 void Logger::PrintError(const std::string &sectionName, const std::string &msg) {
+    std::lock_guard lock{mutex};
     this->m_szMessageBuffer.append(std::format("[ERROR/{}] {}", sectionName, msg));
     this->FlushIfFull();
 }
