@@ -48,7 +48,7 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
     auto startAddress = reinterpret_cast<std::uintptr_t>(lpStartAddress);
 
     while (VirtualQuery(reinterpret_cast<void *>(startAddress), &memoryInfo, sizeof(MEMORY_BASIC_INFORMATION))) {
-        scansVector.push_back(std::async(std::launch::async, [memoryInfo, &logger, &signature]() {
+        scansVector.push_back(std::async(std::launch::async, [memoryInfo, &signature]() {
             bool valid = memoryInfo.State == MEM_COMMIT;
             valid &= (memoryInfo.Protect & PAGE_GUARD) == 0;
             valid &= (memoryInfo.Protect & PAGE_NOACCESS) == 0;
@@ -72,14 +72,15 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
         startAddress += memoryInfo.RegionSize;
     }
 
-    for (int i = 0; i < scansVector.size(); ++i) {
-        auto async_result = scansVector[i].get();
+    for (auto &i: scansVector) {
+        auto async_result = i.get();
         for (const auto &e: async_result) {
             results.push_back(e);
         }
     }
 
-    logger->PrintInformation(RbxStu::ByteScanner,
-                             std::format("Scan finalized. Found {} candidates for signature.", results.size()));
+    logger->PrintInformation(
+            RbxStu::ByteScanner,
+            std::format("Scan finalized. Found {} candidates for the given signature.", results.size()));
     return results;
 }
