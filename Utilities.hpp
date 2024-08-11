@@ -3,7 +3,8 @@
 //
 #pragma once
 #include <sstream>
-
+#include <vector>
+#include <string>
 
 class Utilities final {
 public:
