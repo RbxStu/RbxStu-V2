@@ -6,21 +6,29 @@
 #include <Windows.h>
 #include <cstdio>
 
+#include "Scanner.hpp"
+
 int main() {
     AllocConsole();
     const auto logger = Logger::GetSingleton();
-    logger->Initialize();
-logger->PrintInformation(RbxStu::MainThread, "Hello, world!");
+    logger->Initialize(true);
+    logger->PrintInformation(RbxStu::MainThread, "Hello, world!");
 
-    Sleep(1000);
+    auto scanner = Scanner::GetSingleton();
+    logger->PrintInformation(RbxStu::MainThread, "Launching scanner");
+    logger->PrintInformation(RbxStu::MainThread, "Scanning for 80 79 06 00 0F 85 ? ? ? ? E9 ? ? ? ? -- luau_execute");
+    auto results = scanner->Scan(SignatureByte::GetSignatureFromIDAString("80 79 06 00 0F 85 ? ? ? ? E9 ? ? ? ?"),
+                                 GetModuleHandle(nullptr));
+
+    if (!results.empty()) {
+        printf("Found luau_execute candidates!\n");
+        printf("luau_execute: %p", *results.data());
+    }
+
     return 0;
 }
 
 BOOL WINAPI DllMain(const HINSTANCE hModule, const DWORD fdwReason, const LPVOID lpvReserved) {
-    if (hModule == nullptr || hModule == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "This method of injection is not supported; Please use LoadLibary to load the RbxStu module.");
-        abort();
-    }
     // Perform actions based on the reason for calling.
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
