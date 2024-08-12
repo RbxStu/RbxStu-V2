@@ -71,6 +71,16 @@ namespace RbxStu {
                 "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F1 33 FF 48 89 7C 24 ? 4C 8D 4C 24 ? 4C 8D 05 ? ? ? ? "
                 "33 D2 E8 ? ? ? ? 8B D8 48 8B CE E8 ? ? ? ? 44 8B CB 4C 8D 44 24 ? 48 8D 54 24 ? 48 8B C8 E8 ? ? ? ?");
 
+        MakeSignature_FromIDA(RBX_ScriptContext_task_delay,
+                              "48 89 5C 24 ? 55 56 57 41 56 41 57 48 83 EC ? 0F 29 74 24 ? 0F 29 7C 24 ? 4C "
+                              "8B F1 0F 57 F6 0F 57 D2 BA ? ? ? ? E8 ? ? ? ? 0F 28 F8 33 FF 8D 5F ? 66 0F 2F F0 77 55 "
+                              "0F 57 C0 F2 0F 5A C7 E8 ? ? ? ?F");
+
+        MakeSignature_FromIDA(RBX_ScriptContext_task_wait,
+                              "48 89 5C 24 ? 55 56 57 48 83 EC ? 0F 29 74 24 ? 0F 29 7C 24 ? 48 8B D9 E8 ? ? ? ? 85 C0 "
+                              "0F 84 89 01 00 ? 0F 57 F6 0F 57 D2 BA ? ? ? ? 48 8B CB E8 ? ? ? ? 0F 28 F8 33 FF 66 0F "
+                              "2F F0 77 56 0F 57 C0 F2 0F 5A C7");
+
         MakeSignature_FromIDA(RBX_Console_StandardOut,
                               "48 8B C4 48 89 50 ? 4C 89 40 ? 4C 89 48 ? 53 48 83 EC ? 8B D9 4C 8D 40 ? 48 8D 48 ? E8 "
                               "? ? ? ? 90 33 C0 48 89 44 24 ? 48 C7 44 24 ? ? ? ? ? 48 89 44 24 ? 88 44 24 ?s");
@@ -79,8 +89,10 @@ namespace RbxStu {
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
                 {"RBX::ScriptContext::openStateImpl", RBX_ScriptContext_openStateImpl},
                 {"RBX::ScriptContext::getGlobalState", RBX_ScriptContext_getGlobalState},
+                {"RBX::ScriptContext::task_wait", RBX_ScriptContext_task_wait},
                 {"RBX::ScriptContext::task_defer", RBX_ScriptContext_task_defer},
                 {"RBX::ScriptContext::task_spawn", RBX_ScriptContext_task_spawn},
+                {"RBX::ScriptContext::task_delay", RBX_ScriptContext_task_delay},
                 {"RBX::ExtraSpace::initializeFrom", RBX_ExtraSpace_initializeFrom},
                 {"RBX::Security::IdentityToCapability", RBX_Security_IdentityToCapability},
                 {"RBX::ProximityPrompt::onTriggered", RBX_ProximityPrompt_onTriggered},

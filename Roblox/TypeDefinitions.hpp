@@ -12,5 +12,15 @@ namespace RBX::Console {
         Warning = 2,
         Error = 3,
     };
-}
-// namespace RBX
+} // namespace RBX::Console
+
+namespace RBX {
+    namespace Luau {
+        enum TaskState : std::int8_t {
+            None = 0,
+            Deferred = 1,
+            Delayed = 2,
+            Waiting = 3,
+        };
+    }
+} // namespace RBX
