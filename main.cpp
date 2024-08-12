@@ -17,6 +17,10 @@ int main() {
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
     const auto robloxManager = RobloxManager::GetSingleton();
 
+    Sleep(1000);
+    logger->PrintInformation(RbxStu::MainThread, std::format("Capability for identity 10: {}",
+                                                             robloxManager->IdentityToCapability(10).value()));
+
     return 0;
 }
 
