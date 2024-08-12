@@ -112,5 +112,5 @@ public:
     /// @brief Scans from the given start address for the given signature.
     /// @param signature [in] A Vector containing the SignatureByte list that must be matched.
     /// @param lpStartAddress [in, opt] The address to start scanning from.
-    std::vector<void *> Scan(_In_ const Signature &signature, _In_opt_ const void *lpStartAddress);
+    std::vector<void *> Scan(_In_ const Signature &signature, _In_opt_ const void *lpStartAddress = nullptr);
 };
