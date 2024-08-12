@@ -39,6 +39,13 @@ std::shared_ptr<Scanner> Scanner::GetSingleton() {
 }
 std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStartAddress) {
     const auto logger = Logger::GetSingleton();
+
+    if (lpStartAddress == nullptr) {
+        logger->PrintWarning(RbxStu::ByteScanner, "lpStartAddress was nullptr. Assuming the intent of the caller was for "
+                                                  "lpStartAddress to be equal to GetModuleHandle(nullptr).");
+        lpStartAddress = reinterpret_cast<void *>(GetModuleHandle(nullptr));
+    }
+
     std::vector<std::future<std::vector<void *>>> scansVector{};
     std::vector<void *> results{};
     MEMORY_BASIC_INFORMATION memoryInfo{};
