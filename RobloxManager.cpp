@@ -61,6 +61,14 @@ void RobloxManager::Initialize() {
         this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"] = *results.data();
     }
 
+    results = scanner->Scan(RbxStu::Signatures::RBX_ProximityPrompt_onTriggered);
+
+    if (results.empty()) {
+        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ProximityPrompt::onTriggered'!");
+    } else {
+        this->m_mapRobloxFunctions["RBX::ProximityPrompt::onTriggered"] = *results.data();
+    }
+
 
     logger->PrintInformation(RbxStu::RobloxManager, "Functions Found via scanning:");
     for (const auto &[funcName, funcAddress]: this->m_mapRobloxFunctions) {

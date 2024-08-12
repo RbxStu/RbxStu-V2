@@ -64,6 +64,10 @@ namespace RbxStu {
                               "48 8B 74 24 ? 48 83 C4 ? 5F C3");
 
         MakeSignature_FromIDA(RBX_Security_IdentityToCapability, "48 63 01 83 F8 0A 77 3C");
+
+        MakeSignature_FromIDA(RBX_ProximityPrompt_onTriggered,
+                              "E8 ? ? ? ? 48 8B F8 48 85 C0 0F 84 C6 02 00 ? 48 8B 50 ? 48 85 D2 0F 84 D4 02 00 ? 8B "
+                              "42 ? 85 C0 0F 84 C9 02 00 ?");
     } // namespace Signatures
 
 #undef MakeSignature_FromIDA
