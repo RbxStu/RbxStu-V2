@@ -24,7 +24,7 @@ namespace RbxStu {
                                                                               void *unk_0);
         using r_RBX_Security_IdentityToCapability = std::int64_t(__fastcall *)(std::int32_t *pIdentity);
 
-        using r_RBX_Console_StandardOut = std::int32_t(__fastcall *)(std::int32_t dwMessageId,
+        using r_RBX_Console_StandardOut = std::int32_t(__fastcall *)(RBX::Console::MessageType dwMessageId,
                                                                      const char *szFormatString, ...);
 
     } // namespace FunctionDefinitions
