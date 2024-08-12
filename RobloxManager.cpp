@@ -72,7 +72,7 @@ void RobloxManager::Initialize() {
 
     logger->PrintInformation(RbxStu::RobloxManager, "Functions Found via scanning:");
     for (const auto &[funcName, funcAddress]: this->m_mapRobloxFunctions) {
-        logger->PrintInformation(RbxStu::RobloxManager, std::format("- '{}' at address 0x{}.", funcName, funcAddress));
+        logger->PrintInformation(RbxStu::RobloxManager, std::format("- '{}' at address {}.", funcName, funcAddress));
     }
 
 
