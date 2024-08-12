@@ -51,11 +51,13 @@ public:
     void PrintError(const std::string &sectionName, const std::string &msg);
 };
 
-/// @brief Defines a section for use in the logger
-#define DefineSectionName(varName, sectionName) const auto varName = sectionName
 
 namespace RbxStu {
+/// @brief Defines a section for use in the logger
+#define DefineSectionName(varName, sectionName) static const auto varName = sectionName
     DefineSectionName(Execution, "RbxStu::Execution");
     DefineSectionName(MainThread, "RbxStu::MainThread");
     DefineSectionName(ByteScanner, "RbxStu::ByteScanner");
+    DefineSectionName(RobloxManager, "RbxStu::RobloxManager");
+#undef DefineSectionName
 }; // namespace RbxStu
