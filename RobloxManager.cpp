@@ -37,13 +37,30 @@ void RobloxManager::Initialize() {
         this->m_mapRobloxFunctions["RBX::ScriptContext::openStateImpl"] = *results.data();
     }
 
-    results = scanner->Scan(RbxStu::Signatures::RBX_ExtraSpace_initialize);
+    results = scanner->Scan(RbxStu::Signatures::RBX_ExtraSpace_initializeFrom);
 
     if (results.empty()) {
-        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ExtraSpace::initialize'!");
+        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ExtraSpace::initializeFrom'!");
     } else {
-        this->m_mapRobloxFunctions["RBX::ExtraSpace::initialize"] = *results.data();
+        this->m_mapRobloxFunctions["RBX::ExtraSpace::initializeFrom"] = *results.data();
     }
+
+    results = scanner->Scan(RbxStu::Signatures::RBX_ScriptContext_GetGlobalState);
+
+    if (results.empty()) {
+        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ScriptContext::getGlobalState'!");
+    } else {
+        this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"] = *results.data();
+    }
+
+    results = scanner->Scan(RbxStu::Signatures::RBX_Security_IdentityToCapability);
+
+    if (results.empty()) {
+        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::Security::IdentityToCapability'!");
+    } else {
+        this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"] = *results.data();
+    }
+
 
     logger->PrintInformation(RbxStu::RobloxManager, "Functions Found via scanning:");
     for (const auto &[funcName, funcAddress]: this->m_mapRobloxFunctions) {
@@ -65,4 +82,65 @@ std::shared_ptr<RobloxManager> RobloxManager::GetSingleton() {
 
 
     return RobloxManager::pInstance;
+}
+
+std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
+    auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Failed to Get Global State. Reason: RobloxManager is not initialized.");
+        return {};
+    }
+
+    if (!this->m_mapRobloxFunctions.contains("RBX::ScriptContext::getGlobalState")) {
+        logger->PrintError(RbxStu::RobloxManager, "Failed to Get Global State. Reason: RobloxManager failed to scan "
+                                                  "for 'RBX::ScriptContext::getGlobalState'.");
+        return {};
+    }
+
+
+    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_ScriptContext_getGlobalState>(
+            this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"])(scriptContext, nullptr, nullptr);
+}
+
+std::optional<std::int64_t> RobloxManager::IdentityToCapability(std::int32_t identity) {
+    auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Failed to get identity to capability. Reason: RobloxManager is not initialized.");
+        return {};
+    }
+
+    if (!this->m_mapRobloxFunctions.contains("RBX::Security::IdentityToCapability")) {
+        logger->PrintWarning(RbxStu::RobloxManager,
+                             "-- WARN: RobloxManager has failed to fetch the appropiate signature for "
+                             "RBX::Security::IdentityToCapability. Falling back to default implementation.");
+
+        // This is a copy of behaviour of the 11/08/2024 (DD/MM/YYYY) for this very function.
+        // Roblox does not change this very often, if anything, me implementing the bypass for identity
+        // caused them to change it on the client. If this ever breaks, props to Roblox because they're actually reading
+        // this useless code comment.
+        switch (identity) {
+            case 1:
+            case 4:
+                return 3;
+            case 3:
+            case 6:
+                return 0xB;
+            case 5:
+                return 1;
+            case 7:
+            case 8:
+                return 0x3F;
+            case 9:
+                return 0xC;
+            case 0xA:
+                return 0x4000000000000003;
+            default:
+                return {};
+        }
+    }
+
+    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_Security_IdentityToCapability>(
+            this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"])(&identity);
 }
