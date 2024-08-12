@@ -54,7 +54,7 @@ public:
 
 namespace RbxStu {
 /// @brief Defines a section for use in the logger
-#define DefineSectionName(varName, sectionName) static const auto varName = sectionName
+#define DefineSectionName(varName, sectionName) constexpr auto varName = sectionName
     DefineSectionName(Execution, "RbxStu::Execution");
     DefineSectionName(MainThread, "RbxStu::MainThread");
     DefineSectionName(ByteScanner, "RbxStu::ByteScanner");
