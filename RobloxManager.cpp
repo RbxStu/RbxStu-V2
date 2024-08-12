@@ -18,55 +18,22 @@ void RobloxManager::Initialize() {
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing Roblox Manager [1/3]");
     logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions... [1/3]");
 
-    std::vector<void *> results{};
+    for (const auto &[fName, fSignature]: RbxStu::Signatures::s_signatureMap) {
+        const auto results = scanner->Scan(fSignature);
 
-    results = scanner->Scan(RbxStu::Signatures::RBX_ScriptContext_scriptStart);
-
-    if (results.empty()) {
-        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ScriptContext::scriptStart'!");
-    } else {
-        this->m_mapRobloxFunctions["RBX::ScriptContext::scriptStart"] =
-                *results.data(); // Grab first result, it doesn't really matter to be honest.
-    }
-
-    results = scanner->Scan(RbxStu::Signatures::RBX_ScriptContext_openStateImpl);
-
-    if (results.empty()) {
-        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ScriptContext::openStateImpl'!");
-    } else {
-        this->m_mapRobloxFunctions["RBX::ScriptContext::openStateImpl"] = *results.data();
-    }
-
-    results = scanner->Scan(RbxStu::Signatures::RBX_ExtraSpace_initializeFrom);
-
-    if (results.empty()) {
-        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ExtraSpace::initializeFrom'!");
-    } else {
-        this->m_mapRobloxFunctions["RBX::ExtraSpace::initializeFrom"] = *results.data();
-    }
-
-    results = scanner->Scan(RbxStu::Signatures::RBX_ScriptContext_GetGlobalState);
-
-    if (results.empty()) {
-        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ScriptContext::getGlobalState'!");
-    } else {
-        this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"] = *results.data();
-    }
-
-    results = scanner->Scan(RbxStu::Signatures::RBX_Security_IdentityToCapability);
-
-    if (results.empty()) {
-        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::Security::IdentityToCapability'!");
-    } else {
-        this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"] = *results.data();
-    }
-
-    results = scanner->Scan(RbxStu::Signatures::RBX_ProximityPrompt_onTriggered);
-
-    if (results.empty()) {
-        logger->PrintWarning(RbxStu::RobloxManager, "Failed to find function 'RBX::ProximityPrompt::onTriggered'!");
-    } else {
-        this->m_mapRobloxFunctions["RBX::ProximityPrompt::onTriggered"] = *results.data();
+        if (results.empty()) {
+            logger->PrintWarning(RbxStu::RobloxManager, std::format("Failed to find function '{}'!", fName));
+        } else {
+            if (results.size() > 1) {
+                logger->PrintWarning(
+                        RbxStu::RobloxManager,
+                        "More than one candidate has matched the signature. This is generally not something "
+                        "problematic, but it may mean the signature has too many wildcards that makes it not unique. "
+                        "The first result will be chosen.");
+            }
+            this->m_mapRobloxFunctions[fName] =
+                    *results.data(); // Grab first result, it doesn't really matter to be honest.
+        }
     }
 
     logger->PrintInformation(RbxStu::RobloxManager, "Functions Found via scanning:");
@@ -150,4 +117,22 @@ std::optional<std::int64_t> RobloxManager::IdentityToCapability(std::int32_t ide
 
     return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_Security_IdentityToCapability>(
             this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"])(&identity);
+}
+RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut RobloxManager::GetRobloxPrint() {
+    auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Failed to print to the roblox console. Reason: RobloxManager is not initialized.");
+        return nullptr;
+    }
+
+    if (!this->m_mapRobloxFunctions.contains("RBX::Console::StandardOut")) {
+        logger->PrintWarning(RbxStu::RobloxManager, "-- WARN: RobloxManager has failed to fetch the address for "
+                                                    "RBX::Console::StandardOut, printing to console is unavailable.");
+        return nullptr;
+    }
+
+
+    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut>(
+            this->m_mapRobloxFunctions["RBX::Console::StandardOut"]);
 }
