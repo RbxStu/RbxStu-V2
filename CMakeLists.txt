@@ -14,6 +14,8 @@ add_library(Module SHARED
         Scanner.hpp
         Utilities.cpp
         Utilities.hpp
+        RobloxManager.cpp
+        RobloxManager.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
