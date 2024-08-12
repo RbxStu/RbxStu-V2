@@ -69,7 +69,6 @@ void RobloxManager::Initialize() {
         this->m_mapRobloxFunctions["RBX::ProximityPrompt::onTriggered"] = *results.data();
     }
 
-
     logger->PrintInformation(RbxStu::RobloxManager, "Functions Found via scanning:");
     for (const auto &[funcName, funcAddress]: this->m_mapRobloxFunctions) {
         logger->PrintInformation(RbxStu::RobloxManager, std::format("- '{}' at address {}.", funcName, funcAddress));
@@ -121,7 +120,7 @@ std::optional<std::int64_t> RobloxManager::IdentityToCapability(std::int32_t ide
 
     if (!this->m_mapRobloxFunctions.contains("RBX::Security::IdentityToCapability")) {
         logger->PrintWarning(RbxStu::RobloxManager,
-                             "-- WARN: RobloxManager has failed to fetch the appropiate signature for "
+                             "-- WARN: RobloxManager has failed to fetch the address for "
                              "RBX::Security::IdentityToCapability. Falling back to default implementation.");
 
         // This is a copy of behaviour of the 11/08/2024 (DD/MM/YYYY) for this very function.
