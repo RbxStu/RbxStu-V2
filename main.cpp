@@ -6,24 +6,16 @@
 #include <Windows.h>
 #include <cstdio>
 
+#include "RobloxManager.hpp"
 #include "Scanner.hpp"
 
 int main() {
     AllocConsole();
     const auto logger = Logger::GetSingleton();
     logger->Initialize(true);
-    logger->PrintInformation(RbxStu::MainThread, "Hello, world!");
-
-    auto scanner = Scanner::GetSingleton();
-    logger->PrintInformation(RbxStu::MainThread, "Launching scanner");
-    logger->PrintInformation(RbxStu::MainThread, "Scanning for 80 79 06 00 0F 85 ? ? ? ? E9 ? ? ? ? -- luau_execute");
-    auto results = scanner->Scan(SignatureByte::GetSignatureFromIDAString("80 79 06 00 0F 85 ? ? ? ? E9 ? ? ? ?"),
-                                 GetModuleHandle(nullptr));
-
-    if (!results.empty()) {
-        printf("Found luau_execute candidates!\n");
-        printf("luau_execute: %p", *results.data());
-    }
+    logger->PrintInformation(RbxStu::MainThread, "Initializing RbxStu V2");
+    logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
+    const auto robloxManager = RobloxManager::GetSingleton();
 
     return 0;
 }
