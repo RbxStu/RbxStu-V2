@@ -41,7 +41,7 @@ void Logger::Initialize(const bool bInstantFlush) {
 
     freopen_s(reinterpret_cast<FILE **>(stdout), "CONOUT$", "w", stdout);
     freopen_s(reinterpret_cast<FILE **>(stdin), "CONIN$", "r", stdin);
-    freopen_s(reinterpret_cast<FILE **>(stderr), "CONOUT", "w", stderr);
+    freopen_s(reinterpret_cast<FILE **>(stderr), "CONOUT$", "w", stderr);
     this->m_dwBufferSize = 0xffff;
     this->m_szMessageBuffer = std::string("");
     this->m_szMessageBuffer.reserve(this->m_dwBufferSize);
