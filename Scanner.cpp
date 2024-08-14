@@ -110,8 +110,9 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
     const auto logger = Logger::GetSingleton();
 
     if (lpStartAddress == nullptr) {
-        logger->PrintWarning(RbxStu::ByteScanner, "lpStartAddress was nullptr. Assuming the intent of the caller was for "
-                                                  "lpStartAddress to be equal to GetModuleHandle(nullptr).");
+        logger->PrintWarning(RbxStu::ByteScanner,
+                             "lpStartAddress was nullptr. Assuming the intent of the caller was for "
+                             "lpStartAddress to be equal to GetModuleHandle(nullptr).");
         lpStartAddress = reinterpret_cast<void *>(GetModuleHandle(nullptr));
     }
 
@@ -128,6 +129,10 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
             bool valid = memoryInfo.State == MEM_COMMIT;
             valid &= (memoryInfo.Protect & PAGE_GUARD) == 0;
             valid &= (memoryInfo.Protect & PAGE_NOACCESS) == 0;
+            valid &= (memoryInfo.Protect & PAGE_READWRITE) == 0;
+            valid &= (memoryInfo.Protect & PAGE_READONLY) == 0;
+            valid &= (memoryInfo.Protect & PAGE_EXECUTE_WRITECOPY) == 0;
+            valid &= (memoryInfo.Protect & PAGE_WRITECOPY) == 0;
             valid &= memoryInfo.Type == MEM_PRIVATE || memoryInfo.Type == MEM_IMAGE;
 
             if (!valid) {
