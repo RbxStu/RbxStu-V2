@@ -10,6 +10,7 @@
 #include <DbgHelp.h> // Must be positioned here because else include failure.
 
 // #include "LuauManager.hpp"
+#include "LuauManager.hpp"
 #include "RobloxManager.hpp"
 #include "Scanner.hpp"
 
@@ -115,7 +116,7 @@ int main() {
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
     const auto robloxManager = RobloxManager::GetSingleton();
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing LuauManager...");
-    //const auto luauManager = LuauManager::GetSingleton();
+    const auto luauManager = LuauManager::GetSingleton();
 
     Sleep(1000);
     logger->PrintInformation(RbxStu::MainThread, std::format("Capability for identity 10: {}",
