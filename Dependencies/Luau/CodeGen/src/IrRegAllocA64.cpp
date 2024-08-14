@@ -245,7 +245,8 @@ void IrRegAllocA64::freeLastUseReg(IrInst& target, uint32_t index)
 
 void IrRegAllocA64::freeLastUseRegs(const IrInst& inst, uint32_t index)
 {
-    auto checkOp = [this, index](IrOp op) {
+    auto checkOp = [this, index](IrOp op)
+    {
         if (op.kind == IrOpKind::Inst)
             freeLastUseReg(function.instructions[op.index], index);
     };
@@ -256,6 +257,7 @@ void IrRegAllocA64::freeLastUseRegs(const IrInst& inst, uint32_t index)
     checkOp(inst.d);
     checkOp(inst.e);
     checkOp(inst.f);
+    checkOp(inst.g);
 }
 
 void IrRegAllocA64::freeTempRegs()

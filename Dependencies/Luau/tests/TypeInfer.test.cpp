@@ -58,8 +58,10 @@ TEST_CASE_FIXTURE(Fixture, "tc_error")
     {
         LUAU_REQUIRE_ERROR_COUNT(1, result);
 
-        CHECK_EQ(result.errors[0],
-            (TypeError{Location{Position{0, 35}, Position{0, 36}}, TypeMismatch{builtinTypes->numberType, builtinTypes->stringType}}));
+        CHECK_EQ(
+            result.errors[0],
+            (TypeError{Location{Position{0, 35}, Position{0, 36}}, TypeMismatch{builtinTypes->numberType, builtinTypes->stringType}})
+        );
     }
 }
 
@@ -76,10 +78,16 @@ TEST_CASE_FIXTURE(Fixture, "tc_error_2")
     {
         LUAU_REQUIRE_ERROR_COUNT(1, result);
 
-        CHECK_EQ(result.errors[0], (TypeError{Location{Position{0, 18}, Position{0, 22}}, TypeMismatch{
-                                                                                              requireType("a"),
-                                                                                              builtinTypes->stringType,
-                                                                                          }}));
+        CHECK_EQ(
+            result.errors[0],
+            (TypeError{
+                Location{Position{0, 18}, Position{0, 22}},
+                TypeMismatch{
+                    requireType("a"),
+                    builtinTypes->stringType,
+                }
+            })
+        );
     }
 }
 
@@ -732,9 +740,14 @@ TEST_CASE_FIXTURE(Fixture, "no_stack_overflow_from_isoptional")
 
     CHECK_EQ("*error-type*", toString(*t0));
 
-    auto it = std::find_if(result.errors.begin(), result.errors.end(), [](TypeError& err) {
-        return get<OccursCheckFailed>(err);
-    });
+    auto it = std::find_if(
+        result.errors.begin(),
+        result.errors.end(),
+        [](TypeError& err)
+        {
+            return get<OccursCheckFailed>(err);
+        }
+    );
     CHECK(it != result.errors.end());
 }
 
@@ -1535,7 +1548,7 @@ TEST_CASE_FIXTURE(Fixture, "typeof_cannot_refine_builtin_alias")
 
     freeze(arena);
 
-    (void) check(R"(
+    (void)check(R"(
         function foo(x)
             if typeof(x) == 'GlobalTable' then
             end
@@ -1570,6 +1583,59 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "bad_iter_metamethod")
     {
         LUAU_REQUIRE_NO_ERRORS(result);
     }
+}
+
+TEST_CASE_FIXTURE(Fixture, "leading_bar")
+{
+    CheckResult result = check(R"(
+        type Bar = | number
+    )");
+
+    LUAU_REQUIRE_NO_ERRORS(result);
+    CHECK("number" == toString(requireTypeAlias("Bar")));
+}
+
+TEST_CASE_FIXTURE(Fixture, "leading_bar_question_mark")
+{
+    CheckResult result = check(R"(
+        type Bar = |?
+    )");
+
+    LUAU_REQUIRE_ERROR_COUNT(1, result);
+    CHECK("Expected type, got '?'" == toString(result.errors[0]));
+    CHECK("*error-type*?" == toString(requireTypeAlias("Bar")));
+}
+
+TEST_CASE_FIXTURE(Fixture, "leading_ampersand")
+{
+    CheckResult result = check(R"(
+        type Amp = & string
+    )");
+
+    LUAU_REQUIRE_NO_ERRORS(result);
+    CHECK("string" == toString(requireTypeAlias("Amp")));
+}
+
+TEST_CASE_FIXTURE(Fixture, "leading_bar_no_type")
+{
+    CheckResult result = check(R"(
+        type Bar = |
+    )");
+
+    LUAU_REQUIRE_ERROR_COUNT(1, result);
+    CHECK("Expected type, got <eof>" == toString(result.errors[0]));
+    CHECK("*error-type*" == toString(requireTypeAlias("Bar")));
+}
+
+TEST_CASE_FIXTURE(Fixture, "leading_ampersand_no_type")
+{
+    CheckResult result = check(R"(
+        type Amp = &
+    )");
+
+    LUAU_REQUIRE_ERROR_COUNT(1, result);
+    CHECK("Expected type, got <eof>" == toString(result.errors[0]));
+    CHECK("*error-type*" == toString(requireTypeAlias("Amp")));
 }
 
 TEST_SUITE_END();

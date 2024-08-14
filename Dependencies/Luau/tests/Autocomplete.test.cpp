@@ -35,6 +35,7 @@ struct ACFixtureImpl : BaseType
     {
         FrontendOptions opts;
         opts.forAutocomplete = true;
+        opts.retainFullTypeGraphs = true;
         this->frontend.check("MainModule", opts);
 
         return Luau::autocomplete(this->frontend, "MainModule", Position{row, column}, nullCallback);
@@ -44,6 +45,7 @@ struct ACFixtureImpl : BaseType
     {
         FrontendOptions opts;
         opts.forAutocomplete = true;
+        opts.retainFullTypeGraphs = true;
         this->frontend.check("MainModule", opts);
 
         return Luau::autocomplete(this->frontend, "MainModule", getPosition(marker), callback);
@@ -53,6 +55,7 @@ struct ACFixtureImpl : BaseType
     {
         FrontendOptions opts;
         opts.forAutocomplete = true;
+        opts.retainFullTypeGraphs = true;
         this->frontend.check(name, opts);
 
         return Luau::autocomplete(this->frontend, name, pos, callback);
@@ -103,7 +106,8 @@ struct ACFixtureImpl : BaseType
         GlobalTypes& globals = this->frontend.globalsForAutocomplete;
         unfreeze(globals.globalTypes);
         LoadDefinitionFileResult result = this->frontend.loadDefinitionFile(
-            globals, globals.globalScope, source, "@test", /* captureComments */ false, /* typeCheckForAutocomplete */ true);
+            globals, globals.globalScope, source, "@test", /* captureComments */ false, /* typeCheckForAutocomplete */ true
+        );
         freeze(globals.globalTypes);
 
         if (FFlag::DebugLuauDeferredConstraintResolution)
@@ -111,7 +115,8 @@ struct ACFixtureImpl : BaseType
             GlobalTypes& globals = this->frontend.globals;
             unfreeze(globals.globalTypes);
             LoadDefinitionFileResult result = this->frontend.loadDefinitionFile(
-                globals, globals.globalScope, source, "@test", /* captureComments */ false, /* typeCheckForAutocomplete */ true);
+                globals, globals.globalScope, source, "@test", /* captureComments */ false, /* typeCheckForAutocomplete */ true
+            );
             freeze(globals.globalTypes);
         }
 
@@ -865,8 +870,10 @@ TEST_CASE_FIXTURE(ACFixture, "autocomplete_if_middle_keywords")
 
     auto ac1 = autocomplete('1');
     CHECK_EQ(ac1.entryMap.count("then"), 0);
-    CHECK_EQ(ac1.entryMap.count("function"),
-        1); // FIXME: This is kind of dumb.  It is technically syntactically valid but you can never do anything interesting with this.
+    CHECK_EQ(
+        ac1.entryMap.count("function"),
+        1
+    ); // FIXME: This is kind of dumb.  It is technically syntactically valid but you can never do anything interesting with this.
     CHECK_EQ(ac1.entryMap.count("table"), 1);
     CHECK_EQ(ac1.entryMap.count("else"), 0);
     CHECK_EQ(ac1.entryMap.count("elseif"), 0);
@@ -3272,9 +3279,9 @@ TEST_CASE_FIXTURE(ACFixture, "string_singleton_in_if_statement")
 // https://github.com/Roblox/luau/issues/858
 TEST_CASE_FIXTURE(ACFixture, "string_singleton_in_if_statement2")
 {
-    ScopedFastFlag sff[]{
-        {FFlag::DebugLuauDeferredConstraintResolution, true},
-    };
+    // don't run this when the DCR flag isn't set
+    if (!FFlag::DebugLuauDeferredConstraintResolution)
+        return;
 
     check(R"(
         --!strict
@@ -3556,7 +3563,11 @@ t.@1
     auto ac = autocomplete('1');
 
     REQUIRE(ac.entryMap.count("m"));
-    CHECK(!ac.entryMap["m"].wrongIndexType);
+
+    if (FFlag::DebugLuauDeferredConstraintResolution)
+        CHECK(ac.entryMap["m"].wrongIndexType);
+    else
+        CHECK(!ac.entryMap["m"].wrongIndexType);
     CHECK(!ac.entryMap["m"].indexedWithSelf);
 }
 
@@ -3681,6 +3692,8 @@ a.@1
 
     auto ac = autocomplete('1');
 
+    CHECK(2 == ac.entryMap.size());
+
     CHECK(ac.entryMap.count("x"));
     CHECK(ac.entryMap.count("y"));
 
@@ -3733,11 +3746,13 @@ TEST_CASE_FIXTURE(ACFixture, "string_contents_is_available_to_callback")
         declare function require(path: string): any
     )");
 
-    std::optional<Binding> require = frontend.globalsForAutocomplete.globalScope->linearSearchForBinding("require");
+    GlobalTypes& globals = FFlag::DebugLuauDeferredConstraintResolution ? frontend.globals : frontend.globalsForAutocomplete;
+
+    std::optional<Binding> require = globals.globalScope->linearSearchForBinding("require");
     REQUIRE(require);
-    Luau::unfreeze(frontend.globalsForAutocomplete.globalTypes);
+    Luau::unfreeze(globals.globalTypes);
     attachTag(require->typeId, "RequireCall");
-    Luau::freeze(frontend.globalsForAutocomplete.globalTypes);
+    Luau::freeze(globals.globalTypes);
 
     check(R"(
         local x = require("testing/@1")
@@ -3745,10 +3760,13 @@ TEST_CASE_FIXTURE(ACFixture, "string_contents_is_available_to_callback")
 
     bool isCorrect = false;
     auto ac1 = autocomplete(
-        '1', [&isCorrect](std::string, std::optional<const ClassType*>, std::optional<std::string> contents) -> std::optional<AutocompleteEntryMap> {
+        '1',
+        [&isCorrect](std::string, std::optional<const ClassType*>, std::optional<std::string> contents) -> std::optional<AutocompleteEntryMap>
+        {
             isCorrect = contents && *contents == "testing/";
             return std::nullopt;
-        });
+        }
+    );
 
     CHECK(isCorrect);
 }
@@ -3837,18 +3855,21 @@ TEST_CASE_FIXTURE(ACFixture, "string_completion_outside_quotes")
         declare function require(path: string): any
     )");
 
-    std::optional<Binding> require = frontend.globalsForAutocomplete.globalScope->linearSearchForBinding("require");
+    GlobalTypes& globals = FFlag::DebugLuauDeferredConstraintResolution ? frontend.globals : frontend.globalsForAutocomplete;
+
+    std::optional<Binding> require = globals.globalScope->linearSearchForBinding("require");
     REQUIRE(require);
-    Luau::unfreeze(frontend.globalsForAutocomplete.globalTypes);
+    Luau::unfreeze(globals.globalTypes);
     attachTag(require->typeId, "RequireCall");
-    Luau::freeze(frontend.globalsForAutocomplete.globalTypes);
+    Luau::freeze(globals.globalTypes);
 
     check(R"(
         local x = require(@1"@2"@3)
     )");
 
-    StringCompletionCallback callback = [](std::string, std::optional<const ClassType*>,
-                                            std::optional<std::string> contents) -> std::optional<AutocompleteEntryMap> {
+    StringCompletionCallback callback = [](std::string, std::optional<const ClassType*>, std::optional<std::string> contents
+                                        ) -> std::optional<AutocompleteEntryMap>
+    {
         Luau::AutocompleteEntryMap results = {{"test", Luau::AutocompleteEntry{Luau::AutocompleteEntryKind::String, std::nullopt, false, false}}};
         return results;
     };

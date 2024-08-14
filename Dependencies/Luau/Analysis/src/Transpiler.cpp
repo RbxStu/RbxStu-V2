@@ -28,8 +28,8 @@ bool isIdentifierChar(char c)
     return isIdentifierStartChar(c) || isDigit(c);
 }
 
-const std::vector<std::string> keywords = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil",
-    "not", "or", "repeat", "return", "then", "true", "until", "while"};
+const std::vector<std::string> keywords = {"and",   "break", "do",  "else", "elseif", "end",    "false", "for",  "function", "if",   "in",
+                                           "local", "nil",   "not", "or",   "repeat", "return", "then",  "true", "until",    "while"};
 
 } // namespace
 
@@ -844,6 +844,15 @@ struct Printer
                 visualizeTypeAnnotation(*a->type);
             }
         }
+        else if (const auto& t = program.as<AstStatTypeFunction>())
+        {
+            if (writeTypes)
+            {
+                writer.keyword("type function");
+                writer.identifier(t->name.value);
+                visualizeFunctionBody(*t->body);
+            }
+        }
         else if (const auto& a = program.as<AstStatError>())
         {
             writer.symbol("(error-stat");
@@ -1182,11 +1191,11 @@ std::string toString(AstNode* node)
     Printer printer(writer);
     printer.writeTypes = true;
 
-    if (auto statNode = dynamic_cast<AstStat*>(node))
+    if (auto statNode = node->asStat())
         printer.visualize(*statNode);
-    else if (auto exprNode = dynamic_cast<AstExpr*>(node))
+    else if (auto exprNode = node->asExpr())
         printer.visualize(*exprNode);
-    else if (auto typeNode = dynamic_cast<AstType*>(node))
+    else if (auto typeNode = node->asType())
         printer.visualizeTypeAnnotation(*typeNode);
 
     return writer.str();

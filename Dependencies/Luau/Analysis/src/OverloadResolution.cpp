@@ -5,7 +5,7 @@
 #include "Luau/Subtyping.h"
 #include "Luau/TxnLog.h"
 #include "Luau/Type.h"
-#include "Luau/TypeFamily.h"
+#include "Luau/TypeFunction.h"
 #include "Luau/TypePack.h"
 #include "Luau/TypeUtils.h"
 #include "Luau/Unifier2.h"
@@ -13,8 +13,15 @@
 namespace Luau
 {
 
-OverloadResolver::OverloadResolver(NotNull<BuiltinTypes> builtinTypes, NotNull<TypeArena> arena, NotNull<Normalizer> normalizer, NotNull<Scope> scope,
-    NotNull<InternalErrorReporter> reporter, NotNull<TypeCheckLimits> limits, Location callLocation)
+OverloadResolver::OverloadResolver(
+    NotNull<BuiltinTypes> builtinTypes,
+    NotNull<TypeArena> arena,
+    NotNull<Normalizer> normalizer,
+    NotNull<Scope> scope,
+    NotNull<InternalErrorReporter> reporter,
+    NotNull<TypeCheckLimits> limits,
+    Location callLocation
+)
     : builtinTypes(builtinTypes)
     , arena(arena)
     , normalizer(normalizer)
@@ -28,10 +35,15 @@ OverloadResolver::OverloadResolver(NotNull<BuiltinTypes> builtinTypes, NotNull<T
 
 std::pair<OverloadResolver::Analysis, TypeId> OverloadResolver::selectOverload(TypeId ty, TypePackId argsPack)
 {
-    auto tryOne = [&](TypeId f) {
+    auto tryOne = [&](TypeId f)
+    {
         if (auto ftv = get<FunctionType>(f))
         {
+            Subtyping::Variance variance = subtyping.variance;
+            subtyping.variance = Subtyping::Variance::Contravariant;
             SubtypingResult r = subtyping.isSubtype(argsPack, ftv->argTypes);
+            subtyping.variance = variance;
+
             if (r.isSubtype)
                 return true;
         }
@@ -137,7 +149,12 @@ std::optional<ErrorVec> OverloadResolver::testIsSubtype(const Location& location
 }
 
 std::pair<OverloadResolver::Analysis, ErrorVec> OverloadResolver::checkOverload(
-    TypeId fnTy, const TypePack* args, AstExpr* fnLoc, const std::vector<AstExpr*>* argExprs, bool callMetamethodOk)
+    TypeId fnTy,
+    const TypePack* args,
+    AstExpr* fnLoc,
+    const std::vector<AstExpr*>* argExprs,
+    bool callMetamethodOk
+)
 {
     fnTy = follow(fnTy);
 
@@ -173,16 +190,22 @@ bool OverloadResolver::isLiteral(AstExpr* expr)
 }
 
 std::pair<OverloadResolver::Analysis, ErrorVec> OverloadResolver::checkOverload_(
-    TypeId fnTy, const FunctionType* fn, const TypePack* args, AstExpr* fnExpr, const std::vector<AstExpr*>* argExprs)
+    TypeId fnTy,
+    const FunctionType* fn,
+    const TypePack* args,
+    AstExpr* fnExpr,
+    const std::vector<AstExpr*>* argExprs
+)
 {
-    FamilyGraphReductionResult result =
-        reduceFamilies(fnTy, callLoc, TypeFamilyContext{arena, builtinTypes, scope, normalizer, ice, limits}, /*force=*/true);
+    FunctionGraphReductionResult result =
+        reduceTypeFunctions(fnTy, callLoc, TypeFunctionContext{arena, builtinTypes, scope, normalizer, ice, limits}, /*force=*/true);
     if (!result.errors.empty())
         return {OverloadIsNonviable, result.errors};
 
     ErrorVec argumentErrors;
+    TypePackId typ = arena->addTypePack(*args);
 
-    TypeId prospectiveFunction = arena->addType(FunctionType{arena->addTypePack(*args), builtinTypes->anyTypePack});
+    TypeId prospectiveFunction = arena->addType(FunctionType{typ, builtinTypes->anyTypePack});
     SubtypingResult sr = subtyping.isSubtype(fnTy, prospectiveFunction);
 
     if (sr.isSubtype)
@@ -253,7 +276,14 @@ std::pair<OverloadResolver::Analysis, ErrorVec> OverloadResolver::checkOverload_
         if (const Luau::TypePath::Index* pathIndexComponent = get_if<Luau::TypePath::Index>(&reason.superPath.components.at(1)))
         {
             size_t nthArgument = pathIndexComponent->index;
-            argLocation = argExprs->at(nthArgument)->location;
+            // if the nth type argument to the function is less than the number of ast expressions we passed to the function
+            // we should be able to pull out the location of the argument
+            // If the nth type argument to the function is out of range of the ast expressions we passed to the function
+            // e.g. table.pack(functionThatReturnsMultipleArguments(arg1, arg2, ....)), default to the location of the last passed expression
+            // If we passed no expression arguments to the call, default to the location of the function expression.
+            argLocation = nthArgument < argExprs->size() ? argExprs->at(nthArgument)->location
+                          : argExprs->size() != 0        ? argExprs->back()->location
+                                                         : fnExpr->location;
 
             std::optional<TypeId> failedSubTy = traverseForType(fnTy, reason.subPath, builtinTypes);
             std::optional<TypeId> failedSuperTy = traverseForType(prospectiveFunction, reason.superPath, builtinTypes);
@@ -365,9 +395,17 @@ void OverloadResolver::add(Analysis analysis, TypeId ty, ErrorVec&& errors)
 
 // we wrap calling the overload resolver in a separate function to reduce overall stack pressure in `solveFunctionCall`.
 // this limits the lifetime of `OverloadResolver`, a large type, to only as long as it is actually needed.
-std::optional<TypeId> selectOverload(NotNull<BuiltinTypes> builtinTypes, NotNull<TypeArena> arena, NotNull<Normalizer> normalizer,
-    NotNull<Scope> scope, NotNull<InternalErrorReporter> iceReporter, NotNull<TypeCheckLimits> limits, const Location& location, TypeId fn,
-    TypePackId argsPack)
+std::optional<TypeId> selectOverload(
+    NotNull<BuiltinTypes> builtinTypes,
+    NotNull<TypeArena> arena,
+    NotNull<Normalizer> normalizer,
+    NotNull<Scope> scope,
+    NotNull<InternalErrorReporter> iceReporter,
+    NotNull<TypeCheckLimits> limits,
+    const Location& location,
+    TypeId fn,
+    TypePackId argsPack
+)
 {
     OverloadResolver resolver{builtinTypes, arena, normalizer, scope, iceReporter, limits, location};
     auto [status, overload] = resolver.selectOverload(fn, argsPack);
@@ -381,9 +419,17 @@ std::optional<TypeId> selectOverload(NotNull<BuiltinTypes> builtinTypes, NotNull
     return {};
 }
 
-SolveResult solveFunctionCall(NotNull<TypeArena> arena, NotNull<BuiltinTypes> builtinTypes, NotNull<Normalizer> normalizer,
-    NotNull<InternalErrorReporter> iceReporter, NotNull<TypeCheckLimits> limits, NotNull<Scope> scope, const Location& location, TypeId fn,
-    TypePackId argsPack)
+SolveResult solveFunctionCall(
+    NotNull<TypeArena> arena,
+    NotNull<BuiltinTypes> builtinTypes,
+    NotNull<Normalizer> normalizer,
+    NotNull<InternalErrorReporter> iceReporter,
+    NotNull<TypeCheckLimits> limits,
+    NotNull<Scope> scope,
+    const Location& location,
+    TypeId fn,
+    TypePackId argsPack
+)
 {
     std::optional<TypeId> overloadToUse = selectOverload(builtinTypes, arena, normalizer, scope, iceReporter, limits, location, fn, argsPack);
     if (!overloadToUse)

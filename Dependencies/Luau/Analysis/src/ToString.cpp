@@ -11,7 +11,7 @@
 #include "Luau/TypeInfer.h"
 #include "Luau/TypePack.h"
 #include "Luau/Type.h"
-#include "Luau/TypeFamily.h"
+#include "Luau/TypeFunction.h"
 #include "Luau/VisitType.h"
 #include "Luau/TypeOrPack.h"
 
@@ -20,7 +20,6 @@
 #include <string>
 
 LUAU_FASTFLAG(DebugLuauDeferredConstraintResolution)
-LUAU_FASTFLAGVARIABLE(LuauToStringiteTypesSingleLine, false)
 
 /*
  * Enables increasing levels of verbosity for Luau type names when stringifying.
@@ -101,16 +100,6 @@ struct FindCyclicTypes final : TypeVisitor
         return false;
     }
 
-    bool visit(TypeId ty, const LocalType& lt) override
-    {
-        if (!visited.insert(ty))
-            return false;
-
-        traverse(lt.domain);
-
-        return false;
-    }
-
     bool visit(TypeId ty, const TableType& ttv) override
     {
         if (!visited.insert(ty))
@@ -179,7 +168,8 @@ struct StringifierState
     DenseHashMap<TypeId, std::string> cycleNames{{}};
     DenseHashMap<TypePackId, std::string> cycleTpNames{{}};
     Set<void*> seen{{}};
-    // `$$$` was chosen as the tombstone for `usedNames` since it is not a valid name syntactically and is relatively short for string comparison reasons.
+    // `$$$` was chosen as the tombstone for `usedNames` since it is not a valid name syntactically and is relatively short for string comparison
+    // reasons.
     DenseHashSet<std::string> usedNames{"$$$"};
     size_t indentation = 0;
 
@@ -367,10 +357,12 @@ struct TypeStringifier
         }
 
         Luau::visit(
-            [this, tv](auto&& t) {
+            [this, tv](auto&& t)
+            {
                 return (*this)(tv, t);
             },
-            tv->ty);
+            tv->ty
+        );
     }
 
     void emitKey(const std::string& name)
@@ -524,21 +516,6 @@ struct TypeStringifier
             else
                 state.emit(ftv.level);
         }
-    }
-
-    void operator()(TypeId ty, const LocalType& lt)
-    {
-        state.emit("l-");
-        state.emit(lt.name);
-        if (FInt::DebugLuauVerboseTypeNames >= 1)
-        {
-            state.emit("[");
-            state.emit(lt.blockCount);
-            state.emit("]");
-        }
-        state.emit("=[");
-        stringify(lt.domain);
-        state.emit("]");
     }
 
     void operator()(TypeId, const BoundType& btv)
@@ -1057,9 +1034,9 @@ struct TypeStringifier
             state.emit(")");
     }
 
-    void operator()(TypeId, const TypeFamilyInstanceType& tfitv)
+    void operator()(TypeId, const TypeFunctionInstanceType& tfitv)
     {
-        state.emit(tfitv.family->name);
+        state.emit(tfitv.function->name);
         state.emit("<");
 
         bool comma = false;
@@ -1130,10 +1107,12 @@ struct TypePackStringifier
         }
 
         Luau::visit(
-            [this, tp](auto&& t) {
+            [this, tp](auto&& t)
+            {
                 return (*this)(tp, t);
             },
-            tp->ty);
+            tp->ty
+        );
     }
 
     void operator()(TypePackId, const TypePack& tp)
@@ -1258,9 +1237,9 @@ struct TypePackStringifier
         state.emit("*");
     }
 
-    void operator()(TypePackId, const TypeFamilyInstanceTypePack& tfitp)
+    void operator()(TypePackId, const TypeFunctionInstanceTypePack& tfitp)
     {
-        state.emit(tfitp.family->name);
+        state.emit(tfitp.function->name);
         state.emit("<");
 
         bool comma = false;
@@ -1298,8 +1277,13 @@ void TypeStringifier::stringify(TypePackId tpid, const std::vector<std::optional
     tps.stringify(tpid);
 }
 
-static void assignCycleNames(const std::set<TypeId>& cycles, const std::set<TypePackId>& cycleTPs, DenseHashMap<TypeId, std::string>& cycleNames,
-    DenseHashMap<TypePackId, std::string>& cycleTpNames, bool exhaustive)
+static void assignCycleNames(
+    const std::set<TypeId>& cycles,
+    const std::set<TypePackId>& cycleTPs,
+    DenseHashMap<TypeId, std::string>& cycleNames,
+    DenseHashMap<TypePackId, std::string>& cycleTpNames,
+    bool exhaustive
+)
 {
     int nextIndex = 1;
 
@@ -1311,9 +1295,14 @@ static void assignCycleNames(const std::set<TypeId>& cycles, const std::set<Type
         if (auto ttv = get<TableType>(follow(cycleTy)); !exhaustive && ttv && (ttv->syntheticName || ttv->name))
         {
             // If we have a cycle type in type parameters, assign a cycle name for this named table
-            if (std::find_if(ttv->instantiatedTypeParams.begin(), ttv->instantiatedTypeParams.end(), [&](auto&& el) {
-                    return cycles.count(follow(el));
-                }) != ttv->instantiatedTypeParams.end())
+            if (std::find_if(
+                    ttv->instantiatedTypeParams.begin(),
+                    ttv->instantiatedTypeParams.end(),
+                    [&](auto&& el)
+                    {
+                        return cycles.count(follow(el));
+                    }
+                ) != ttv->instantiatedTypeParams.end())
                 cycleNames[cycleTy] = ttv->name ? *ttv->name : *ttv->syntheticName;
 
             continue;
@@ -1407,9 +1396,14 @@ ToStringResult toStringDetailed(TypeId ty, ToStringOptions& opts)
     state.exhaustive = true;
 
     std::vector<std::pair<TypeId, std::string>> sortedCycleNames{state.cycleNames.begin(), state.cycleNames.end()};
-    std::sort(sortedCycleNames.begin(), sortedCycleNames.end(), [](const auto& a, const auto& b) {
-        return a.second < b.second;
-    });
+    std::sort(
+        sortedCycleNames.begin(),
+        sortedCycleNames.end(),
+        [](const auto& a, const auto& b)
+        {
+            return a.second < b.second;
+        }
+    );
 
     bool semi = false;
     for (const auto& [cycleTy, name] : sortedCycleNames)
@@ -1420,18 +1414,25 @@ ToStringResult toStringDetailed(TypeId ty, ToStringOptions& opts)
         state.emit(name);
         state.emit(" = ");
         Luau::visit(
-            [&tvs, cycleTy = cycleTy](auto&& t) {
+            [&tvs, cycleTy = cycleTy](auto&& t)
+            {
                 return tvs(cycleTy, t);
             },
-            cycleTy->ty);
+            cycleTy->ty
+        );
 
         semi = true;
     }
 
     std::vector<std::pair<TypePackId, std::string>> sortedCycleTpNames(state.cycleTpNames.begin(), state.cycleTpNames.end());
-    std::sort(sortedCycleTpNames.begin(), sortedCycleTpNames.end(), [](const auto& a, const auto& b) {
-        return a.second < b.second;
-    });
+    std::sort(
+        sortedCycleTpNames.begin(),
+        sortedCycleTpNames.end(),
+        [](const auto& a, const auto& b)
+        {
+            return a.second < b.second;
+        }
+    );
 
     TypePackStringifier tps{state};
 
@@ -1443,10 +1444,12 @@ ToStringResult toStringDetailed(TypeId ty, ToStringOptions& opts)
         state.emit(name);
         state.emit(" = ");
         Luau::visit(
-            [&tps, cycleTy = cycleTp](auto&& t) {
+            [&tps, cycleTy = cycleTp](auto&& t)
+            {
                 return tps(cycleTy, t);
             },
-            cycleTp->ty);
+            cycleTp->ty
+        );
 
         semi = true;
     }
@@ -1500,9 +1503,14 @@ ToStringResult toStringDetailed(TypePackId tp, ToStringOptions& opts)
     state.exhaustive = true;
 
     std::vector<std::pair<TypeId, std::string>> sortedCycleNames{state.cycleNames.begin(), state.cycleNames.end()};
-    std::sort(sortedCycleNames.begin(), sortedCycleNames.end(), [](const auto& a, const auto& b) {
-        return a.second < b.second;
-    });
+    std::sort(
+        sortedCycleNames.begin(),
+        sortedCycleNames.end(),
+        [](const auto& a, const auto& b)
+        {
+            return a.second < b.second;
+        }
+    );
 
     bool semi = false;
     for (const auto& [cycleTy, name] : sortedCycleNames)
@@ -1513,18 +1521,25 @@ ToStringResult toStringDetailed(TypePackId tp, ToStringOptions& opts)
         state.emit(name);
         state.emit(" = ");
         Luau::visit(
-            [&tvs, cycleTy = cycleTy](auto t) {
+            [&tvs, cycleTy = cycleTy](auto t)
+            {
                 return tvs(cycleTy, t);
             },
-            cycleTy->ty);
+            cycleTy->ty
+        );
 
         semi = true;
     }
 
     std::vector<std::pair<TypePackId, std::string>> sortedCycleTpNames{state.cycleTpNames.begin(), state.cycleTpNames.end()};
-    std::sort(sortedCycleTpNames.begin(), sortedCycleTpNames.end(), [](const auto& a, const auto& b) {
-        return a.second < b.second;
-    });
+    std::sort(
+        sortedCycleTpNames.begin(),
+        sortedCycleTpNames.end(),
+        [](const auto& a, const auto& b)
+        {
+            return a.second < b.second;
+        }
+    );
 
     TypePackStringifier tps{tvs.state};
 
@@ -1536,10 +1551,12 @@ ToStringResult toStringDetailed(TypePackId tp, ToStringOptions& opts)
         state.emit(name);
         state.emit(" = ");
         Luau::visit(
-            [&tps, cycleTp = cycleTp](auto t) {
+            [&tps, cycleTp = cycleTp](auto t)
+            {
                 return tps(cycleTp, t);
             },
-            cycleTp->ty);
+            cycleTp->ty
+        );
 
         semi = true;
     }
@@ -1725,12 +1742,26 @@ std::string generateName(size_t i)
     return n;
 }
 
+std::string toStringVector(const std::vector<TypeId>& types, ToStringOptions& opts)
+{
+    std::string s;
+    for (TypeId ty : types)
+    {
+        if (!s.empty())
+            s += ", ";
+        s += toString(ty, opts);
+    }
+    return s;
+}
+
 std::string toString(const Constraint& constraint, ToStringOptions& opts)
 {
-    auto go = [&opts](auto&& c) -> std::string {
+    auto go = [&opts](auto&& c) -> std::string
+    {
         using T = std::decay_t<decltype(c)>;
 
-        auto tos = [&opts](auto&& a) {
+        auto tos = [&opts](auto&& a)
+        {
             return toString(a, opts);
         };
 
@@ -1755,7 +1786,7 @@ std::string toString(const Constraint& constraint, ToStringOptions& opts)
         else if constexpr (std::is_same_v<T, IterableConstraint>)
         {
             std::string iteratorStr = tos(c.iterator);
-            std::string variableStr = tos(c.variables);
+            std::string variableStr = toStringVector(c.variables, opts);
 
             return variableStr + " ~ iterate " + iteratorStr;
         }
@@ -1788,23 +1819,16 @@ std::string toString(const Constraint& constraint, ToStringOptions& opts)
         {
             return tos(c.resultType) + " ~ hasProp " + tos(c.subjectType) + ", \"" + c.prop + "\" ctx=" + std::to_string(int(c.context));
         }
-        else if constexpr (std::is_same_v<T, SetPropConstraint>)
-        {
-            const std::string pathStr = c.path.size() == 1 ? "\"" + c.path[0] + "\"" : "[\"" + join(c.path, "\", \"") + "\"]";
-            return tos(c.resultType) + " ~ setProp " + tos(c.subjectType) + ", " + pathStr + " " + tos(c.propType);
-        }
         else if constexpr (std::is_same_v<T, HasIndexerConstraint>)
         {
             return tos(c.resultType) + " ~ hasIndexer " + tos(c.subjectType) + " " + tos(c.indexType);
         }
-        else if constexpr (std::is_same_v<T, SetIndexerConstraint>)
-        {
-            return "setIndexer " + tos(c.subjectType) + " [ " + tos(c.indexType) + " ] " + tos(c.propType);
-        }
+        else if constexpr (std::is_same_v<T, AssignPropConstraint>)
+            return "assignProp " + tos(c.lhsType) + " " + c.propName + " " + tos(c.rhsType);
+        else if constexpr (std::is_same_v<T, AssignIndexConstraint>)
+            return "assignIndex " + tos(c.lhsType) + " " + tos(c.indexType) + " " + tos(c.rhsType);
         else if constexpr (std::is_same_v<T, UnpackConstraint>)
-            return tos(c.resultPack) + " ~ ...unpack " + tos(c.sourcePack);
-        else if constexpr (std::is_same_v<T, Unpack1Constraint>)
-            return tos(c.resultType) + " ~ unpack " + tos(c.sourceType);
+            return toStringVector(c.resultPack, opts) + " ~ ...unpack " + tos(c.sourcePack);
         else if constexpr (std::is_same_v<T, ReduceConstraint>)
             return "reduce " + tos(c.ty);
         else if constexpr (std::is_same_v<T, ReducePackConstraint>)

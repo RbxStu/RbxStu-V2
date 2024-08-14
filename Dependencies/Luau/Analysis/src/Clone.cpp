@@ -227,19 +227,23 @@ private:
     void cloneChildren(TypeId ty)
     {
         return visit(
-            [&](auto&& t) {
+            [&](auto&& t)
+            {
                 return cloneChildren(&t);
             },
-            asMutable(ty)->ty);
+            asMutable(ty)->ty
+        );
     }
 
     void cloneChildren(TypePackId tp)
     {
         return visit(
-            [&](auto&& t) {
+            [&](auto&& t)
+            {
                 return cloneChildren(&t);
             },
-            asMutable(tp)->ty);
+            asMutable(tp)->ty
+        );
     }
 
     void cloneChildren(Kind kind)
@@ -269,11 +273,6 @@ private:
             t->lowerBound = shallowClone(t->lowerBound);
         if (t->upperBound)
             t->upperBound = shallowClone(t->upperBound);
-    }
-
-    void cloneChildren(LocalType* t)
-    {
-        t->domain = shallowClone(t->domain);
     }
 
     void cloneChildren(GenericType* t)
@@ -393,7 +392,7 @@ private:
         t->ty = shallowClone(t->ty);
     }
 
-    void cloneChildren(TypeFamilyInstanceType* t)
+    void cloneChildren(TypeFunctionInstanceType* t)
     {
         for (TypeId& ty : t->typeArguments)
             ty = shallowClone(ty);
@@ -437,7 +436,7 @@ private:
             t->tail = shallowClone(*t->tail);
     }
 
-    void cloneChildren(TypeFamilyInstanceTypePack* t)
+    void cloneChildren(TypeFunctionInstanceTypePack* t)
     {
         for (TypeId& ty : t->typeArguments)
             ty = shallowClone(ty);

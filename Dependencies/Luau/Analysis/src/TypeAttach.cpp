@@ -9,7 +9,7 @@
 #include "Luau/TypeInfer.h"
 #include "Luau/TypePack.h"
 #include "Luau/Type.h"
-#include "Luau/TypeFamily.h"
+#include "Luau/TypeFunction.h"
 
 #include <string>
 
@@ -166,7 +166,8 @@ public:
             }
 
             return allocator->alloc<AstTypeReference>(
-                Location(), std::nullopt, AstName(ttv.name->c_str()), std::nullopt, Location(), parameters.size != 0, parameters);
+                Location(), std::nullopt, AstName(ttv.name->c_str()), std::nullopt, Location(), parameters.size != 0, parameters
+            );
         }
 
         if (hasSeen(&ttv))
@@ -319,7 +320,8 @@ public:
             retTailAnnotation = rehydrate(*retTail);
 
         return allocator->alloc<AstTypeFunction>(
-            Location(), generics, genericPacks, AstTypeList{argTypes, argTailAnnotation}, argNames, AstTypeList{returnTypes, retTailAnnotation});
+            Location(), generics, genericPacks, AstTypeList{argTypes, argTailAnnotation}, argNames, AstTypeList{returnTypes, retTailAnnotation}
+        );
     }
     AstType* operator()(const Unifiable::Error&)
     {
@@ -328,7 +330,8 @@ public:
     AstType* operator()(const GenericType& gtv)
     {
         return allocator->alloc<AstTypeReference>(
-            Location(), std::nullopt, AstName(getName(allocator, syntheticNames, gtv)), std::nullopt, Location());
+            Location(), std::nullopt, AstName(getName(allocator, syntheticNames, gtv)), std::nullopt, Location()
+        );
     }
     AstType* operator()(const Unifiable::Bound<TypeId>& bound)
     {
@@ -337,10 +340,6 @@ public:
     AstType* operator()(const FreeType& ft)
     {
         return allocator->alloc<AstTypeReference>(Location(), std::nullopt, AstName("free"), std::nullopt, Location());
-    }
-    AstType* operator()(const LocalType& lt)
-    {
-        return Luau::visit(*this, lt.domain->ty);
     }
     AstType* operator()(const UnionType& uv)
     {
@@ -384,9 +383,9 @@ public:
         // FIXME: do the same thing we do with ErrorType
         throw InternalCompilerError("Cannot convert NegationType into AstNode");
     }
-    AstType* operator()(const TypeFamilyInstanceType& tfit)
+    AstType* operator()(const TypeFunctionInstanceType& tfit)
     {
-        return allocator->alloc<AstTypeReference>(Location(), std::nullopt, AstName{tfit.family->name.c_str()}, std::nullopt, Location());
+        return allocator->alloc<AstTypeReference>(Location(), std::nullopt, AstName{tfit.function->name.c_str()}, std::nullopt, Location());
     }
 
 private:
@@ -458,9 +457,9 @@ public:
         return allocator->alloc<AstTypePackGeneric>(Location(), AstName("Unifiable<Error>"));
     }
 
-    AstTypePack* operator()(const TypeFamilyInstanceTypePack& tfitp) const
+    AstTypePack* operator()(const TypeFunctionInstanceTypePack& tfitp) const
     {
-        return allocator->alloc<AstTypePackGeneric>(Location(), AstName(tfitp.family->name.c_str()));
+        return allocator->alloc<AstTypePackGeneric>(Location(), AstName(tfitp.function->name.c_str()));
     }
 
 private:

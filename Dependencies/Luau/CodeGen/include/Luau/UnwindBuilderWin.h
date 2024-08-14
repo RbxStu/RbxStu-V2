@@ -50,13 +50,17 @@ public:
     void finishInfo() override;
 
     void prologueA64(uint32_t prologueSize, uint32_t stackSize, std::initializer_list<A64::RegisterA64> regs) override;
-    void prologueX64(uint32_t prologueSize, uint32_t stackSize, bool setupFrame, std::initializer_list<X64::RegisterX64> gpr,
-        const std::vector<X64::RegisterX64>& simd) override;
+    void prologueX64(
+        uint32_t prologueSize,
+        uint32_t stackSize,
+        bool setupFrame,
+        std::initializer_list<X64::RegisterX64> gpr,
+        const std::vector<X64::RegisterX64>& simd
+    ) override;
 
-    size_t getSize() const override;
-    size_t getFunctionCount() const override;
+    size_t getUnwindInfoSize(size_t blockSize = 0) const override;
 
-    void finalize(char* target, size_t offset, void* funcAddress, size_t funcSize) const override;
+    size_t finalize(char* target, size_t offset, void* funcAddress, size_t blockSize) const override;
 
 private:
     size_t beginOffset = 0;

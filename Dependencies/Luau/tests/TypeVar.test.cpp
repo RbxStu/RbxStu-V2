@@ -292,8 +292,14 @@ TEST_CASE_FIXTURE(Fixture, "substitution_skip_failure")
     TypeId root = &ttvTweenResult;
 
     ModulePtr currentModule = std::make_shared<Module>();
-    Anyification anyification(&currentModule->internalTypes, frontend.globals.globalScope, builtinTypes, &frontend.iceHandler, builtinTypes->anyType,
-        builtinTypes->anyTypePack);
+    Anyification anyification(
+        &currentModule->internalTypes,
+        frontend.globals.globalScope,
+        builtinTypes,
+        &frontend.iceHandler,
+        builtinTypes->anyType,
+        builtinTypes->anyTypePack
+    );
     std::optional<TypeId> any = anyification.substitute(root);
 
     REQUIRE(!anyification.normalizationTooComplex);
@@ -314,7 +320,7 @@ TEST_CASE("tagging_tables")
 
 TEST_CASE("tagging_classes")
 {
-    Type base{ClassType{"Base", {}, std::nullopt, std::nullopt, {}, nullptr, "Test"}};
+    Type base{ClassType{"Base", {}, std::nullopt, std::nullopt, {}, nullptr, "Test", {}}};
     CHECK(!Luau::hasTag(&base, "foo"));
     Luau::attachTag(&base, "foo");
     CHECK(Luau::hasTag(&base, "foo"));
@@ -322,8 +328,8 @@ TEST_CASE("tagging_classes")
 
 TEST_CASE("tagging_subclasses")
 {
-    Type base{ClassType{"Base", {}, std::nullopt, std::nullopt, {}, nullptr, "Test"}};
-    Type derived{ClassType{"Derived", {}, &base, std::nullopt, {}, nullptr, "Test"}};
+    Type base{ClassType{"Base", {}, std::nullopt, std::nullopt, {}, nullptr, "Test", {}}};
+    Type derived{ClassType{"Derived", {}, &base, std::nullopt, {}, nullptr, "Test", {}}};
 
     CHECK(!Luau::hasTag(&base, "foo"));
     CHECK(!Luau::hasTag(&derived, "foo"));

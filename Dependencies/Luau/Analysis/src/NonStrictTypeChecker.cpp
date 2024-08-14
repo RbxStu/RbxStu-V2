@@ -9,8 +9,9 @@
 #include "Luau/Subtyping.h"
 #include "Luau/Normalize.h"
 #include "Luau/Error.h"
+#include "Luau/TimeTrace.h"
 #include "Luau/TypeArena.h"
-#include "Luau/TypeFamily.h"
+#include "Luau/TypeFunction.h"
 #include "Luau/Def.h"
 #include "Luau/ToString.h"
 #include "Luau/TypeFwd.h"
@@ -68,7 +69,11 @@ struct NonStrictContext
     NonStrictContext& operator=(NonStrictContext&&) = default;
 
     static NonStrictContext disjunction(
-        NotNull<BuiltinTypes> builtinTypes, NotNull<TypeArena> arena, const NonStrictContext& left, const NonStrictContext& right)
+        NotNull<BuiltinTypes> builtinTypes,
+        NotNull<TypeArena> arena,
+        const NonStrictContext& left,
+        const NonStrictContext& right
+    )
     {
         // disjunction implements union over the domain of keys
         // if the default value for a defId not in the map is `never`
@@ -93,7 +98,11 @@ struct NonStrictContext
     }
 
     static NonStrictContext conjunction(
-        NotNull<BuiltinTypes> builtins, NotNull<TypeArena> arena, const NonStrictContext& left, const NonStrictContext& right)
+        NotNull<BuiltinTypes> builtins,
+        NotNull<TypeArena> arena,
+        const NonStrictContext& left,
+        const NonStrictContext& right
+    )
     {
         NonStrictContext conj{};
 
@@ -153,14 +162,21 @@ struct NonStrictTypeChecker
     Normalizer normalizer;
     Subtyping subtyping;
     NotNull<const DataFlowGraph> dfg;
-    DenseHashSet<TypeId> noTypeFamilyErrors{nullptr};
+    DenseHashSet<TypeId> noTypeFunctionErrors{nullptr};
     std::vector<NotNull<Scope>> stack;
     DenseHashMap<TypeId, TypeId> cachedNegations{nullptr};
 
     const NotNull<TypeCheckLimits> limits;
 
-    NonStrictTypeChecker(NotNull<TypeArena> arena, NotNull<BuiltinTypes> builtinTypes, const NotNull<InternalErrorReporter> ice,
-        NotNull<UnifierSharedState> unifierState, NotNull<const DataFlowGraph> dfg, NotNull<TypeCheckLimits> limits, Module* module)
+    NonStrictTypeChecker(
+        NotNull<TypeArena> arena,
+        NotNull<BuiltinTypes> builtinTypes,
+        const NotNull<InternalErrorReporter> ice,
+        NotNull<UnifierSharedState> unifierState,
+        NotNull<const DataFlowGraph> dfg,
+        NotNull<TypeCheckLimits> limits,
+        Module* module
+    )
         : builtinTypes(builtinTypes)
         , ice(ice)
         , arena(arena)
@@ -206,16 +222,17 @@ struct NonStrictTypeChecker
     }
 
 
-    TypeId checkForFamilyInhabitance(TypeId instance, Location location)
+    TypeId checkForTypeFunctionInhabitance(TypeId instance, Location location)
     {
-        if (noTypeFamilyErrors.find(instance))
+        if (noTypeFunctionErrors.find(instance))
             return instance;
 
         ErrorVec errors =
-            reduceFamilies(instance, location, TypeFamilyContext{arena, builtinTypes, stack.back(), NotNull{&normalizer}, ice, limits}, true).errors;
+            reduceTypeFunctions(instance, location, TypeFunctionContext{arena, builtinTypes, stack.back(), NotNull{&normalizer}, ice, limits}, true)
+                .errors;
 
         if (errors.empty())
-            noTypeFamilyErrors.insert(instance);
+            noTypeFunctionErrors.insert(instance);
         // TODO??
         // if (!isErrorSuppressing(location, instance))
         //     reportErrors(std::move(errors));
@@ -227,11 +244,11 @@ struct NonStrictTypeChecker
     {
         TypeId* ty = module->astTypes.find(expr);
         if (ty)
-            return checkForFamilyInhabitance(follow(*ty), expr->location);
+            return checkForTypeFunctionInhabitance(follow(*ty), expr->location);
 
         TypePackId* tp = module->astTypePacks.find(expr);
         if (tp)
-            return checkForFamilyInhabitance(flattenPack(*tp), expr->location);
+            return checkForTypeFunctionInhabitance(flattenPack(*tp), expr->location);
         return builtinTypes->anyType;
     }
 
@@ -270,6 +287,8 @@ struct NonStrictTypeChecker
             return visit(s);
         else if (auto s = stat->as<AstStatTypeAlias>())
             return visit(s);
+        else if (auto f = stat->as<AstStatTypeFunction>())
+            return visit(f);
         else if (auto s = stat->as<AstStatDeclareFunction>())
             return visit(s);
         else if (auto s = stat->as<AstStatDeclareGlobal>())
@@ -391,6 +410,12 @@ struct NonStrictTypeChecker
 
     NonStrictContext visit(AstStatTypeAlias* typeAlias)
     {
+        return {};
+    }
+
+    NonStrictContext visit(AstStatTypeFunction* typeFunc)
+    {
+        reportError(GenericError{"This syntax is not supported"}, typeFunc->location);
         return {};
     }
 
@@ -725,9 +750,18 @@ private:
     };
 };
 
-void checkNonStrict(NotNull<BuiltinTypes> builtinTypes, NotNull<InternalErrorReporter> ice, NotNull<UnifierSharedState> unifierState,
-    NotNull<const DataFlowGraph> dfg, NotNull<TypeCheckLimits> limits, const SourceModule& sourceModule, Module* module)
+void checkNonStrict(
+    NotNull<BuiltinTypes> builtinTypes,
+    NotNull<InternalErrorReporter> ice,
+    NotNull<UnifierSharedState> unifierState,
+    NotNull<const DataFlowGraph> dfg,
+    NotNull<TypeCheckLimits> limits,
+    const SourceModule& sourceModule,
+    Module* module
+)
 {
+    LUAU_TIMETRACE_SCOPE("checkNonStrict", "Typechecking");
+
     NonStrictTypeChecker typeChecker{NotNull{&module->internalTypes}, builtinTypes, ice, unifierState, dfg, limits, module};
     typeChecker.visit(sourceModule.root);
     unfreeze(module->interfaceTypes);

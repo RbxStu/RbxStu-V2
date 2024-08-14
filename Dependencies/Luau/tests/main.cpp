@@ -18,7 +18,7 @@
 #include <windows.h> // IsDebuggerPresent
 #endif
 
-#if defined(__x86_64__) || defined(_M_X64)
+#if defined(CODEGEN_TARGET_X64)
 #include <immintrin.h>
 #endif
 
@@ -49,6 +49,9 @@ static bool skipFastFlag(const char* flagName)
         return true;
 
     if (strncmp(flagName, "Debug", 5) == 0)
+        return true;
+
+    if (strcmp(flagName, "StudioReportLuauAny") == 0)
         return true;
 
     return false;
@@ -202,12 +205,24 @@ struct TeamCityReporter : doctest::IReporter
 
     void test_case_end(const doctest::CurrentTestCaseStats& in) override
     {
-        printf("##teamcity[testMetadata testName='%s: %s' name='total_asserts' type='number' value='%d']\n", currentTest->m_test_suite,
-            currentTest->m_name, in.numAssertsCurrentTest);
-        printf("##teamcity[testMetadata testName='%s: %s' name='failed_asserts' type='number' value='%d']\n", currentTest->m_test_suite,
-            currentTest->m_name, in.numAssertsFailedCurrentTest);
-        printf("##teamcity[testMetadata testName='%s: %s' name='runtime' type='number' value='%f']\n", currentTest->m_test_suite, currentTest->m_name,
-            in.seconds);
+        printf(
+            "##teamcity[testMetadata testName='%s: %s' name='total_asserts' type='number' value='%d']\n",
+            currentTest->m_test_suite,
+            currentTest->m_name,
+            in.numAssertsCurrentTest
+        );
+        printf(
+            "##teamcity[testMetadata testName='%s: %s' name='failed_asserts' type='number' value='%d']\n",
+            currentTest->m_test_suite,
+            currentTest->m_name,
+            in.numAssertsFailedCurrentTest
+        );
+        printf(
+            "##teamcity[testMetadata testName='%s: %s' name='runtime' type='number' value='%f']\n",
+            currentTest->m_test_suite,
+            currentTest->m_name,
+            in.seconds
+        );
 
         if (!in.testCaseSuccess)
             printf("##teamcity[testFailed name='%s: %s']\n", currentTest->m_test_suite, currentTest->m_name);
@@ -217,8 +232,12 @@ struct TeamCityReporter : doctest::IReporter
 
     void test_case_exception(const doctest::TestCaseException& in) override
     {
-        printf("##teamcity[testFailed name='%s: %s' message='Unhandled exception' details='%s']\n", currentTest->m_test_suite, currentTest->m_name,
-            in.error_string.c_str());
+        printf(
+            "##teamcity[testFailed name='%s: %s' message='Unhandled exception' details='%s']\n",
+            currentTest->m_test_suite,
+            currentTest->m_name,
+            in.error_string.c_str()
+        );
     }
 
     void subcase_start(const doctest::SubcaseSignature& /*in*/) override {}
@@ -330,7 +349,7 @@ static void setFastFlags(const std::vector<doctest::String>& flags)
 // This function performs system/architecture specific initialization prior to running tests.
 static void initSystem()
 {
-#if defined(__x86_64__) || defined(_M_X64)
+#if defined(CODEGEN_TARGET_X64)
     // Some unit tests make use of denormalized numbers.  So flags to flush to zero or treat denormals as zero
     // must be disabled for expected behavior.
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_OFF);

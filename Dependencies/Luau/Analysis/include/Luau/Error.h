@@ -194,6 +194,11 @@ struct InternalError
     bool operator==(const InternalError& rhs) const;
 };
 
+struct ConstraintSolvingIncompleteError
+{
+    bool operator==(const ConstraintSolvingIncompleteError& rhs) const;
+};
+
 struct CannotCallNonFunction
 {
     TypeId ty;
@@ -334,11 +339,11 @@ struct DynamicPropertyLookupOnClassesUnsafe
     bool operator==(const DynamicPropertyLookupOnClassesUnsafe& rhs) const;
 };
 
-struct UninhabitedTypeFamily
+struct UninhabitedTypeFunction
 {
     TypeId ty;
 
-    bool operator==(const UninhabitedTypeFamily& rhs) const;
+    bool operator==(const UninhabitedTypeFunction& rhs) const;
 };
 
 struct ExplicitFunctionAnnotationRecommended
@@ -348,11 +353,11 @@ struct ExplicitFunctionAnnotationRecommended
     bool operator==(const ExplicitFunctionAnnotationRecommended& rhs) const;
 };
 
-struct UninhabitedTypePackFamily
+struct UninhabitedTypePackFunction
 {
     TypePackId tp;
 
-    bool operator==(const UninhabitedTypePackFamily& rhs) const;
+    bool operator==(const UninhabitedTypePackFunction& rhs) const;
 };
 
 struct WhereClauseNeeded
@@ -443,15 +448,55 @@ struct UnexpectedTypePackInSubtyping
     bool operator==(const UnexpectedTypePackInSubtyping& rhs) const;
 };
 
-using TypeErrorData =
-    Variant<TypeMismatch, UnknownSymbol, UnknownProperty, NotATable, CannotExtendTable, OnlyTablesCanHaveMethods, DuplicateTypeDefinition,
-        CountMismatch, FunctionDoesNotTakeSelf, FunctionRequiresSelf, OccursCheckFailed, UnknownRequire, IncorrectGenericParameterCount, SyntaxError,
-        CodeTooComplex, UnificationTooComplex, UnknownPropButFoundLikeProp, GenericError, InternalError, CannotCallNonFunction, ExtraInformation,
-        DeprecatedApiUsed, ModuleHasCyclicDependency, IllegalRequire, FunctionExitsWithoutReturning, DuplicateGenericParameter, CannotAssignToNever,
-        CannotInferBinaryOperation, MissingProperties, SwappedGenericTypeParameter, OptionalValueAccess, MissingUnionProperty, TypesAreUnrelated,
-        NormalizationTooComplex, TypePackMismatch, DynamicPropertyLookupOnClassesUnsafe, UninhabitedTypeFamily, UninhabitedTypePackFamily,
-        WhereClauseNeeded, PackWhereClauseNeeded, CheckedFunctionCallError, NonStrictFunctionDefinitionError, PropertyAccessViolation,
-        CheckedFunctionIncorrectArgs, UnexpectedTypeInSubtyping, UnexpectedTypePackInSubtyping, ExplicitFunctionAnnotationRecommended>;
+using TypeErrorData = Variant<
+    TypeMismatch,
+    UnknownSymbol,
+    UnknownProperty,
+    NotATable,
+    CannotExtendTable,
+    OnlyTablesCanHaveMethods,
+    DuplicateTypeDefinition,
+    CountMismatch,
+    FunctionDoesNotTakeSelf,
+    FunctionRequiresSelf,
+    OccursCheckFailed,
+    UnknownRequire,
+    IncorrectGenericParameterCount,
+    SyntaxError,
+    CodeTooComplex,
+    UnificationTooComplex,
+    UnknownPropButFoundLikeProp,
+    GenericError,
+    InternalError,
+    ConstraintSolvingIncompleteError,
+    CannotCallNonFunction,
+    ExtraInformation,
+    DeprecatedApiUsed,
+    ModuleHasCyclicDependency,
+    IllegalRequire,
+    FunctionExitsWithoutReturning,
+    DuplicateGenericParameter,
+    CannotAssignToNever,
+    CannotInferBinaryOperation,
+    MissingProperties,
+    SwappedGenericTypeParameter,
+    OptionalValueAccess,
+    MissingUnionProperty,
+    TypesAreUnrelated,
+    NormalizationTooComplex,
+    TypePackMismatch,
+    DynamicPropertyLookupOnClassesUnsafe,
+    UninhabitedTypeFunction,
+    UninhabitedTypePackFunction,
+    WhereClauseNeeded,
+    PackWhereClauseNeeded,
+    CheckedFunctionCallError,
+    NonStrictFunctionDefinitionError,
+    PropertyAccessViolation,
+    CheckedFunctionIncorrectArgs,
+    UnexpectedTypeInSubtyping,
+    UnexpectedTypePackInSubtyping,
+    ExplicitFunctionAnnotationRecommended>;
 
 struct TypeErrorSummary
 {

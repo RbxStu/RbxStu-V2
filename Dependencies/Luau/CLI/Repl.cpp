@@ -144,7 +144,10 @@ static int lua_require(lua_State* L)
     if (luau_load(ML, resolvedRequire.chunkName.c_str(), bytecode.data(), bytecode.size(), 0) == 0)
     {
         if (codegen)
-            Luau::CodeGen::compile(ML, -1);
+        {
+            Luau::CodeGen::CompilationOptions nativeOptions;
+            Luau::CodeGen::compile(ML, -1, nativeOptions);
+        }
 
         if (coverageActive())
             coverageTrack(ML, -1);
@@ -253,12 +256,16 @@ void setupState(lua_State* L)
 
 void setupArguments(lua_State* L, int argc, char** argv)
 {
+    lua_checkstack(L, argc);
+
     for (int i = 0; i < argc; ++i)
         lua_pushstring(L, argv[i]);
 }
 
 std::string runCode(lua_State* L, const std::string& source)
 {
+    lua_checkstack(L, LUA_MINSTACK);
+
     std::string bytecode = Luau::compile(source, copts());
 
     if (luau_load(L, "=stdin", bytecode.data(), bytecode.size(), 0) != 0)
@@ -381,8 +388,13 @@ static void safeGetTable(lua_State* L, int tableIndex)
 
 // completePartialMatches finds keys that match the specified 'prefix'
 // Note: the table/object to be searched must be on the top of the Lua stack
-static void completePartialMatches(lua_State* L, bool completeOnlyFunctions, const std::string& editBuffer, std::string_view prefix,
-    const AddCompletionCallback& addCompletionCallback)
+static void completePartialMatches(
+    lua_State* L,
+    bool completeOnlyFunctions,
+    const std::string& editBuffer,
+    std::string_view prefix,
+    const AddCompletionCallback& addCompletionCallback
+)
 {
     for (int i = 0; i < MaxTraversalLimit && lua_istable(L, -1); i++)
     {
@@ -429,6 +441,8 @@ static void completeIndexer(lua_State* L, const std::string& editBuffer, const A
     std::string_view lookup = editBuffer;
     bool completeOnlyFunctions = false;
 
+    lua_checkstack(L, LUA_MINSTACK);
+
     // Push the global variable table to begin the search
     lua_pushvalue(L, LUA_GLOBALSINDEX);
 
@@ -474,9 +488,14 @@ static void icGetCompletions(ic_completion_env_t* cenv, const char* editBuffer)
 {
     auto* L = reinterpret_cast<lua_State*>(ic_completion_arg(cenv));
 
-    getCompletions(L, std::string(editBuffer), [cenv](const std::string& completion, const std::string& display) {
-        ic_add_completion_ex(cenv, completion.data(), display.data(), nullptr);
-    });
+    getCompletions(
+        L,
+        std::string(editBuffer),
+        [cenv](const std::string& completion, const std::string& display)
+        {
+            ic_add_completion_ex(cenv, completion.data(), display.data(), nullptr);
+        }
+    );
 }
 
 static bool isMethodOrFunctionChar(const char* s, long len)
@@ -602,7 +621,10 @@ static bool runFile(const char* name, lua_State* GL, bool repl)
     if (luau_load(L, chunkname.c_str(), bytecode.data(), bytecode.size(), 0) == 0)
     {
         if (codegen)
-            Luau::CodeGen::compile(L, -1);
+        {
+            Luau::CodeGen::CompilationOptions nativeOptions;
+            Luau::CodeGen::compile(L, -1, nativeOptions);
+        }
 
         if (coverageActive())
             coverageTrack(L, -1);
@@ -776,9 +798,13 @@ int replMain(int argc, char** argv)
         // note, there's no need to close the log explicitly as it will be closed when the process exits
         FILE* codegenPerfLog = fopen(path, "w");
 
-        Luau::CodeGen::setPerfLog(codegenPerfLog, [](void* context, uintptr_t addr, unsigned size, const char* symbol) {
-            fprintf(static_cast<FILE*>(context), "%016lx %08x %s\n", long(addr), size, symbol);
-        });
+        Luau::CodeGen::setPerfLog(
+            codegenPerfLog,
+            [](void* context, uintptr_t addr, unsigned size, const char* symbol)
+            {
+                fprintf(static_cast<FILE*>(context), "%016lx %08x %s\n", long(addr), size, symbol);
+            }
+        );
 #else
         fprintf(stderr, "--codegen-perf option is only supported on Linux\n");
         return 1;

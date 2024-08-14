@@ -5,6 +5,7 @@
 #include "Luau/Def.h"
 #include "Luau/Common.h"
 #include "Luau/Error.h"
+#include "Luau/TimeTrace.h"
 
 #include <optional>
 
@@ -136,6 +137,8 @@ bool DfgScope::canUpdateDefinition(DefId def, const std::string& key) const
 
 DataFlowGraph DataFlowGraphBuilder::build(AstStatBlock* block, NotNull<InternalErrorReporter> handle)
 {
+    LUAU_TIMETRACE_SCOPE("DataFlowGraphBuilder::build", "Typechecking");
+
     LUAU_ASSERT(FFlag::DebugLuauDeferredConstraintResolution);
 
     DataFlowGraphBuilder builder;
@@ -201,7 +204,8 @@ void DataFlowGraphBuilder::joinBindings(DfgScope* p, const DfgScope& a, const Df
 
 void DataFlowGraphBuilder::joinProps(DfgScope* result, const DfgScope& a, const DfgScope& b)
 {
-    auto phinodify = [this](DfgScope* scope, const auto& a, const auto& b, DefId parent) mutable {
+    auto phinodify = [this](DfgScope* scope, const auto& a, const auto& b, DefId parent) mutable
+    {
         auto& p = scope->props[parent];
         for (const auto& [k, defA] : a)
         {
@@ -370,6 +374,8 @@ ControlFlow DataFlowGraphBuilder::visit(DfgScope* scope, AstStat* s)
         return visit(scope, l);
     else if (auto t = s->as<AstStatTypeAlias>())
         return visit(scope, t);
+    else if (auto f = s->as<AstStatTypeFunction>())
+        return visit(scope, f);
     else if (auto d = s->as<AstStatDeclareGlobal>())
         return visit(scope, d);
     else if (auto d = s->as<AstStatDeclareFunction>())
@@ -628,6 +634,14 @@ ControlFlow DataFlowGraphBuilder::visit(DfgScope* scope, AstStatTypeAlias* t)
     return ControlFlow::None;
 }
 
+ControlFlow DataFlowGraphBuilder::visit(DfgScope* scope, AstStatTypeFunction* f)
+{
+    DfgScope* unreachable = childScope(scope);
+    visitExpr(unreachable, f->body);
+
+    return ControlFlow::None;
+}
+
 ControlFlow DataFlowGraphBuilder::visit(DfgScope* scope, AstStatDeclareGlobal* d)
 {
     DefId def = defArena->freshCell();
@@ -688,7 +702,8 @@ DataFlowResult DataFlowGraphBuilder::visitExpr(DfgScope* scope, AstExpr* e)
         return {NotNull{*def}, key ? *key : nullptr};
     }
 
-    auto go = [&]() -> DataFlowResult {
+    auto go = [&]() -> DataFlowResult
+    {
         if (auto g = e->as<AstExprGroup>())
             return visitExpr(scope, g);
         else if (auto c = e->as<AstExprConstantNil>())
@@ -763,7 +778,8 @@ DataFlowResult DataFlowGraphBuilder::visitExpr(DfgScope* scope, AstExprCall* c)
     for (AstExpr* arg : c->args)
         visitExpr(scope, arg);
 
-    return {defArena->freshCell(), nullptr};
+    // calls should be treated as subscripted.
+    return {defArena->freshCell(/* subscripted */ true), nullptr};
 }
 
 DataFlowResult DataFlowGraphBuilder::visitExpr(DfgScope* scope, AstExprIndexName* i)
@@ -906,7 +922,8 @@ DataFlowResult DataFlowGraphBuilder::visitExpr(DfgScope* scope, AstExprError* er
 
 void DataFlowGraphBuilder::visitLValue(DfgScope* scope, AstExpr* e, DefId incomingDef, bool isCompoundAssignment)
 {
-    auto go = [&]() {
+    auto go = [&]()
+    {
         if (auto l = e->as<AstExprLocal>())
             return visitLValue(scope, l, incomingDef, isCompoundAssignment);
         else if (auto g = e->as<AstExprGlobal>())

@@ -11,9 +11,7 @@
 #include "Luau/BuiltinDefinitions.h"
 
 LUAU_FASTFLAG(DebugLuauDeferredConstraintResolution)
-LUAU_FASTFLAG(LuauFixNormalizeCaching)
 LUAU_FASTFLAG(LuauNormalizeNotUnknownIntersection)
-LUAU_FASTFLAG(LuauFixCyclicUnionsOfIntersections);
 LUAU_FASTINT(LuauTypeInferRecursionLimit)
 using namespace Luau;
 
@@ -406,8 +404,16 @@ TEST_CASE_FIXTURE(IsSubtypeFixture, "error_suppression")
     CHECK(!isSubtype(any, str));
     CHECK(isSubtype(str, any));
 
-    CHECK(!isSubtype(any, unk));
-    CHECK(isSubtype(unk, any));
+    // We have added this as an exception - the set of inhabitants of any is exactly the set of inhabitants of unknown (since error has no
+    // inhabitants). any = err | unknown, so under semantic subtyping, {} U unknown = unknown
+    if (FFlag::DebugLuauDeferredConstraintResolution)
+    {
+        CHECK(isSubtype(any, unk));
+    }
+    else
+    {
+        CHECK(!isSubtype(any, unk));
+    }
 
     CHECK(!isSubtype(err, str));
     CHECK(!isSubtype(str, err));
@@ -428,7 +434,6 @@ struct NormalizeFixture : Fixture
     UnifierSharedState unifierState{&iceHandler};
     Normalizer normalizer{&arena, builtinTypes, NotNull{&unifierState}};
     Scope globalScope{builtinTypes->anyTypePack};
-    ScopedFastFlag fixNormalizeCaching{FFlag::LuauFixNormalizeCaching, true};
 
     NormalizeFixture()
     {
@@ -801,8 +806,6 @@ TEST_CASE_FIXTURE(NormalizeFixture, "cyclic_union")
 
 TEST_CASE_FIXTURE(NormalizeFixture, "cyclic_union_of_intersection")
 {
-    ScopedFastFlag sff{FFlag::LuauFixCyclicUnionsOfIntersections, true};
-
     // t1 where t1 = (string & t1) | string
     TypeId boundTy = arena.addType(BlockedType{});
     TypeId intersectTy = arena.addType(IntersectionType{{builtinTypes->stringType, boundTy}});
@@ -816,8 +819,6 @@ TEST_CASE_FIXTURE(NormalizeFixture, "cyclic_union_of_intersection")
 
 TEST_CASE_FIXTURE(NormalizeFixture, "cyclic_intersection_of_unions")
 {
-    ScopedFastFlag sff{FFlag::LuauFixCyclicUnionsOfIntersections, true};
-
     // t1 where t1 = (string & t1) | string
     TypeId boundTy = arena.addType(BlockedType{});
     TypeId unionTy = arena.addType(UnionType{{builtinTypes->stringType, boundTy}});
@@ -842,8 +843,10 @@ TEST_CASE_FIXTURE(NormalizeFixture, "negations_of_classes")
     CHECK("Child" == toString(normal("Not<Parent> & Child")));
     CHECK("((class & ~Parent) | Child | boolean | buffer | function | number | string | table | thread)?" == toString(normal("Not<Parent> | Child")));
     CHECK("(boolean | buffer | function | number | string | table | thread)?" == toString(normal("Not<cls>")));
-    CHECK("(Parent | Unrelated | boolean | buffer | function | number | string | table | thread)?" ==
-          toString(normal("Not<cls & Not<Parent> & Not<Child> & Not<Unrelated>>")));
+    CHECK(
+        "(Parent | Unrelated | boolean | buffer | function | number | string | table | thread)?" ==
+        toString(normal("Not<cls & Not<Parent> & Not<Child> & Not<Unrelated>>"))
+    );
 }
 
 TEST_CASE_FIXTURE(NormalizeFixture, "classes_and_unknown")
@@ -988,6 +991,32 @@ TEST_CASE_FIXTURE(NormalizeFixture, "cyclic_stack_overflow_2")
 
     std::shared_ptr<const NormalizedType> normalized = normalizer.normalize(t3);
     CHECK(normalized);
+}
+
+TEST_CASE_FIXTURE(NormalizeFixture, "truthy_table_property_and_optional_table_with_optional_prop")
+{
+    ScopedFastFlag sff{FFlag::DebugLuauDeferredConstraintResolution, true};
+
+    // { x: ~(false?) }
+    TypeId t1 = arena.addType(TableType{
+        TableType::Props{{"x", builtinTypes->truthyType}}, std::nullopt, TypeLevel{}, TableState::Sealed
+    });
+
+    // { x: number? }?
+    TypeId t2 = arena.addType(UnionType{{
+        arena.addType(TableType{
+            TableType::Props{{"x", builtinTypes->optionalNumberType}}, std::nullopt, TypeLevel{}, TableState::Sealed
+        }),
+        builtinTypes->nilType
+    }});
+
+    TypeId intersection = arena.addType(IntersectionType{{t2, t1}});
+
+    auto norm = normalizer.normalize(intersection);
+    REQUIRE(norm);
+
+    TypeId ty = normalizer.typeFromNormal(*norm);
+    CHECK("{ x: number }" == toString(ty));
 }
 
 TEST_SUITE_END();

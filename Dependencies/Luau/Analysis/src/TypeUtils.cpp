@@ -24,7 +24,8 @@ bool occursCheck(TypeId needle, TypeId haystack)
     LUAU_ASSERT(get<BlockedType>(needle) || get<PendingExpansionType>(needle));
     haystack = follow(haystack);
 
-    auto checkHaystack = [needle](TypeId haystack) {
+    auto checkHaystack = [needle](TypeId haystack)
+    {
         return occursCheck(needle, haystack);
     };
 
@@ -38,8 +39,66 @@ bool occursCheck(TypeId needle, TypeId haystack)
     return false;
 }
 
+// FIXME: Property is quite large.
+//
+// Returning it on the stack like this isn't great. We'd like to just return a
+// const Property*, but we mint a property of type any if the subject type is
+// any.
+std::optional<Property> findTableProperty(NotNull<BuiltinTypes> builtinTypes, ErrorVec& errors, TypeId ty, const std::string& name, Location location)
+{
+    if (get<AnyType>(ty))
+        return Property::rw(ty);
+
+    if (const TableType* tableType = getTableType(ty))
+    {
+        const auto& it = tableType->props.find(name);
+        if (it != tableType->props.end())
+            return it->second;
+    }
+
+    std::optional<TypeId> mtIndex = findMetatableEntry(builtinTypes, errors, ty, "__index", location);
+    int count = 0;
+    while (mtIndex)
+    {
+        TypeId index = follow(*mtIndex);
+
+        if (count >= 100)
+            return std::nullopt;
+
+        ++count;
+
+        if (const auto& itt = getTableType(index))
+        {
+            const auto& fit = itt->props.find(name);
+            if (fit != itt->props.end())
+                return fit->second.type();
+        }
+        else if (const auto& itf = get<FunctionType>(index))
+        {
+            std::optional<TypeId> r = first(follow(itf->retTypes));
+            if (!r)
+                return builtinTypes->nilType;
+            else
+                return *r;
+        }
+        else if (get<AnyType>(index))
+            return builtinTypes->anyType;
+        else
+            errors.push_back(TypeError{location, GenericError{"__index should either be a function or table. Got " + toString(index)}});
+
+        mtIndex = findMetatableEntry(builtinTypes, errors, *mtIndex, "__index", location);
+    }
+
+    return std::nullopt;
+}
+
 std::optional<TypeId> findMetatableEntry(
-    NotNull<BuiltinTypes> builtinTypes, ErrorVec& errors, TypeId type, const std::string& entry, Location location)
+    NotNull<BuiltinTypes> builtinTypes,
+    ErrorVec& errors,
+    TypeId type,
+    const std::string& entry,
+    Location location
+)
 {
     type = follow(type);
 
@@ -67,13 +126,24 @@ std::optional<TypeId> findMetatableEntry(
 }
 
 std::optional<TypeId> findTablePropertyRespectingMeta(
-    NotNull<BuiltinTypes> builtinTypes, ErrorVec& errors, TypeId ty, const std::string& name, Location location)
+    NotNull<BuiltinTypes> builtinTypes,
+    ErrorVec& errors,
+    TypeId ty,
+    const std::string& name,
+    Location location
+)
 {
     return findTablePropertyRespectingMeta(builtinTypes, errors, ty, name, ValueContext::RValue, location);
 }
 
 std::optional<TypeId> findTablePropertyRespectingMeta(
-    NotNull<BuiltinTypes> builtinTypes, ErrorVec& errors, TypeId ty, const std::string& name, ValueContext context, Location location)
+    NotNull<BuiltinTypes> builtinTypes,
+    ErrorVec& errors,
+    TypeId ty,
+    const std::string& name,
+    ValueContext context,
+    Location location
+)
 {
     if (get<AnyType>(ty))
         return ty;
@@ -164,7 +234,12 @@ std::pair<size_t, std::optional<size_t>> getParameterExtents(const TxnLog* log, 
 }
 
 TypePack extendTypePack(
-    TypeArena& arena, NotNull<BuiltinTypes> builtinTypes, TypePackId pack, size_t length, std::vector<std::optional<TypeId>> overrides)
+    TypeArena& arena,
+    NotNull<BuiltinTypes> builtinTypes,
+    TypePackId pack,
+    size_t length,
+    std::vector<std::optional<TypeId>> overrides
+)
 {
     TypePack result;
 

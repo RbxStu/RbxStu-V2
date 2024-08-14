@@ -11,7 +11,6 @@
 using namespace Luau;
 
 LUAU_FASTFLAG(DebugLuauDeferredConstraintResolution);
-LUAU_FASTFLAG(DebugLuauSharedSelf);
 LUAU_FASTINT(LuauNormalizeCacheLimit);
 LUAU_FASTINT(LuauTarjanChildLimit);
 LUAU_FASTINT(LuauTypeInferIterationLimit);
@@ -302,9 +301,14 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "bail_early_if_unification_is_too_complicated
         end
     )LUA");
 
-    auto it = std::find_if(result.errors.begin(), result.errors.end(), [](TypeError& a) {
-        return nullptr != get<UnificationTooComplex>(a);
-    });
+    auto it = std::find_if(
+        result.errors.begin(),
+        result.errors.end(),
+        [](TypeError& a)
+        {
+            return nullptr != get<UnificationTooComplex>(a);
+        }
+    );
     if (it == result.errors.end())
     {
         dumpErrors(result);
@@ -312,7 +316,6 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "bail_early_if_unification_is_too_complicated
     }
 }
 
-// FIXME: Move this test to another source file when removing FFlag::LuauLowerBoundsCalculation
 TEST_CASE_FIXTURE(Fixture, "do_not_ice_when_trying_to_pick_first_of_generic_type_pack")
 {
     // In-place quantification causes these types to have the wrong types but only because of nasty interaction with prototyping.
@@ -439,28 +442,6 @@ TEST_CASE_FIXTURE(Fixture, "free_is_not_bound_to_any")
     )");
 
     CHECK_EQ("((any) -> (), any) -> ()", toString(requireType("foo")));
-}
-
-TEST_CASE_FIXTURE(BuiltinsFixture, "greedy_inference_with_shared_self_triggers_function_with_no_returns")
-{
-    ScopedFastFlag sff{FFlag::DebugLuauSharedSelf, true};
-
-    CheckResult result = check(R"(
-        local T = {}
-        T.__index = T
-
-        function T.new()
-            local self = setmetatable({}, T)
-            return self:ctor() or self
-        end
-
-        function T:ctor()
-            -- oops, no return!
-        end
-    )");
-
-    LUAU_REQUIRE_ERROR_COUNT(1, result);
-    CHECK_EQ("Not all codepaths in this function return 'self, a...'.", toString(result.errors[0]));
 }
 
 TEST_CASE_FIXTURE(Fixture, "dcr_can_partially_dispatch_a_constraint")
@@ -1228,6 +1209,47 @@ TEST_CASE_FIXTURE(Fixture, "table_containing_non_final_type_is_erroneously_cache
 
     // This should not hold
     CHECK(n1 == n2);
+}
+
+// This is doable with the new solver, but there are some problems we have to work out first.
+// CLI-111113
+TEST_CASE_FIXTURE(Fixture, "we_cannot_infer_functions_that_return_inconsistently")
+{
+    CheckResult result = check(R"(
+        function find_first<T>(tbl: {T}, el)
+            for i, e in tbl do
+                if e == el then
+                    return i
+                end
+            end
+            return nil
+        end
+    )");
+
+#if 0
+    // This #if block describes what should happen.
+    LUAU_CHECK_NO_ERRORS(result);
+
+    // The second argument has type unknown because the == operator does not
+    // constrain the type of el.
+    CHECK("<T>({T}, unknown) -> number?" == toString(requireType("find_first")));
+#else
+    // This is what actually happens right now.
+
+    if (FFlag::DebugLuauDeferredConstraintResolution)
+    {
+        LUAU_CHECK_ERROR_COUNT(2, result);
+
+        // The second argument should be unknown.  CLI-111111
+        CHECK("<T>({T}, 'b) -> number" == toString(requireType("find_first")));
+    }
+    else
+    {
+        LUAU_CHECK_ERROR_COUNT(1, result);
+
+        CHECK("<T, b>({T}, b) -> number" == toString(requireType("find_first")));
+    }
+#endif
 }
 
 TEST_SUITE_END();

@@ -7,6 +7,7 @@
 #include "Luau/RecursionCounter.h"
 #include "Luau/TypePack.h"
 #include "Luau/Type.h"
+#include "Type.h"
 
 LUAU_FASTINT(LuauVisitRecursionLimit)
 LUAU_FASTFLAG(LuauBoundLazyTypes2)
@@ -65,7 +66,7 @@ inline void unsee(DenseHashSet<void*>& seen, const void* tv)
 } // namespace visit_detail
 
 // recursion counter is equivalent here, but we'd like a better name to express the intent.
-using TypeFamilyDepthCounter = RecursionCounter;
+using TypeFunctionDepthCounter = RecursionCounter;
 
 template<typename S>
 struct GenericTypeVisitor
@@ -75,7 +76,7 @@ struct GenericTypeVisitor
     Set seen;
     bool skipBoundTypes = false;
     int recursionCounter = 0;
-    int typeFamilyDepth = 0;
+    int typeFunctionDepth = 0;
 
     GenericTypeVisitor() = default;
 
@@ -97,10 +98,6 @@ struct GenericTypeVisitor
         return visit(ty);
     }
     virtual bool visit(TypeId ty, const FreeType& ftv)
-    {
-        return visit(ty);
-    }
-    virtual bool visit(TypeId ty, const LocalType& ftv)
     {
         return visit(ty);
     }
@@ -168,7 +165,7 @@ struct GenericTypeVisitor
     {
         return visit(ty);
     }
-    virtual bool visit(TypeId ty, const TypeFamilyInstanceType& tfit)
+    virtual bool visit(TypeId ty, const TypeFunctionInstanceType& tfit)
     {
         return visit(ty);
     }
@@ -205,7 +202,7 @@ struct GenericTypeVisitor
     {
         return visit(tp);
     }
-    virtual bool visit(TypePackId tp, const TypeFamilyInstanceTypePack& tfitp)
+    virtual bool visit(TypePackId tp, const TypeFunctionInstanceTypePack& tfitp)
     {
         return visit(tp);
     }
@@ -247,11 +244,6 @@ struct GenericTypeVisitor
             }
             else
                 visit(ty, *ftv);
-        }
-        else if (auto lt = get<LocalType>(ty))
-        {
-            if (visit(ty, *lt))
-                traverse(lt->domain);
         }
         else if (auto gtv = get<GenericType>(ty))
             visit(ty, *gtv);
@@ -357,16 +349,38 @@ struct GenericTypeVisitor
         {
             if (visit(ty, *utv))
             {
+                bool unionChanged = false;
                 for (TypeId optTy : utv->options)
+                {
                     traverse(optTy);
+                    if (!get<UnionType>(follow(ty)))
+                    {
+                        unionChanged = true;
+                        break;
+                    }
+                }
+
+                if (unionChanged)
+                    traverse(ty);
             }
         }
         else if (auto itv = get<IntersectionType>(ty))
         {
             if (visit(ty, *itv))
             {
+                bool intersectionChanged = false;
                 for (TypeId partTy : itv->parts)
+                {
                     traverse(partTy);
+                    if (!get<IntersectionType>(follow(ty)))
+                    {
+                        intersectionChanged = true;
+                        break;
+                    }
+                }
+
+                if (intersectionChanged)
+                    traverse(ty);
             }
         }
         else if (auto ltv = get<LazyType>(ty))
@@ -402,9 +416,9 @@ struct GenericTypeVisitor
             if (visit(ty, *ntv))
                 traverse(ntv->ty);
         }
-        else if (auto tfit = get<TypeFamilyInstanceType>(ty))
+        else if (auto tfit = get<TypeFunctionInstanceType>(ty))
         {
-            TypeFamilyDepthCounter tfdc{&typeFamilyDepth};
+            TypeFunctionDepthCounter tfdc{&typeFunctionDepth};
 
             if (visit(ty, *tfit))
             {
@@ -464,9 +478,9 @@ struct GenericTypeVisitor
         }
         else if (auto btp = get<BlockedTypePack>(tp))
             visit(tp, *btp);
-        else if (auto tfitp = get<TypeFamilyInstanceTypePack>(tp))
+        else if (auto tfitp = get<TypeFunctionInstanceTypePack>(tp))
         {
-            TypeFamilyDepthCounter tfdc{&typeFamilyDepth};
+            TypeFunctionDepthCounter tfdc{&typeFunctionDepth};
 
             if (visit(tp, *tfitp))
             {

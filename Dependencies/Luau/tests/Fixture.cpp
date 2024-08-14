@@ -150,8 +150,11 @@ const Config& TestConfigResolver::getConfig(const ModuleName& name) const
 
 Fixture::Fixture(bool freeze, bool prepareAutocomplete)
     : sff_DebugLuauFreezeArena(FFlag::DebugLuauFreezeArena, freeze)
-    , frontend(&fileResolver, &configResolver,
-          {/* retainFullTypeGraphs= */ true, /* forAutocomplete */ false, /* runLintChecks */ false, /* randomConstraintResolutionSeed */ randomSeed})
+    , frontend(
+          &fileResolver,
+          &configResolver,
+          {/* retainFullTypeGraphs= */ true, /* forAutocomplete */ false, /* runLintChecks */ false, /* randomConstraintResolutionSeed */ randomSeed}
+      )
     , builtinTypes(frontend.builtinTypes)
 {
     configResolver.defaultConfig.mode = Mode::Strict;
@@ -165,7 +168,8 @@ Fixture::Fixture(bool freeze, bool prepareAutocomplete)
 
     if (FFlag::DebugLuauLogSolverToJsonFile)
     {
-        frontend.writeJsonLog = [&](const Luau::ModuleName& moduleName, std::string log) {
+        frontend.writeJsonLog = [&](const Luau::ModuleName& moduleName, std::string log)
+        {
             std::string path = moduleName + ".log.json";
             size_t pos = moduleName.find_last_of('/');
             if (pos != std::string::npos)
@@ -203,8 +207,21 @@ AstStatBlock* Fixture::parse(const std::string& source, const ParseOptions& pars
             if (FFlag::DebugLuauDeferredConstraintResolution)
             {
                 Mode mode = sourceModule->mode ? *sourceModule->mode : Mode::Strict;
-                ModulePtr module = Luau::check(*sourceModule, mode, {}, builtinTypes, NotNull{&ice}, NotNull{&moduleResolver}, NotNull{&fileResolver},
-                    frontend.globals.globalScope, /*prepareModuleScope*/ nullptr, frontend.options, {}, false, {});
+                ModulePtr module = Luau::check(
+                    *sourceModule,
+                    mode,
+                    {},
+                    builtinTypes,
+                    NotNull{&ice},
+                    NotNull{&moduleResolver},
+                    NotNull{&fileResolver},
+                    frontend.globals.globalScope,
+                    /*prepareModuleScope*/ nullptr,
+                    frontend.options,
+                    {},
+                    false,
+                    {}
+                );
 
                 Luau::lint(sourceModule->root, *sourceModule->names, frontend.globals.globalScope, module.get(), sourceModule->hotcomments, {});
             }
@@ -658,7 +675,7 @@ void createSomeClasses(Frontend* frontend)
 
     ScopePtr moduleScope = globals.globalScope;
 
-    TypeId parentType = arena.addType(ClassType{"Parent", {}, frontend->builtinTypes->classType, std::nullopt, {}, nullptr, "Test"});
+    TypeId parentType = arena.addType(ClassType{"Parent", {}, frontend->builtinTypes->classType, std::nullopt, {}, nullptr, "Test", {}});
 
     ClassType* parentClass = getMutable<ClassType>(parentType);
     parentClass->props["method"] = {makeFunction(arena, parentType, {}, {})};
@@ -668,17 +685,17 @@ void createSomeClasses(Frontend* frontend)
     addGlobalBinding(globals, "Parent", {parentType});
     moduleScope->exportedTypeBindings["Parent"] = TypeFun{{}, parentType};
 
-    TypeId childType = arena.addType(ClassType{"Child", {}, parentType, std::nullopt, {}, nullptr, "Test"});
+    TypeId childType = arena.addType(ClassType{"Child", {}, parentType, std::nullopt, {}, nullptr, "Test", {}});
 
     addGlobalBinding(globals, "Child", {childType});
     moduleScope->exportedTypeBindings["Child"] = TypeFun{{}, childType};
 
-    TypeId anotherChildType = arena.addType(ClassType{"AnotherChild", {}, parentType, std::nullopt, {}, nullptr, "Test"});
+    TypeId anotherChildType = arena.addType(ClassType{"AnotherChild", {}, parentType, std::nullopt, {}, nullptr, "Test", {}});
 
     addGlobalBinding(globals, "AnotherChild", {anotherChildType});
     moduleScope->exportedTypeBindings["AnotherChild"] = TypeFun{{}, anotherChildType};
 
-    TypeId unrelatedType = arena.addType(ClassType{"Unrelated", {}, frontend->builtinTypes->classType, std::nullopt, {}, nullptr, "Test"});
+    TypeId unrelatedType = arena.addType(ClassType{"Unrelated", {}, frontend->builtinTypes->classType, std::nullopt, {}, nullptr, "Test", {}});
 
     addGlobalBinding(globals, "Unrelated", {unrelatedType});
     moduleScope->exportedTypeBindings["Unrelated"] = TypeFun{{}, unrelatedType};

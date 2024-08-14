@@ -3,8 +3,7 @@
 
 #include "Luau/BytecodeBuilder.h"
 
-LUAU_FASTFLAG(LuauCompileTypeInfo)
-LUAU_FASTFLAG(LuauCompileTempTypeInfo)
+LUAU_FASTFLAG(LuauCompileUserdataInfo)
 
 namespace Luau
 {
@@ -38,8 +37,15 @@ static LuauBytecodeType getPrimitiveType(AstName name)
         return LBC_TYPE_INVALID;
 }
 
-static LuauBytecodeType getType(const AstType* ty, const AstArray<AstGenericType>& generics,
-    const DenseHashMap<AstName, AstStatTypeAlias*>& typeAliases, bool resolveAliases, const char* vectorType)
+static LuauBytecodeType getType(
+    const AstType* ty,
+    const AstArray<AstGenericType>& generics,
+    const DenseHashMap<AstName, AstStatTypeAlias*>& typeAliases,
+    bool resolveAliases,
+    const char* vectorType,
+    const DenseHashMap<AstName, uint8_t>& userdataTypes,
+    BytecodeBuilder& bytecode
+)
 {
     if (const AstTypeReference* ref = ty->as<AstTypeReference>())
     {
@@ -50,7 +56,7 @@ static LuauBytecodeType getType(const AstType* ty, const AstArray<AstGenericType
         {
             // note: we only resolve aliases to the depth of 1 to avoid dealing with recursive aliases
             if (resolveAliases)
-                return getType((*alias)->type, (*alias)->generics, typeAliases, /* resolveAliases= */ false, vectorType);
+                return getType((*alias)->type, (*alias)->generics, typeAliases, /* resolveAliases= */ false, vectorType, userdataTypes, bytecode);
             else
                 return LBC_TYPE_ANY;
         }
@@ -63,6 +69,15 @@ static LuauBytecodeType getType(const AstType* ty, const AstArray<AstGenericType
 
         if (LuauBytecodeType prim = getPrimitiveType(ref->name); prim != LBC_TYPE_INVALID)
             return prim;
+
+        if (FFlag::LuauCompileUserdataInfo)
+        {
+            if (const uint8_t* userdataIndex = userdataTypes.find(ref->name))
+            {
+                bytecode.useUserdataType(*userdataIndex);
+                return LuauBytecodeType(LBC_TYPE_TAGGED_USERDATA_BASE + *userdataIndex);
+            }
+        }
 
         // not primitive or alias or generic => host-provided, we assume userdata for now
         return LBC_TYPE_USERDATA;
@@ -82,7 +97,7 @@ static LuauBytecodeType getType(const AstType* ty, const AstArray<AstGenericType
 
         for (AstType* ty : un->types)
         {
-            LuauBytecodeType et = getType(ty, generics, typeAliases, resolveAliases, vectorType);
+            LuauBytecodeType et = getType(ty, generics, typeAliases, resolveAliases, vectorType, userdataTypes, bytecode);
 
             if (et == LBC_TYPE_NIL)
             {
@@ -113,7 +128,13 @@ static LuauBytecodeType getType(const AstType* ty, const AstArray<AstGenericType
     return LBC_TYPE_ANY;
 }
 
-static std::string getFunctionType(const AstExprFunction* func, const DenseHashMap<AstName, AstStatTypeAlias*>& typeAliases, const char* vectorType)
+static std::string getFunctionType(
+    const AstExprFunction* func,
+    const DenseHashMap<AstName, AstStatTypeAlias*>& typeAliases,
+    const char* vectorType,
+    const DenseHashMap<AstName, uint8_t>& userdataTypes,
+    BytecodeBuilder& bytecode
+)
 {
     bool self = func->self != 0;
 
@@ -130,7 +151,8 @@ static std::string getFunctionType(const AstExprFunction* func, const DenseHashM
     for (AstLocal* arg : func->args)
     {
         LuauBytecodeType ty =
-            arg->annotation ? getType(arg->annotation, func->generics, typeAliases, /* resolveAliases= */ true, vectorType) : LBC_TYPE_ANY;
+            arg->annotation ? getType(arg->annotation, func->generics, typeAliases, /* resolveAliases= */ true, vectorType, userdataTypes, bytecode)
+                            : LBC_TYPE_ANY;
 
         if (ty != LBC_TYPE_ANY)
             haveNonAnyParam = true;
@@ -147,8 +169,6 @@ static std::string getFunctionType(const AstExprFunction* func, const DenseHashM
 
 static bool isMatchingGlobal(const DenseHashMap<AstName, Compile::Global>& globals, AstExpr* node, const char* name)
 {
-    LUAU_ASSERT(FFlag::LuauCompileTempTypeInfo);
-
     if (AstExprGlobal* expr = node->as<AstExprGlobal>())
         return Compile::getGlobalState(globals, expr->name) == Compile::Global::Default && expr->name == name;
 
@@ -161,25 +181,37 @@ struct TypeMapVisitor : AstVisitor
     DenseHashMap<AstLocal*, LuauBytecodeType>& localTypes;
     DenseHashMap<AstExpr*, LuauBytecodeType>& exprTypes;
     const char* vectorType;
-    const BuiltinTypes& builtinTypes;
+    const DenseHashMap<AstName, uint8_t>& userdataTypes;
+    const BuiltinAstTypes& builtinTypes;
     const DenseHashMap<AstExprCall*, int>& builtinCalls;
     const DenseHashMap<AstName, Compile::Global>& globals;
+    BytecodeBuilder& bytecode;
 
     DenseHashMap<AstName, AstStatTypeAlias*> typeAliases;
     std::vector<std::pair<AstName, AstStatTypeAlias*>> typeAliasStack;
     DenseHashMap<AstLocal*, const AstType*> resolvedLocals;
     DenseHashMap<AstExpr*, const AstType*> resolvedExprs;
 
-    TypeMapVisitor(DenseHashMap<AstExprFunction*, std::string>& functionTypes, DenseHashMap<AstLocal*, LuauBytecodeType>& localTypes,
-        DenseHashMap<AstExpr*, LuauBytecodeType>& exprTypes, const char* vectorType, const BuiltinTypes& builtinTypes,
-        const DenseHashMap<AstExprCall*, int>& builtinCalls, const DenseHashMap<AstName, Compile::Global>& globals)
+    TypeMapVisitor(
+        DenseHashMap<AstExprFunction*, std::string>& functionTypes,
+        DenseHashMap<AstLocal*, LuauBytecodeType>& localTypes,
+        DenseHashMap<AstExpr*, LuauBytecodeType>& exprTypes,
+        const char* vectorType,
+        const DenseHashMap<AstName, uint8_t>& userdataTypes,
+        const BuiltinAstTypes& builtinTypes,
+        const DenseHashMap<AstExprCall*, int>& builtinCalls,
+        const DenseHashMap<AstName, Compile::Global>& globals,
+        BytecodeBuilder& bytecode
+    )
         : functionTypes(functionTypes)
         , localTypes(localTypes)
         , exprTypes(exprTypes)
         , vectorType(vectorType)
+        , userdataTypes(userdataTypes)
         , builtinTypes(builtinTypes)
         , builtinCalls(builtinCalls)
         , globals(globals)
+        , bytecode(bytecode)
         , typeAliases(AstName())
         , resolvedLocals(nullptr)
         , resolvedExprs(nullptr)
@@ -215,8 +247,6 @@ struct TypeMapVisitor : AstVisitor
 
     const AstType* resolveAliases(const AstType* ty)
     {
-        LUAU_ASSERT(FFlag::LuauCompileTempTypeInfo);
-
         if (const AstTypeReference* ref = ty->as<AstTypeReference>())
         {
             if (ref->prefix)
@@ -231,8 +261,6 @@ struct TypeMapVisitor : AstVisitor
 
     const AstTableIndexer* tryGetTableIndexer(AstExpr* expr)
     {
-        LUAU_ASSERT(FFlag::LuauCompileTempTypeInfo);
-
         if (const AstType** typePtr = resolvedExprs.find(expr))
         {
             if (const AstTypeTable* tableTy = (*typePtr)->as<AstTypeTable>())
@@ -244,26 +272,22 @@ struct TypeMapVisitor : AstVisitor
 
     LuauBytecodeType recordResolvedType(AstExpr* expr, const AstType* ty)
     {
-        LUAU_ASSERT(FFlag::LuauCompileTempTypeInfo);
-
         ty = resolveAliases(ty);
 
         resolvedExprs[expr] = ty;
 
-        LuauBytecodeType bty = getType(ty, {}, typeAliases, /* resolveAliases= */ true, vectorType);
+        LuauBytecodeType bty = getType(ty, {}, typeAliases, /* resolveAliases= */ true, vectorType, userdataTypes, bytecode);
         exprTypes[expr] = bty;
         return bty;
     }
 
     LuauBytecodeType recordResolvedType(AstLocal* local, const AstType* ty)
     {
-        LUAU_ASSERT(FFlag::LuauCompileTempTypeInfo);
-
         ty = resolveAliases(ty);
 
         resolvedLocals[local] = ty;
 
-        LuauBytecodeType bty = getType(ty, {}, typeAliases, /* resolveAliases= */ true, vectorType);
+        LuauBytecodeType bty = getType(ty, {}, typeAliases, /* resolveAliases= */ true, vectorType, userdataTypes, bytecode);
 
         if (bty != LBC_TYPE_ANY)
             localTypes[local] = bty;
@@ -301,9 +325,6 @@ struct TypeMapVisitor : AstVisitor
     // for...in statement can contain type annotations on locals (we might even infer some for ipairs/pairs/generalized iteration)
     bool visit(AstStatForIn* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         for (AstExpr* expr : node->values)
             expr->visit(this);
 
@@ -354,7 +375,7 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprFunction* node) override
     {
-        std::string type = getFunctionType(node, typeAliases, vectorType);
+        std::string type = getFunctionType(node, typeAliases, vectorType, userdataTypes, bytecode);
 
         if (!type.empty())
             functionTypes[node] = std::move(type);
@@ -364,51 +385,25 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprLocal* node) override
     {
-        if (FFlag::LuauCompileTempTypeInfo)
+        AstLocal* local = node->local;
+
+        if (AstType* annotation = local->annotation)
         {
-            if (FFlag::LuauCompileTypeInfo)
-            {
-                AstLocal* local = node->local;
+            LuauBytecodeType ty = recordResolvedType(node, annotation);
 
-                if (AstType* annotation = local->annotation)
-                {
-                    LuauBytecodeType ty = recordResolvedType(node, annotation);
-
-                    if (ty != LBC_TYPE_ANY)
-                        localTypes[local] = ty;
-                }
-                else if (const AstType** typePtr = resolvedLocals.find(local))
-                {
-                    localTypes[local] = recordResolvedType(node, *typePtr);
-                }
-            }
-
-            return false;
+            if (ty != LBC_TYPE_ANY)
+                localTypes[local] = ty;
         }
-        else
+        else if (const AstType** typePtr = resolvedLocals.find(local))
         {
-            if (FFlag::LuauCompileTypeInfo)
-            {
-                AstLocal* local = node->local;
-
-                if (AstType* annotation = local->annotation)
-                {
-                    LuauBytecodeType ty = getType(annotation, {}, typeAliases, /* resolveAliases= */ true, vectorType);
-
-                    if (ty != LBC_TYPE_ANY)
-                        localTypes[local] = ty;
-                }
-            }
-
-            return true;
+            localTypes[local] = recordResolvedType(node, *typePtr);
         }
+
+        return false;
     }
 
     bool visit(AstStatLocal* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         for (AstExpr* expr : node->values)
             expr->visit(this);
 
@@ -433,9 +428,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprIndexExpr* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         node->expr->visit(this);
         node->index->visit(this);
 
@@ -447,9 +439,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprIndexName* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         node->expr->visit(this);
 
         if (const AstType** typePtr = resolvedExprs.find(node->expr))
@@ -481,9 +470,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprUnary* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         node->expr->visit(this);
 
         switch (node->op)
@@ -516,9 +502,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprBinary* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         node->left->visit(this);
         node->right->visit(this);
 
@@ -557,9 +540,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprGroup* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         node->expr->visit(this);
 
         if (const AstType** typePtr = resolvedExprs.find(node->expr))
@@ -570,9 +550,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprTypeAssertion* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         node->expr->visit(this);
 
         recordResolvedType(node, node->annotation);
@@ -582,9 +559,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprConstantBool* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         recordResolvedType(node, &builtinTypes.booleanType);
 
         return false;
@@ -592,9 +566,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprConstantNumber* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         recordResolvedType(node, &builtinTypes.numberType);
 
         return false;
@@ -602,9 +573,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprConstantString* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         recordResolvedType(node, &builtinTypes.stringType);
 
         return false;
@@ -612,9 +580,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprInterpString* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         recordResolvedType(node, &builtinTypes.stringType);
 
         return false;
@@ -622,9 +587,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprIfElse* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         node->condition->visit(this);
         node->trueExpr->visit(this);
         node->falseExpr->visit(this);
@@ -642,9 +604,6 @@ struct TypeMapVisitor : AstVisitor
 
     bool visit(AstExprCall* node) override
     {
-        if (!FFlag::LuauCompileTempTypeInfo)
-            return true;
-
         if (const int* bfid = builtinCalls.find(node))
         {
             switch (LuauBuiltinFunction(*bfid))
@@ -753,11 +712,20 @@ struct TypeMapVisitor : AstVisitor
     // * AstExprCall is very complex (especially if builtins and registered globals are included), will be extended in the future
 };
 
-void buildTypeMap(DenseHashMap<AstExprFunction*, std::string>& functionTypes, DenseHashMap<AstLocal*, LuauBytecodeType>& localTypes,
-    DenseHashMap<AstExpr*, LuauBytecodeType>& exprTypes, AstNode* root, const char* vectorType, const BuiltinTypes& builtinTypes,
-    const DenseHashMap<AstExprCall*, int>& builtinCalls, const DenseHashMap<AstName, Compile::Global>& globals)
+void buildTypeMap(
+    DenseHashMap<AstExprFunction*, std::string>& functionTypes,
+    DenseHashMap<AstLocal*, LuauBytecodeType>& localTypes,
+    DenseHashMap<AstExpr*, LuauBytecodeType>& exprTypes,
+    AstNode* root,
+    const char* vectorType,
+    const DenseHashMap<AstName, uint8_t>& userdataTypes,
+    const BuiltinAstTypes& builtinTypes,
+    const DenseHashMap<AstExprCall*, int>& builtinCalls,
+    const DenseHashMap<AstName, Compile::Global>& globals,
+    BytecodeBuilder& bytecode
+)
 {
-    TypeMapVisitor visitor(functionTypes, localTypes, exprTypes, vectorType, builtinTypes, builtinCalls, globals);
+    TypeMapVisitor visitor(functionTypes, localTypes, exprTypes, vectorType, userdataTypes, builtinTypes, builtinCalls, globals, bytecode);
     root->visit(&visitor);
 }
 

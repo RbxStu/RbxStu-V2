@@ -94,24 +94,24 @@ TypePackId TypeArena::addTypePack(TypePackVar tp)
     return allocated;
 }
 
-TypeId TypeArena::addTypeFamily(const TypeFamily& family, std::initializer_list<TypeId> types)
+TypeId TypeArena::addTypeFunction(const TypeFunction& function, std::initializer_list<TypeId> types)
 {
-    return addType(TypeFamilyInstanceType{family, std::move(types)});
+    return addType(TypeFunctionInstanceType{function, std::move(types)});
 }
 
-TypeId TypeArena::addTypeFamily(const TypeFamily& family, std::vector<TypeId> typeArguments, std::vector<TypePackId> packArguments)
+TypeId TypeArena::addTypeFunction(const TypeFunction& function, std::vector<TypeId> typeArguments, std::vector<TypePackId> packArguments)
 {
-    return addType(TypeFamilyInstanceType{family, std::move(typeArguments), std::move(packArguments)});
+    return addType(TypeFunctionInstanceType{function, std::move(typeArguments), std::move(packArguments)});
 }
 
-TypePackId TypeArena::addTypePackFamily(const TypePackFamily& family, std::initializer_list<TypeId> types)
+TypePackId TypeArena::addTypePackFunction(const TypePackFunction& function, std::initializer_list<TypeId> types)
 {
-    return addTypePack(TypeFamilyInstanceTypePack{NotNull{&family}, std::move(types)});
+    return addTypePack(TypeFunctionInstanceTypePack{NotNull{&function}, std::move(types)});
 }
 
-TypePackId TypeArena::addTypePackFamily(const TypePackFamily& family, std::vector<TypeId> typeArguments, std::vector<TypePackId> packArguments)
+TypePackId TypeArena::addTypePackFunction(const TypePackFunction& function, std::vector<TypeId> typeArguments, std::vector<TypePackId> packArguments)
 {
-    return addTypePack(TypeFamilyInstanceTypePack{NotNull{&family}, std::move(typeArguments), std::move(packArguments)});
+    return addTypePack(TypeFunctionInstanceTypePack{NotNull{&function}, std::move(typeArguments), std::move(packArguments)});
 }
 
 void freeze(TypeArena& arena)

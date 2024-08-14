@@ -7,18 +7,26 @@
 #include "Luau/NotNull.h"
 #include "Luau/StringUtils.h"
 #include "Luau/ToString.h"
+#include "Luau/Type.h"
+#include "Luau/TypeFunction.h"
 
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <unordered_set>
 
 LUAU_FASTINTVARIABLE(LuauIndentTypeMismatchMaxTypeLength, 10)
 
 LUAU_DYNAMIC_FASTFLAGVARIABLE(LuauImproveNonFunctionCallError, false)
 
 static std::string wrongNumberOfArgsString(
-    size_t expectedCount, std::optional<size_t> maximumCount, size_t actualCount, const char* argPrefix = nullptr, bool isVariadic = false)
+    size_t expectedCount,
+    std::optional<size_t> maximumCount,
+    size_t actualCount,
+    const char* argPrefix = nullptr,
+    bool isVariadic = false
+)
 {
     std::string s = "expects ";
 
@@ -61,6 +69,30 @@ static std::string wrongNumberOfArgsString(
 namespace Luau
 {
 
+// this list of binary operator type functions is used for better stringification of type functions errors
+static const std::unordered_map<std::string, const char*> kBinaryOps{
+    {"add", "+"},
+    {"sub", "-"},
+    {"mul", "*"},
+    {"div", "/"},
+    {"idiv", "//"},
+    {"pow", "^"},
+    {"mod", "%"},
+    {"concat", ".."},
+    {"and", "and"},
+    {"or", "or"},
+    {"lt", "< or >="},
+    {"le", "<= or >"},
+    {"eq", "== or ~="}
+};
+
+// this list of unary operator type functions is used for better stringification of type functions errors
+static const std::unordered_map<std::string, const char*> kUnaryOps{{"unm", "-"}, {"len", "#"}, {"not", "not"}};
+
+// this list of type functions will receive a special error indicating that the user should file a bug on the GitHub repository
+// putting a type function in this list indicates that it is expected to _always_ reduce
+static const std::unordered_set<std::string> kUnreachableTypeFunctions{"refine", "singleton", "union", "intersect"};
+
 struct ErrorConverter
 {
     FileResolver* fileResolver = nullptr;
@@ -72,12 +104,15 @@ struct ErrorConverter
 
         std::string result;
 
-        auto quote = [&](std::string s) {
+        auto quote = [&](std::string s)
+        {
             return "'" + s + "'";
         };
 
-        auto constructErrorMessage = [&](std::string givenType, std::string wantedType, std::optional<std::string> givenModule,
-                                         std::optional<std::string> wantedModule) -> std::string {
+        auto constructErrorMessage =
+            [&](std::string givenType, std::string wantedType, std::optional<std::string> givenModule, std::optional<std::string> wantedModule
+            ) -> std::string
+        {
             std::string given = givenModule ? quote(givenType) + " from " + quote(*givenModule) : quote(givenType);
             std::string wanted = wantedModule ? quote(wantedType) + " from " + quote(*wantedModule) : quote(wantedType);
             size_t luauIndentTypeMismatchMaxTypeLength = size_t(FInt::LuauIndentTypeMismatchMaxTypeLength);
@@ -337,6 +372,11 @@ struct ErrorConverter
         return e.message;
     }
 
+    std::string operator()(const Luau::ConstraintSolvingIncompleteError& e) const
+    {
+        return "Type inference failed to complete, you may see some confusing types and type errors.";
+    }
+
     std::optional<TypeId> findCallMetamethod(TypeId type) const
     {
         type = follow(type);
@@ -563,9 +603,111 @@ struct ErrorConverter
         return "Attempting a dynamic property access on type '" + Luau::toString(e.ty) + "' is unsafe and may cause exceptions at runtime";
     }
 
-    std::string operator()(const UninhabitedTypeFamily& e) const
+    std::string operator()(const UninhabitedTypeFunction& e) const
     {
-        return "Type family instance " + Luau::toString(e.ty) + " is uninhabited";
+        auto tfit = get<TypeFunctionInstanceType>(e.ty);
+        LUAU_ASSERT(tfit); // Luau analysis has actually done something wrong if this type is not a type function.
+        if (!tfit)
+            return "Unexpected type " + Luau::toString(e.ty) + " flagged as an uninhabited type function.";
+
+        // unary operators
+        if (auto unaryString = kUnaryOps.find(tfit->function->name); unaryString != kUnaryOps.end())
+        {
+            std::string result = "Operator '" + std::string(unaryString->second) + "' could not be applied to ";
+
+            if (tfit->typeArguments.size() == 1 && tfit->packArguments.empty())
+            {
+                result += "operand of type " + Luau::toString(tfit->typeArguments[0]);
+
+                if (tfit->function->name != "not")
+                    result += "; there is no corresponding overload for __" + tfit->function->name;
+            }
+            else
+            {
+                // if it's not the expected case, we ought to add a specialization later, but this is a sane default.
+                result += "operands of types ";
+
+                bool isFirst = true;
+                for (auto arg : tfit->typeArguments)
+                {
+                    if (!isFirst)
+                        result += ", ";
+
+                    result += Luau::toString(arg);
+                    isFirst = false;
+                }
+
+                for (auto packArg : tfit->packArguments)
+                    result += ", " + Luau::toString(packArg);
+            }
+
+            return result;
+        }
+
+        // binary operators
+        if (auto binaryString = kBinaryOps.find(tfit->function->name); binaryString != kBinaryOps.end())
+        {
+            std::string result = "Operator '" + std::string(binaryString->second) + "' could not be applied to operands of types ";
+
+            if (tfit->typeArguments.size() == 2 && tfit->packArguments.empty())
+            {
+                // this is the expected case.
+                result += Luau::toString(tfit->typeArguments[0]) + " and " + Luau::toString(tfit->typeArguments[1]);
+            }
+            else
+            {
+                // if it's not the expected case, we ought to add a specialization later, but this is a sane default.
+
+                bool isFirst = true;
+                for (auto arg : tfit->typeArguments)
+                {
+                    if (!isFirst)
+                        result += ", ";
+
+                    result += Luau::toString(arg);
+                    isFirst = false;
+                }
+
+                for (auto packArg : tfit->packArguments)
+                    result += ", " + Luau::toString(packArg);
+            }
+
+            result += "; there is no corresponding overload for __" + tfit->function->name;
+
+            return result;
+        }
+
+        // miscellaneous
+
+        if ("keyof" == tfit->function->name || "rawkeyof" == tfit->function->name)
+        {
+            if (tfit->typeArguments.size() == 1 && tfit->packArguments.empty())
+                return "Type '" + toString(tfit->typeArguments[0]) + "' does not have keys, so '" + Luau::toString(e.ty) + "' is invalid";
+            else
+                return "Type function instance " + Luau::toString(e.ty) + " is ill-formed, and thus invalid";
+        }
+
+        if ("index" == tfit->function->name || "rawget" == tfit->function->name)
+        {
+            if (tfit->typeArguments.size() != 2)
+                return "Type function instance " + Luau::toString(e.ty) + " is ill-formed, and thus invalid";
+
+            if (auto errType = get<ErrorType>(tfit->typeArguments[1])) // Second argument to (index | rawget)<_,_> is not a type
+                return "Second argument to " + tfit->function->name + "<" + Luau::toString(tfit->typeArguments[0]) + ", _> is not a valid index type";
+            else // Property `indexer` does not exist on type `indexee`
+                return "Property '" + Luau::toString(tfit->typeArguments[1]) + "' does not exist on type '" + Luau::toString(tfit->typeArguments[0]) +
+                       "'";
+        }
+
+        if (kUnreachableTypeFunctions.count(tfit->function->name))
+        {
+            return "Type function instance " + Luau::toString(e.ty) + " is uninhabited\n" +
+                   "This is likely to be a bug, please report it at https://github.com/luau-lang/luau/issues";
+        }
+
+        // Everything should be specialized above to report a more descriptive error that hopefully does not mention "type functions" explicitly.
+        // If we produce this message, it's an indication that we've missed a specialization and it should be fixed!
+        return "Type function instance " + Luau::toString(e.ty) + " is uninhabited";
     }
 
     std::string operator()(const ExplicitFunctionAnnotationRecommended& r) const
@@ -588,21 +730,21 @@ struct ErrorConverter
         return "Consider placing the following annotations on the arguments: " + argAnnotations + " or instead annotating the return as " + toReturn;
     }
 
-    std::string operator()(const UninhabitedTypePackFamily& e) const
+    std::string operator()(const UninhabitedTypePackFunction& e) const
     {
-        return "Type pack family instance " + Luau::toString(e.tp) + " is uninhabited";
+        return "Type pack function instance " + Luau::toString(e.tp) + " is uninhabited";
     }
 
     std::string operator()(const WhereClauseNeeded& e) const
     {
-        return "Type family instance " + Luau::toString(e.ty) +
+        return "Type function instance " + Luau::toString(e.ty) +
                " depends on generic function parameters but does not appear in the function signature; this construct cannot be type-checked at this "
                "time";
     }
 
     std::string operator()(const PackWhereClauseNeeded& e) const
     {
-        return "Type pack family instance " + Luau::toString(e.tp) +
+        return "Type pack function instance " + Luau::toString(e.tp) +
                " depends on generic function parameters but does not appear in the function signature; this construct cannot be type-checked at this "
                "time";
     }
@@ -871,6 +1013,11 @@ bool InternalError::operator==(const InternalError& rhs) const
     return message == rhs.message;
 }
 
+bool ConstraintSolvingIncompleteError::operator==(const ConstraintSolvingIncompleteError& rhs) const
+{
+    return true;
+}
+
 bool CannotCallNonFunction::operator==(const CannotCallNonFunction& rhs) const
 {
     return ty == rhs.ty;
@@ -976,7 +1123,7 @@ bool DynamicPropertyLookupOnClassesUnsafe::operator==(const DynamicPropertyLooku
     return ty == rhs.ty;
 }
 
-bool UninhabitedTypeFamily::operator==(const UninhabitedTypeFamily& rhs) const
+bool UninhabitedTypeFunction::operator==(const UninhabitedTypeFunction& rhs) const
 {
     return ty == rhs.ty;
 }
@@ -987,7 +1134,7 @@ bool ExplicitFunctionAnnotationRecommended::operator==(const ExplicitFunctionAnn
     return recommendedReturn == rhs.recommendedReturn && recommendedArgs == rhs.recommendedArgs;
 }
 
-bool UninhabitedTypePackFamily::operator==(const UninhabitedTypePackFamily& rhs) const
+bool UninhabitedTypePackFunction::operator==(const UninhabitedTypePackFunction& rhs) const
 {
     return tp == rhs.tp;
 }
@@ -1061,11 +1208,13 @@ bool containsParseErrorName(const TypeError& error)
 template<typename T>
 void copyError(T& e, TypeArena& destArena, CloneState& cloneState)
 {
-    auto clone = [&](auto&& ty) {
+    auto clone = [&](auto&& ty)
+    {
         return ::Luau::clone(ty, destArena, cloneState);
     };
 
-    auto visitErrorData = [&](auto&& e) {
+    auto visitErrorData = [&](auto&& e)
+    {
         copyError(e, destArena, cloneState);
     };
 
@@ -1140,6 +1289,9 @@ void copyError(T& e, TypeArena& destArena, CloneState& cloneState)
     else if constexpr (std::is_same_v<T, InternalError>)
     {
     }
+    else if constexpr (std::is_same_v<T, ConstraintSolvingIncompleteError>)
+    {
+    }
     else if constexpr (std::is_same_v<T, CannotCallNonFunction>)
     {
         e.ty = clone(e.ty);
@@ -1200,15 +1352,15 @@ void copyError(T& e, TypeArena& destArena, CloneState& cloneState)
     }
     else if constexpr (std::is_same_v<T, DynamicPropertyLookupOnClassesUnsafe>)
         e.ty = clone(e.ty);
-    else if constexpr (std::is_same_v<T, UninhabitedTypeFamily>)
+    else if constexpr (std::is_same_v<T, UninhabitedTypeFunction>)
         e.ty = clone(e.ty);
     else if constexpr (std::is_same_v<T, ExplicitFunctionAnnotationRecommended>)
     {
         e.recommendedReturn = clone(e.recommendedReturn);
-        for (auto [_, t] : e.recommendedArgs)
+        for (auto& [_, t] : e.recommendedArgs)
             t = clone(t);
     }
-    else if constexpr (std::is_same_v<T, UninhabitedTypePackFamily>)
+    else if constexpr (std::is_same_v<T, UninhabitedTypePackFunction>)
         e.tp = clone(e.tp);
     else if constexpr (std::is_same_v<T, WhereClauseNeeded>)
         e.ty = clone(e.ty);
@@ -1247,7 +1399,8 @@ void copyErrors(ErrorVec& errors, TypeArena& destArena, NotNull<BuiltinTypes> bu
 {
     CloneState cloneState{builtinTypes};
 
-    auto visitErrorData = [&](auto&& e) {
+    auto visitErrorData = [&](auto&& e)
+    {
         copyError(e, destArena, cloneState);
     };
 

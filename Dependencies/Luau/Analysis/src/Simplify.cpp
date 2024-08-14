@@ -238,12 +238,22 @@ Relation relateTables(TypeId left, TypeId right, SimplifierSeenSet& seen)
     LUAU_ASSERT(1 == rightTable->props.size());
     // Disjoint props have nothing in common
     // t1 with props p1's cannot appear in t2 and t2 with props p2's cannot appear in t1
-    bool foundPropFromLeftInRight = std::any_of(begin(leftTable->props), end(leftTable->props), [&](auto prop) {
-        return rightTable->props.count(prop.first) > 0;
-    });
-    bool foundPropFromRightInLeft = std::any_of(begin(rightTable->props), end(rightTable->props), [&](auto prop) {
-        return leftTable->props.count(prop.first) > 0;
-    });
+    bool foundPropFromLeftInRight = std::any_of(
+        begin(leftTable->props),
+        end(leftTable->props),
+        [&](auto prop)
+        {
+            return rightTable->props.count(prop.first) > 0;
+        }
+    );
+    bool foundPropFromRightInLeft = std::any_of(
+        begin(rightTable->props),
+        end(rightTable->props),
+        [&](auto prop)
+        {
+            return leftTable->props.count(prop.first) > 0;
+        }
+    );
 
     if (!foundPropFromLeftInRight && !foundPropFromRightInLeft && leftTable->props.size() >= 1 && rightTable->props.size() >= 1)
         return Relation::Disjoint;
@@ -1112,8 +1122,13 @@ std::optional<TypeId> TypeSimplifier::basicIntersect(TypeId left, TypeId right)
                 {
                 case Relation::Disjoint:
                     return builtinTypes->neverType;
+                case Relation::Superset:
                 case Relation::Coincident:
                     return right;
+                case Relation::Subset:
+                    if (1 == rt->props.size())
+                        return left;
+                    break;
                 default:
                     break;
                 }
@@ -1121,6 +1136,40 @@ std::optional<TypeId> TypeSimplifier::basicIntersect(TypeId left, TypeId right)
         }
         else if (1 == rt->props.size())
             return basicIntersect(right, left);
+
+        // If two tables have disjoint properties and indexers, we can combine them.
+        if (!lt->indexer && !rt->indexer && lt->state == TableState::Sealed && rt->state == TableState::Sealed)
+        {
+            if (rt->props.empty())
+                return left;
+
+            bool areDisjoint = true;
+            for (const auto& [name, leftProp]: lt->props)
+            {
+                if (rt->props.count(name))
+                {
+                    areDisjoint = false;
+                    break;
+                }
+            }
+
+            if (areDisjoint)
+            {
+                TableType::Props mergedProps = lt->props;
+                for (const auto& [name, rightProp]: rt->props)
+                    mergedProps[name] = rightProp;
+
+                return arena->addType(TableType{
+                    mergedProps,
+                    std::nullopt,
+                    TypeLevel{},
+                    lt->scope,
+                    TableState::Sealed
+                });
+            }
+        }
+
+        return std::nullopt;
     }
 
     Relation relation = relate(left, right);
@@ -1255,6 +1304,10 @@ TypeId TypeSimplifier::union_(TypeId left, TypeId right)
             case Relation::Coincident:
             case Relation::Superset:
                 return left;
+            case Relation::Subset:
+                newParts.insert(right);
+                changed = true;
+                break;
             default:
                 newParts.insert(part);
                 newParts.insert(right);
@@ -1360,6 +1413,17 @@ SimplifyResult simplifyIntersection(NotNull<BuiltinTypes> builtinTypes, NotNull<
     TypeId res = s.intersect(left, right);
 
     // fprintf(stderr, "Intersect %s and %s -> %s\n", toString(left).c_str(), toString(right).c_str(), toString(res).c_str());
+
+    return SimplifyResult{res, std::move(s.blockedTypes)};
+}
+
+SimplifyResult simplifyIntersection(NotNull<BuiltinTypes> builtinTypes, NotNull<TypeArena> arena, std::set<TypeId> parts)
+{
+    LUAU_ASSERT(FFlag::DebugLuauDeferredConstraintResolution);
+
+    TypeSimplifier s{builtinTypes, arena};
+
+    TypeId res = s.intersectFromParts(std::move(parts));
 
     return SimplifyResult{res, std::move(s.blockedTypes)};
 }

@@ -5,7 +5,7 @@
 #include "Luau/TypeFwd.h"
 #include "Luau/TypePairHash.h"
 #include "Luau/TypePath.h"
-#include "Luau/TypeFamily.h"
+#include "Luau/TypeFunction.h"
 #include "Luau/TypeCheckLimits.h"
 #include "Luau/DenseHash.h"
 
@@ -114,7 +114,7 @@ struct SubtypingEnvironment
     DenseHashMap<std::pair<TypeId, TypeId>, SubtypingResult, TypePairHash> ephemeralCache{{}};
 
     /// Applies `mappedGenerics` to the given type.
-    /// This is used specifically to substitute for generics in type family instances.
+    /// This is used specifically to substitute for generics in type function instances.
     std::optional<TypeId> applyMappedGenerics(NotNull<BuiltinTypes> builtinTypes, NotNull<TypeArena> arena, TypeId ty);
 };
 
@@ -140,8 +140,13 @@ struct Subtyping
 
     SeenSet seenTypes{{}};
 
-    Subtyping(NotNull<BuiltinTypes> builtinTypes, NotNull<TypeArena> typeArena, NotNull<Normalizer> normalizer,
-        NotNull<InternalErrorReporter> iceReporter, NotNull<Scope> scope);
+    Subtyping(
+        NotNull<BuiltinTypes> builtinTypes,
+        NotNull<TypeArena> typeArena,
+        NotNull<Normalizer> normalizer,
+        NotNull<InternalErrorReporter> iceReporter,
+        NotNull<Scope> scope
+    );
 
     Subtyping(const Subtyping&) = delete;
     Subtyping& operator=(const Subtyping&) = delete;
@@ -209,18 +214,24 @@ private:
     SubtypingResult isCovariantWith(SubtypingEnvironment& env, const Property& subProperty, const Property& superProperty, const std::string& name);
 
     SubtypingResult isCovariantWith(
-        SubtypingEnvironment& env, const std::shared_ptr<const NormalizedType>& subNorm, const std::shared_ptr<const NormalizedType>& superNorm);
+        SubtypingEnvironment& env,
+        const std::shared_ptr<const NormalizedType>& subNorm,
+        const std::shared_ptr<const NormalizedType>& superNorm
+    );
     SubtypingResult isCovariantWith(SubtypingEnvironment& env, const NormalizedClassType& subClass, const NormalizedClassType& superClass);
     SubtypingResult isCovariantWith(SubtypingEnvironment& env, const NormalizedClassType& subClass, const TypeIds& superTables);
     SubtypingResult isCovariantWith(SubtypingEnvironment& env, const NormalizedStringType& subString, const NormalizedStringType& superString);
     SubtypingResult isCovariantWith(SubtypingEnvironment& env, const NormalizedStringType& subString, const TypeIds& superTables);
     SubtypingResult isCovariantWith(
-        SubtypingEnvironment& env, const NormalizedFunctionType& subFunction, const NormalizedFunctionType& superFunction);
+        SubtypingEnvironment& env,
+        const NormalizedFunctionType& subFunction,
+        const NormalizedFunctionType& superFunction
+    );
     SubtypingResult isCovariantWith(SubtypingEnvironment& env, const TypeIds& subTypes, const TypeIds& superTypes);
 
     SubtypingResult isCovariantWith(SubtypingEnvironment& env, const VariadicTypePack* subVariadic, const VariadicTypePack* superVariadic);
-    SubtypingResult isCovariantWith(SubtypingEnvironment& env, const TypeFamilyInstanceType* subFamilyInstance, const TypeId superTy);
-    SubtypingResult isCovariantWith(SubtypingEnvironment& env, const TypeId subTy, const TypeFamilyInstanceType* superFamilyInstance);
+    SubtypingResult isCovariantWith(SubtypingEnvironment& env, const TypeFunctionInstanceType* subFunctionInstance, const TypeId superTy);
+    SubtypingResult isCovariantWith(SubtypingEnvironment& env, const TypeId subTy, const TypeFunctionInstanceType* superFunctionInstance);
 
     bool bindGeneric(SubtypingEnvironment& env, TypeId subTp, TypeId superTp);
     bool bindGeneric(SubtypingEnvironment& env, TypePackId subTp, TypePackId superTp);
@@ -228,7 +239,7 @@ private:
     template<typename T, typename Container>
     TypeId makeAggregateType(const Container& container, TypeId orElse);
 
-    std::pair<TypeId, ErrorVec> handleTypeFamilyReductionResult(const TypeFamilyInstanceType* familyInstance);
+    std::pair<TypeId, ErrorVec> handleTypeFunctionReductionResult(const TypeFunctionInstanceType* functionInstance);
 
     [[noreturn]] void unexpected(TypeId ty);
     [[noreturn]] void unexpected(TypePackId tp);

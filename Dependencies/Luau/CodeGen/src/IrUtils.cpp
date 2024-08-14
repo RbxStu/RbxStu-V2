@@ -67,6 +67,7 @@ IrValueKind getCmdValueKind(IrCmd cmd)
     case IrCmd::ROUND_NUM:
     case IrCmd::SQRT_NUM:
     case IrCmd::ABS_NUM:
+    case IrCmd::SIGN_NUM:
         return IrValueKind::Double;
     case IrCmd::ADD_VEC:
     case IrCmd::SUB_VEC:
@@ -99,6 +100,7 @@ IrValueKind getCmdValueKind(IrCmd cmd)
     case IrCmd::TRY_NUM_TO_INDEX:
         return IrValueKind::Int;
     case IrCmd::TRY_CALL_FASTGETTM:
+    case IrCmd::NEW_USERDATA:
         return IrValueKind::Pointer;
     case IrCmd::INT_TO_NUM:
     case IrCmd::UINT_TO_NUM:
@@ -135,6 +137,7 @@ IrValueKind getCmdValueKind(IrCmd cmd)
     case IrCmd::CHECK_NODE_NO_NEXT:
     case IrCmd::CHECK_NODE_VALUE:
     case IrCmd::CHECK_BUFFER_LEN:
+    case IrCmd::CHECK_USERDATA_TAG:
     case IrCmd::INTERRUPT:
     case IrCmd::CHECK_GC:
     case IrCmd::BARRIER_OBJ:
@@ -252,6 +255,54 @@ bool isGCO(uint8_t tag)
     return tag >= LUA_TSTRING;
 }
 
+bool isUserdataBytecodeType(uint8_t ty)
+{
+    return ty == LBC_TYPE_USERDATA || isCustomUserdataBytecodeType(ty);
+}
+
+bool isCustomUserdataBytecodeType(uint8_t ty)
+{
+    return ty >= LBC_TYPE_TAGGED_USERDATA_BASE && ty < LBC_TYPE_TAGGED_USERDATA_END;
+}
+
+HostMetamethod tmToHostMetamethod(int tm)
+{
+    switch (TMS(tm))
+    {
+    case TM_ADD:
+        return HostMetamethod::Add;
+    case TM_SUB:
+        return HostMetamethod::Sub;
+    case TM_MUL:
+        return HostMetamethod::Mul;
+    case TM_DIV:
+        return HostMetamethod::Div;
+    case TM_IDIV:
+        return HostMetamethod::Idiv;
+    case TM_MOD:
+        return HostMetamethod::Mod;
+    case TM_POW:
+        return HostMetamethod::Pow;
+    case TM_UNM:
+        return HostMetamethod::Minus;
+    case TM_EQ:
+        return HostMetamethod::Equal;
+    case TM_LT:
+        return HostMetamethod::LessThan;
+    case TM_LE:
+        return HostMetamethod::LessEqual;
+    case TM_LEN:
+        return HostMetamethod::Length;
+    case TM_CONCAT:
+        return HostMetamethod::Concat;
+    default:
+        CODEGEN_ASSERT(!"invalid tag method for host");
+        break;
+    }
+
+    return HostMetamethod::Add;
+}
+
 void kill(IrFunction& function, IrInst& inst)
 {
     CODEGEN_ASSERT(inst.useCount == 0);
@@ -264,6 +315,7 @@ void kill(IrFunction& function, IrInst& inst)
     removeUse(function, inst.d);
     removeUse(function, inst.e);
     removeUse(function, inst.f);
+    removeUse(function, inst.g);
 
     inst.a = {};
     inst.b = {};
@@ -271,6 +323,7 @@ void kill(IrFunction& function, IrInst& inst)
     inst.d = {};
     inst.e = {};
     inst.f = {};
+    inst.g = {};
 }
 
 void kill(IrFunction& function, uint32_t start, uint32_t end)
@@ -319,6 +372,7 @@ void replace(IrFunction& function, IrBlock& block, uint32_t instIdx, IrInst repl
     addUse(function, replacement.d);
     addUse(function, replacement.e);
     addUse(function, replacement.f);
+    addUse(function, replacement.g);
 
     // An extra reference is added so block will not remove itself
     block.useCount++;
@@ -341,6 +395,7 @@ void replace(IrFunction& function, IrBlock& block, uint32_t instIdx, IrInst repl
     removeUse(function, inst.d);
     removeUse(function, inst.e);
     removeUse(function, inst.f);
+    removeUse(function, inst.g);
 
     // Inherit existing use count (last use is skipped as it will be defined later)
     replacement.useCount = inst.useCount;
@@ -366,6 +421,7 @@ void substitute(IrFunction& function, IrInst& inst, IrOp replacement)
     removeUse(function, inst.d);
     removeUse(function, inst.e);
     removeUse(function, inst.f);
+    removeUse(function, inst.g);
 
     inst.a = replacement;
     inst.b = {};
@@ -373,6 +429,7 @@ void substitute(IrFunction& function, IrInst& inst, IrOp replacement)
     inst.d = {};
     inst.e = {};
     inst.f = {};
+    inst.g = {};
 }
 
 void applySubstitutions(IrFunction& function, IrOp& op)
@@ -416,6 +473,7 @@ void applySubstitutions(IrFunction& function, IrInst& inst)
     applySubstitutions(function, inst.d);
     applySubstitutions(function, inst.e);
     applySubstitutions(function, inst.f);
+    applySubstitutions(function, inst.g);
 }
 
 bool compare(double a, double b, IrCondition cond)
@@ -584,6 +642,14 @@ void foldConstants(IrBuilder& build, IrFunction& function, IrBlock& block, uint3
     case IrCmd::ABS_NUM:
         if (inst.a.kind == IrOpKind::Constant)
             substitute(function, inst, build.constDouble(fabs(function.doubleOp(inst.a))));
+        break;
+    case IrCmd::SIGN_NUM:
+        if (inst.a.kind == IrOpKind::Constant)
+        {
+            double v = function.doubleOp(inst.a);
+
+            substitute(function, inst, build.constDouble(v > 0.0 ? 1.0 : v < 0.0 ? -1.0 : 0.0));
+        }
         break;
     case IrCmd::NOT_ANY:
         if (inst.a.kind == IrOpKind::Constant)
@@ -897,21 +963,26 @@ std::vector<uint32_t> getSortedBlockOrder(IrFunction& function)
     for (uint32_t i = 0; i < function.blocks.size(); i++)
         sortedBlocks.push_back(i);
 
-    std::sort(sortedBlocks.begin(), sortedBlocks.end(), [&](uint32_t idxA, uint32_t idxB) {
-        const IrBlock& a = function.blocks[idxA];
-        const IrBlock& b = function.blocks[idxB];
+    std::sort(
+        sortedBlocks.begin(),
+        sortedBlocks.end(),
+        [&](uint32_t idxA, uint32_t idxB)
+        {
+            const IrBlock& a = function.blocks[idxA];
+            const IrBlock& b = function.blocks[idxB];
 
-        // Place fallback blocks at the end
-        if ((a.kind == IrBlockKind::Fallback) != (b.kind == IrBlockKind::Fallback))
-            return (a.kind == IrBlockKind::Fallback) < (b.kind == IrBlockKind::Fallback);
+            // Place fallback blocks at the end
+            if ((a.kind == IrBlockKind::Fallback) != (b.kind == IrBlockKind::Fallback))
+                return (a.kind == IrBlockKind::Fallback) < (b.kind == IrBlockKind::Fallback);
 
-        // Try to order by instruction order
-        if (a.sortkey != b.sortkey)
-            return a.sortkey < b.sortkey;
+            // Try to order by instruction order
+            if (a.sortkey != b.sortkey)
+                return a.sortkey < b.sortkey;
 
-        // Chains of blocks are merged together by having the same sort key and consecutive chain key
-        return a.chainkey < b.chainkey;
-    });
+            // Chains of blocks are merged together by having the same sort key and consecutive chain key
+            return a.chainkey < b.chainkey;
+        }
+    );
 
     return sortedBlocks;
 }

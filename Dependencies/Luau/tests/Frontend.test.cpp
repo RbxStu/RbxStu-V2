@@ -295,6 +295,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "nocheck_cycle_used_by_checked")
         return {hello = A.hello}
     )";
     fileResolver.source["game/Gui/Modules/C"] = R"(
+        --!strict
         local Modules = game:GetService('Gui').Modules
         local A = require(Modules.A)
         local B = require(Modules.B)
@@ -311,7 +312,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "nocheck_cycle_used_by_checked")
     REQUIRE(bool(cExports));
 
     if (FFlag::DebugLuauDeferredConstraintResolution)
-        CHECK_EQ("{ a: any, b: any }", toString(*cExports));
+        CHECK_EQ("{ a: { hello: any }, b: { hello: any } }", toString(*cExports));
     else
         CHECK_EQ("{| a: any, b: any |}", toString(*cExports));
 }
@@ -713,9 +714,14 @@ TEST_CASE_FIXTURE(FrontendFixture, "report_syntax_error_in_required_file")
 
     CHECK_EQ("Modules/A", result.errors[0].moduleName);
 
-    bool b = std::any_of(begin(result.errors), end(result.errors), [](auto&& e) -> bool {
-        return get<SyntaxError>(e);
-    });
+    bool b = std::any_of(
+        begin(result.errors),
+        end(result.errors),
+        [](auto&& e) -> bool
+        {
+            return get<SyntaxError>(e);
+        }
+    );
     if (!b)
     {
         CHECK_MESSAGE(false, "Expected a syntax error!");
@@ -808,8 +814,10 @@ TEST_CASE_FIXTURE(FrontendFixture, "accumulate_cached_errors_in_consistent_order
 
 TEST_CASE_FIXTURE(FrontendFixture, "test_pruneParentSegments")
 {
-    CHECK_EQ(std::optional<std::string>{"Modules/Enum/ButtonState"},
-        pathExprToModuleName("", {"Modules", "LuaApp", "DeprecatedDarkTheme", "Parent", "Parent", "Enum", "ButtonState"}));
+    CHECK_EQ(
+        std::optional<std::string>{"Modules/Enum/ButtonState"},
+        pathExprToModuleName("", {"Modules", "LuaApp", "DeprecatedDarkTheme", "Parent", "Parent", "Enum", "ButtonState"})
+    );
     CHECK_EQ(std::optional<std::string>{"workspace/Foo/Bar/Baz"}, pathExprToModuleName("workspace/Foo/Quux", {"script", "Parent", "Bar", "Baz"}));
     CHECK_EQ(std::nullopt, pathExprToModuleName("", {}));
     CHECK_EQ(std::optional<std::string>{"script"}, pathExprToModuleName("", {"script"}));
@@ -911,14 +919,24 @@ TEST_CASE_FIXTURE(FrontendFixture, "it_should_be_safe_to_stringify_errors_when_f
     // It could segfault, or you could see weird type names like the empty string or <VALUELESS BY EXCEPTION>
     if (FFlag::DebugLuauDeferredConstraintResolution)
         REQUIRE_EQ(
-            "Table type 'a' not compatible with type '{ Count: number }' because the former is missing field 'Count'", toString(result.errors[0]));
+            R"(Type
+    '{ count: string }'
+could not be converted into
+    '{ Count: number }')",
+            toString(result.errors[0])
+        );
     else
         REQUIRE_EQ(
-            "Table type 'a' not compatible with type '{| Count: number |}' because the former is missing field 'Count'", toString(result.errors[0]));
+            "Table type 'a' not compatible with type '{| Count: number |}' because the former is missing field 'Count'", toString(result.errors[0])
+        );
 }
 
 TEST_CASE_FIXTURE(FrontendFixture, "trace_requires_in_nonstrict_mode")
 {
+    // The new non-strict mode is not currently expected to signal any errors here.
+    if (FFlag::DebugLuauDeferredConstraintResolution)
+        return;
+
     fileResolver.source["Module/A"] = R"(
         --!nonstrict
         local module = {}
@@ -952,10 +970,15 @@ TEST_CASE_FIXTURE(FrontendFixture, "environments")
     ScopePtr testScope = frontend.addEnvironment("test");
 
     unfreeze(frontend.globals.globalTypes);
-    frontend.loadDefinitionFile(frontend.globals, testScope, R"(
+    frontend.loadDefinitionFile(
+        frontend.globals,
+        testScope,
+        R"(
         export type Foo = number | string
     )",
-        "@test", /* captureComments */ false);
+        "@test",
+        /* captureComments */ false
+    );
     freeze(frontend.globals.globalTypes);
 
     fileResolver.source["A"] = R"(
@@ -968,13 +991,25 @@ TEST_CASE_FIXTURE(FrontendFixture, "environments")
         local foo: Foo = 1
     )";
 
+    fileResolver.source["C"] = R"(
+        --!strict
+        local foo: Foo = 1
+    )";
+
     fileResolver.environments["A"] = "test";
 
     CheckResult resultA = frontend.check("A");
     LUAU_REQUIRE_NO_ERRORS(resultA);
 
     CheckResult resultB = frontend.check("B");
-    LUAU_REQUIRE_ERROR_COUNT(1, resultB);
+    // In the new non-strict mode, we do not currently support error reporting for unknown symbols in type positions.
+    if (FFlag::DebugLuauDeferredConstraintResolution)
+        LUAU_REQUIRE_NO_ERRORS(resultB);
+    else
+        LUAU_REQUIRE_ERROR_COUNT(1, resultB);
+
+    CheckResult resultC = frontend.check("C");
+    LUAU_REQUIRE_ERROR_COUNT(1, resultC);
 }
 
 TEST_CASE_FIXTURE(FrontendFixture, "ast_node_at_position")
@@ -1075,6 +1110,10 @@ TEST_CASE_FIXTURE(FrontendFixture, "typecheck_twice_for_ast_types")
 
 TEST_CASE_FIXTURE(FrontendFixture, "imported_table_modification_2")
 {
+    // This test describes non-strict mode behavior that is just not currently present in the new non-strict mode.
+    if (FFlag::DebugLuauDeferredConstraintResolution)
+        return;
+
     frontend.options.retainFullTypeGraphs = false;
 
     fileResolver.source["Module/A"] = R"(
@@ -1206,7 +1245,8 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "reexport_type_alias")
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "module_scope_check")
 {
-    frontend.prepareModuleScope = [this](const ModuleName& name, const ScopePtr& scope, bool forAutocomplete) {
+    frontend.prepareModuleScope = [this](const ModuleName& name, const ScopePtr& scope, bool forAutocomplete)
+    {
         scope->bindings[Luau::AstName{"x"}] = Luau::Binding{frontend.globals.builtinTypes->numberType};
     };
 
@@ -1331,6 +1371,87 @@ TEST_CASE_FIXTURE(FrontendFixture, "checked_modules_have_the_correct_mode")
     ModulePtr moduleC = frontend.moduleResolver.getModule("game/C");
     REQUIRE(moduleC);
     CHECK(moduleC->mode == Mode::Strict);
+}
+
+TEST_CASE_FIXTURE(FrontendFixture, "separate_caches_for_autocomplete")
+{
+    ScopedFastFlag sff{FFlag::DebugLuauDeferredConstraintResolution, false};
+
+    fileResolver.source["game/A"] = R"(
+        --!nonstrict
+        local exports = {}
+        function exports.hello() end
+        return exports
+    )";
+
+    FrontendOptions opts;
+    opts.forAutocomplete = true;
+
+    frontend.check("game/A", opts);
+
+    CHECK(nullptr == frontend.moduleResolver.getModule("game/A"));
+
+    ModulePtr acModule = frontend.moduleResolverForAutocomplete.getModule("game/A");
+    REQUIRE(acModule != nullptr);
+    CHECK(acModule->mode == Mode::Strict);
+
+    frontend.check("game/A");
+
+    ModulePtr module = frontend.moduleResolver.getModule("game/A");
+
+    REQUIRE(module != nullptr);
+    CHECK(module->mode == Mode::Nonstrict);
+}
+
+TEST_CASE_FIXTURE(FrontendFixture, "no_separate_caches_with_the_new_solver")
+{
+    ScopedFastFlag sff{FFlag::DebugLuauDeferredConstraintResolution, true};
+
+    fileResolver.source["game/A"] = R"(
+        --!nonstrict
+        local exports = {}
+        function exports.hello() end
+        return exports
+    )";
+
+    FrontendOptions opts;
+    opts.forAutocomplete = true;
+
+    frontend.check("game/A", opts);
+
+    CHECK(nullptr == frontend.moduleResolverForAutocomplete.getModule("game/A"));
+
+    ModulePtr module = frontend.moduleResolver.getModule("game/A");
+
+    REQUIRE(module != nullptr);
+    CHECK(module->mode == Mode::Nonstrict);
+}
+
+TEST_CASE_FIXTURE(Fixture, "exported_tables_have_position_metadata")
+{
+    CheckResult result = check(R"(
+        return { abc = 22 }
+    )");
+
+    LUAU_REQUIRE_NO_ERRORS(result);
+
+    ModulePtr mm = getMainModule();
+
+    TypePackId retTp = mm->getModuleScope()->returnType;
+    auto retHead = flatten(retTp).first;
+    REQUIRE(1 == retHead.size());
+
+    const TableType* tt = get<TableType>(retHead[0]);
+    REQUIRE(tt);
+
+    CHECK("MainModule" == tt->definitionModuleName);
+
+    CHECK(1 == tt->props.size());
+    CHECK(tt->props.count("abc"));
+
+    const Property& prop = tt->props.find("abc")->second;
+
+    CHECK(Location{Position{1, 17}, Position{1, 20}} == prop.location);
 }
 
 TEST_SUITE_END();

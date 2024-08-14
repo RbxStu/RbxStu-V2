@@ -17,7 +17,6 @@ using namespace Luau;
 
 LUAU_FASTFLAG(LuauInstantiateInSubtyping);
 LUAU_FASTFLAG(DebugLuauDeferredConstraintResolution);
-LUAU_FASTFLAG(LuauAlwaysCommitInferencesOfFunctionCalls);
 LUAU_FASTINT(LuauTarjanChildLimit);
 
 LUAU_DYNAMIC_FASTFLAG(LuauImproveNonFunctionCallError)
@@ -88,10 +87,16 @@ TEST_CASE_FIXTURE(Fixture, "check_function_bodies")
     }
     else
     {
-        CHECK_EQ(result.errors[0], (TypeError{Location{Position{3, 16}, Position{3, 20}}, TypeMismatch{
-                                                                                              builtinTypes->numberType,
-                                                                                              builtinTypes->booleanType,
-                                                                                          }}));
+        CHECK_EQ(
+            result.errors[0],
+            (TypeError{
+                Location{Position{3, 16}, Position{3, 20}},
+                TypeMismatch{
+                    builtinTypes->numberType,
+                    builtinTypes->booleanType,
+                }
+            })
+        );
     }
 }
 
@@ -109,11 +114,17 @@ TEST_CASE_FIXTURE(Fixture, "cannot_hoist_interior_defns_into_signature")
     )");
 
     LUAU_REQUIRE_ERROR_COUNT(1, result);
-    CHECK(result.errors[0] == TypeError{Location{{1, 28}, {1, 29}}, getMainSourceModule()->name,
-                                  UnknownSymbol{
-                                      "T",
-                                      UnknownSymbol::Context::Type,
-                                  }});
+    CHECK(
+        result.errors[0] ==
+        TypeError{
+            Location{{1, 28}, {1, 29}},
+            getMainSourceModule()->name,
+            UnknownSymbol{
+                "T",
+                UnknownSymbol::Context::Type,
+            }
+        }
+    );
 }
 
 TEST_CASE_FIXTURE(Fixture, "infer_return_type")
@@ -931,15 +942,27 @@ TEST_CASE_FIXTURE(Fixture, "calling_function_with_incorrect_argument_type_yields
 
     LUAU_REQUIRE_ERROR_COUNT(2, result);
 
-    CHECK_EQ(result.errors[0], (TypeError{Location{Position{3, 12}, Position{3, 18}}, TypeMismatch{
-                                                                                          builtinTypes->numberType,
-                                                                                          builtinTypes->stringType,
-                                                                                      }}));
+    CHECK_EQ(
+        result.errors[0],
+        (TypeError{
+            Location{Position{3, 12}, Position{3, 18}},
+            TypeMismatch{
+                builtinTypes->numberType,
+                builtinTypes->stringType,
+            }
+        })
+    );
 
-    CHECK_EQ(result.errors[1], (TypeError{Location{Position{3, 20}, Position{3, 23}}, TypeMismatch{
-                                                                                          builtinTypes->stringType,
-                                                                                          builtinTypes->numberType,
-                                                                                      }}));
+    CHECK_EQ(
+        result.errors[1],
+        (TypeError{
+            Location{Position{3, 20}, Position{3, 23}},
+            TypeMismatch{
+                builtinTypes->stringType,
+                builtinTypes->numberType,
+            }
+        })
+    );
 }
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "calling_function_with_anytypepack_doesnt_leak_free_types")
@@ -1218,7 +1241,7 @@ caused by:
     else
     {
         expected = R"(Type
-    '(number, number, a) -> number'
+    '(number, number, *error-type*) -> number'
 could not be converted into
     '(number, number) -> number'
 caused by:
@@ -1582,7 +1605,7 @@ TEST_CASE_FIXTURE(Fixture, "inferred_higher_order_functions_are_quantified_at_th
     if (!result.errors.empty())
     {
         for (const auto& e : result.errors)
-            printf("%s %s: %s\n", e.moduleName.c_str(), toString(e.location).c_str(), toString(e).c_str());
+            MESSAGE(e.moduleName << " " << toString(e.location) << ": " << toString(e));
     }
 }
 
@@ -1651,13 +1674,15 @@ function t:b() return 2 end -- not OK
     )");
 
     LUAU_REQUIRE_ERROR_COUNT(1, result);
-    CHECK_EQ(R"(Type
+    CHECK_EQ(
+        R"(Type
     '(*error-type*) -> number'
 could not be converted into
     '() -> number'
 caused by:
   Argument count mismatch. Function expects 1 argument, but none are specified)",
-        toString(result.errors[0]));
+        toString(result.errors[0])
+    );
 }
 
 TEST_CASE_FIXTURE(Fixture, "too_few_arguments_variadic")
@@ -2049,10 +2074,6 @@ TEST_CASE_FIXTURE(Fixture, "function_exprs_are_generalized_at_signature_scope_no
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "param_1_and_2_both_takes_the_same_generic_but_their_arguments_are_incompatible")
 {
-    ScopedFastFlag sff[] = {
-        {FFlag::LuauAlwaysCommitInferencesOfFunctionCalls, true},
-    };
-
     CheckResult result = check(R"(
         local function foo<a>(x: a, y: a?)
             return x
@@ -2105,8 +2126,6 @@ Table type '{ x: number }' not compatible with type 'vec2' because the former is
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "param_1_and_2_both_takes_the_same_generic_but_their_arguments_are_incompatible_2")
 {
-    ScopedFastFlag sff{FFlag::LuauAlwaysCommitInferencesOfFunctionCalls, true};
-
     CheckResult result = check(R"(
         local function f<a>(x: a, y: a): a
             return if math.random() > 0.5 then x else y
@@ -2262,7 +2281,7 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "regex_benchmark_string_format_minimization")
     LUAU_REQUIRE_NO_ERRORS(result);
 }
 
-TEST_CASE_FIXTURE(BuiltinsFixture, "subgeneric_typefamily_super_monomorphic")
+TEST_CASE_FIXTURE(BuiltinsFixture, "subgeneric_type_function_super_monomorphic")
 {
     CheckResult result = check(R"(
 local a: (number, number) -> number = function(a, b) return a - b end
@@ -2298,10 +2317,22 @@ end
     if (FFlag::DebugLuauDeferredConstraintResolution)
     {
         LUAU_REQUIRE_ERROR_COUNT(4, result);
-        CHECK(toString(result.errors[0]) == "Type family instance sub<unknown, number> is uninhabited");
-        CHECK(toString(result.errors[1]) == "Type family instance sub<unknown, number> is uninhabited");
-        CHECK(toString(result.errors[2]) == "Type family instance sub<unknown, number> is uninhabited");
-        CHECK(toString(result.errors[3]) == "Type family instance sub<unknown, number> is uninhabited");
+        CHECK(
+            toString(result.errors[0]) ==
+            "Operator '-' could not be applied to operands of types unknown and number; there is no corresponding overload for __sub"
+        );
+        CHECK(
+            toString(result.errors[1]) ==
+            "Operator '-' could not be applied to operands of types unknown and number; there is no corresponding overload for __sub"
+        );
+        CHECK(
+            toString(result.errors[2]) ==
+            "Operator '-' could not be applied to operands of types unknown and number; there is no corresponding overload for __sub"
+        );
+        CHECK(
+            toString(result.errors[3]) ==
+            "Operator '-' could not be applied to operands of types unknown and number; there is no corresponding overload for __sub"
+        );
     }
     else
     {
@@ -2351,8 +2382,9 @@ end
     LUAU_REQUIRE_ERRORS(result);
     auto err = get<ExplicitFunctionAnnotationRecommended>(result.errors.back());
     LUAU_ASSERT(err);
-    CHECK("false | number" == toString(err->recommendedReturn));
-    CHECK(err->recommendedArgs.size() == 0);
+    CHECK("number" == toString(err->recommendedReturn));
+    REQUIRE(1 == err->recommendedArgs.size());
+    CHECK("number" == toString(err->recommendedArgs[0].second));
 }
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "tf_suggest_arg_type")
@@ -2372,6 +2404,28 @@ end
     REQUIRE(err->recommendedArgs.size() == 2);
     CHECK("number" == toString(err->recommendedArgs[0].second));
     CHECK("number" == toString(err->recommendedArgs[1].second));
+}
+
+TEST_CASE_FIXTURE(BuiltinsFixture, "tf_suggest_arg_type_2")
+{
+    if (!FFlag::DebugLuauDeferredConstraintResolution)
+        return;
+
+    // Make sure the error types are cloned to module interface
+    frontend.options.retainFullTypeGraphs = false;
+
+    CheckResult result = check(R"(
+local function escape_fslash(pre)
+    return (#pre % 2 == 0 and '\\' or '') .. pre .. '.'
+end
+)");
+
+    LUAU_REQUIRE_ERRORS(result);
+    auto err = get<ExplicitFunctionAnnotationRecommended>(result.errors.back());
+    LUAU_ASSERT(err);
+    CHECK("unknown" == toString(err->recommendedReturn));
+    REQUIRE(err->recommendedArgs.size() == 1);
+    CHECK("a" == toString(err->recommendedArgs[0].second));
 }
 
 TEST_CASE_FIXTURE(Fixture, "local_function_fwd_decl_doesnt_crash")
@@ -2670,6 +2724,83 @@ TEST_CASE_FIXTURE(Fixture, "captured_local_is_assigned_a_function")
         end
     )");
 
+    LUAU_REQUIRE_NO_ERRORS(result);
+}
+
+TEST_CASE_FIXTURE(BuiltinsFixture, "error_suppression_propagates_through_function_calls")
+{
+    CheckResult result = check(R"(
+        function first(x: any)
+            return pairs(x)(x)
+        end
+    )");
+
+    LUAU_REQUIRE_NO_ERRORS(result);
+
+    CHECK("(any) -> (any?, any)" == toString(requireType("first")));
+}
+
+TEST_CASE_FIXTURE(BuiltinsFixture, "fuzzer_normalizer_out_of_resources")
+{
+    // This luau code should finish typechecking, not segfault upon dereferencing
+    // the normalized type
+    CheckResult result = check(R"(
+ Module 'l0':
+local _ = true,...,_
+if ... then
+while _:_(_._G) do
+do end
+_ = _ and _
+_ = 0 and {# _,}
+local _ = "CCCCCCCCCCCCCCCCCCCCCCCCCCC"
+local l0 = require(module0)
+end
+local function l0()
+end
+elseif _ then
+l0 = _
+end
+do end
+while _ do
+_ = if _ then _ elseif _ then _,if _ then _ else _
+_ = _()
+do end
+do end
+if _ then
+end
+end
+_ = _,{}
+
+    )");
+}
+
+TEST_CASE_FIXTURE(BuiltinsFixture, "overload_resolution_crash_when_argExprs_is_smaller_than_type_args")
+{
+    CheckResult result = check(R"(
+--!strict
+local parseError
+type Set<T> = {[T]: any}
+local function captureDependencies(
+	saveToSet: Set<PubTypes.Dependency>,
+	callback: (...any) -> any,
+	...
+)
+	local data = table.pack(xpcall(callback, parseError, ...))
+    end
+)");
+}
+
+TEST_CASE_FIXTURE(Fixture, "unpack_depends_on_rhs_pack_to_be_fully_resolved")
+{
+    CheckResult result = check(R"(
+--!strict
+local function id(x)
+    return x
+end
+local u,v = id(3), id(id(44))
+)");
+
+    CHECK_EQ(builtinTypes->numberType, requireType("v"));
     LUAU_REQUIRE_NO_ERRORS(result);
 }
 

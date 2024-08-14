@@ -118,11 +118,22 @@ struct ConstraintGenerator
     std::function<void(const ModuleName&, const ScopePtr&)> prepareModuleScope;
     std::vector<RequireCycle> requireCycles;
 
+    DenseHashMap<TypeId, TypeIds> localTypes{nullptr};
+
     DcrLogger* logger;
 
-    ConstraintGenerator(ModulePtr module, NotNull<Normalizer> normalizer, NotNull<ModuleResolver> moduleResolver, NotNull<BuiltinTypes> builtinTypes,
-        NotNull<InternalErrorReporter> ice, const ScopePtr& globalScope, std::function<void(const ModuleName&, const ScopePtr&)> prepareModuleScope,
-        DcrLogger* logger, NotNull<DataFlowGraph> dfg, std::vector<RequireCycle> requireCycles);
+    ConstraintGenerator(
+        ModulePtr module,
+        NotNull<Normalizer> normalizer,
+        NotNull<ModuleResolver> moduleResolver,
+        NotNull<BuiltinTypes> builtinTypes,
+        NotNull<InternalErrorReporter> ice,
+        const ScopePtr& globalScope,
+        std::function<void(const ModuleName&, const ScopePtr&)> prepareModuleScope,
+        DcrLogger* logger,
+        NotNull<DataFlowGraph> dfg,
+        std::vector<RequireCycle> requireCycles
+    );
 
     /**
      * The entry point to the ConstraintGenerator. This will construct a set
@@ -193,10 +204,23 @@ private:
     };
 
     using RefinementContext = InsertionOrderedMap<DefId, RefinementPartition>;
-    void unionRefinements(const ScopePtr& scope, Location location, const RefinementContext& lhs, const RefinementContext& rhs,
-        RefinementContext& dest, std::vector<ConstraintV>* constraints);
-    void computeRefinement(const ScopePtr& scope, Location location, RefinementId refinement, RefinementContext* refis, bool sense, bool eq,
-        std::vector<ConstraintV>* constraints);
+    void unionRefinements(
+        const ScopePtr& scope,
+        Location location,
+        const RefinementContext& lhs,
+        const RefinementContext& rhs,
+        RefinementContext& dest,
+        std::vector<ConstraintV>* constraints
+    );
+    void computeRefinement(
+        const ScopePtr& scope,
+        Location location,
+        RefinementId refinement,
+        RefinementContext* refis,
+        bool sense,
+        bool eq,
+        std::vector<ConstraintV>* constraints
+    );
     void applyRefinements(const ScopePtr& scope, Location location, RefinementId refinement);
 
     ControlFlow visitBlockWithoutChildScope(const ScopePtr& scope, AstStatBlock* block);
@@ -215,6 +239,7 @@ private:
     ControlFlow visit(const ScopePtr& scope, AstStatCompoundAssign* assign);
     ControlFlow visit(const ScopePtr& scope, AstStatIf* ifStatement);
     ControlFlow visit(const ScopePtr& scope, AstStatTypeAlias* alias);
+    ControlFlow visit(const ScopePtr& scope, AstStatTypeFunction* function);
     ControlFlow visit(const ScopePtr& scope, AstStatDeclareGlobal* declareGlobal);
     ControlFlow visit(const ScopePtr& scope, AstStatDeclareClass* declareClass);
     ControlFlow visit(const ScopePtr& scope, AstStatDeclareFunction* declareFunction);
@@ -222,7 +247,11 @@ private:
 
     InferencePack checkPack(const ScopePtr& scope, AstArray<AstExpr*> exprs, const std::vector<std::optional<TypeId>>& expectedTypes = {});
     InferencePack checkPack(
-        const ScopePtr& scope, AstExpr* expr, const std::vector<std::optional<TypeId>>& expectedTypes = {}, bool generalize = true);
+        const ScopePtr& scope,
+        AstExpr* expr,
+        const std::vector<std::optional<TypeId>>& expectedTypes = {},
+        bool generalize = true
+    );
 
     InferencePack checkPack(const ScopePtr& scope, AstExprCall* call);
 
@@ -236,7 +265,12 @@ private:
      * @return the type of the expression.
      */
     Inference check(
-        const ScopePtr& scope, AstExpr* expr, std::optional<TypeId> expectedType = {}, bool forceSingleton = false, bool generalize = true);
+        const ScopePtr& scope,
+        AstExpr* expr,
+        std::optional<TypeId> expectedType = {},
+        bool forceSingleton = false,
+        bool generalize = true
+    );
 
     Inference check(const ScopePtr& scope, AstExprConstantString* string, std::optional<TypeId> expectedType, bool forceSingleton);
     Inference check(const ScopePtr& scope, AstExprConstantBool* bool_, std::optional<TypeId> expectedType, bool forceSingleton);
@@ -254,18 +288,11 @@ private:
     Inference check(const ScopePtr& scope, AstExprTable* expr, std::optional<TypeId> expectedType);
     std::tuple<TypeId, TypeId, RefinementId> checkBinary(const ScopePtr& scope, AstExprBinary* binary, std::optional<TypeId> expectedType);
 
-    struct LValueBounds
-    {
-        std::optional<TypeId> annotationTy;
-        std::optional<TypeId> assignedTy;
-    };
-
-    LValueBounds checkLValue(const ScopePtr& scope, AstExpr* expr);
-    LValueBounds checkLValue(const ScopePtr& scope, AstExprLocal* local);
-    LValueBounds checkLValue(const ScopePtr& scope, AstExprGlobal* global);
-    LValueBounds checkLValue(const ScopePtr& scope, AstExprIndexName* indexName);
-    LValueBounds checkLValue(const ScopePtr& scope, AstExprIndexExpr* indexExpr);
-    LValueBounds updateProperty(const ScopePtr& scope, AstExpr* expr);
+    void visitLValue(const ScopePtr& scope, AstExpr* expr, TypeId rhsType);
+    void visitLValue(const ScopePtr& scope, AstExprLocal* local, TypeId rhsType);
+    void visitLValue(const ScopePtr& scope, AstExprGlobal* global, TypeId rhsType);
+    void visitLValue(const ScopePtr& scope, AstExprIndexName* indexName, TypeId rhsType);
+    void visitLValue(const ScopePtr& scope, AstExprIndexExpr* indexExpr, TypeId rhsType);
 
     struct FunctionSignature
     {
@@ -281,7 +308,11 @@ private:
     };
 
     FunctionSignature checkFunctionSignature(
-        const ScopePtr& parent, AstExprFunction* fn, std::optional<TypeId> expectedType = {}, std::optional<Location> originalName = {});
+        const ScopePtr& parent,
+        AstExprFunction* fn,
+        std::optional<TypeId> expectedType = {},
+        std::optional<Location> originalName = {}
+    );
 
     /**
      * Checks the body of a function expression.
@@ -328,7 +359,11 @@ private:
      * privateTypeBindings map.
      **/
     std::vector<std::pair<Name, GenericTypeDefinition>> createGenerics(
-        const ScopePtr& scope, AstArray<AstGenericType> generics, bool useCache = false, bool addTypes = true);
+        const ScopePtr& scope,
+        AstArray<AstGenericType> generics,
+        bool useCache = false,
+        bool addTypes = true
+    );
 
     /**
      * Creates generic type packs given a list of AST definitions, resolving
@@ -341,16 +376,20 @@ private:
      * privateTypePackBindings map.
      **/
     std::vector<std::pair<Name, GenericTypePackDefinition>> createGenericPacks(
-        const ScopePtr& scope, AstArray<AstGenericTypePack> packs, bool useCache = false, bool addTypes = true);
+        const ScopePtr& scope,
+        AstArray<AstGenericTypePack> packs,
+        bool useCache = false,
+        bool addTypes = true
+    );
 
     Inference flattenPack(const ScopePtr& scope, Location location, InferencePack pack);
 
     void reportError(Location location, TypeErrorData err);
     void reportCodeTooComplex(Location location);
 
-    // make a union type family of these two types
+    // make a union type function of these two types
     TypeId makeUnion(const ScopePtr& scope, Location location, TypeId lhs, TypeId rhs);
-    // make an intersect type family of these two types
+    // make an intersect type function of these two types
     TypeId makeIntersect(const ScopePtr& scope, Location location, TypeId lhs, TypeId rhs);
 
     /** Scan the program for global definitions.
@@ -360,6 +399,8 @@ private:
      * initial scan of the AST and note what globals are defined.
      */
     void prepopulateGlobalScope(const ScopePtr& globalScope, AstStatBlock* program);
+
+    bool recordPropertyAssignment(TypeId ty);
 
     // Record the fact that a particular local has a particular type in at least
     // one of its states.
@@ -373,7 +414,13 @@ private:
      */
     std::vector<std::optional<TypeId>> getExpectedCallTypesForFunctionOverloads(const TypeId fnType);
 
-    TypeId createFamilyInstance(TypeFamilyInstanceType instance, const ScopePtr& scope, Location location);
+    TypeId createTypeFunctionInstance(
+        const TypeFunction& function,
+        std::vector<TypeId> typeArguments,
+        std::vector<TypePackId> packArguments,
+        const ScopePtr& scope,
+        Location location
+    );
 };
 
 /** Borrow a vector of pointers from a vector of owning pointers to constraints.

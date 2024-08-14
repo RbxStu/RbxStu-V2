@@ -109,8 +109,13 @@ void UnwindBuilderWin::prologueA64(uint32_t prologueSize, uint32_t stackSize, st
     CODEGEN_ASSERT(!"Not implemented");
 }
 
-void UnwindBuilderWin::prologueX64(uint32_t prologueSize, uint32_t stackSize, bool setupFrame, std::initializer_list<X64::RegisterX64> gpr,
-    const std::vector<X64::RegisterX64>& simd)
+void UnwindBuilderWin::prologueX64(
+    uint32_t prologueSize,
+    uint32_t stackSize,
+    bool setupFrame,
+    std::initializer_list<X64::RegisterX64> gpr,
+    const std::vector<X64::RegisterX64>& simd
+)
 {
     CODEGEN_ASSERT(stackSize > 0 && stackSize < 4096 && stackSize % 8 == 0);
     CODEGEN_ASSERT(prologueSize < 256);
@@ -194,17 +199,12 @@ void UnwindBuilderWin::prologueX64(uint32_t prologueSize, uint32_t stackSize, bo
     this->prologSize = prologueSize;
 }
 
-size_t UnwindBuilderWin::getSize() const
+size_t UnwindBuilderWin::getUnwindInfoSize(size_t blockSize) const
 {
     return sizeof(UnwindFunctionWin) * unwindFunctions.size() + size_t(rawDataPos - rawData);
 }
 
-size_t UnwindBuilderWin::getFunctionCount() const
-{
-    return unwindFunctions.size();
-}
-
-void UnwindBuilderWin::finalize(char* target, size_t offset, void* funcAddress, size_t funcSize) const
+size_t UnwindBuilderWin::finalize(char* target, size_t offset, void* funcAddress, size_t blockSize) const
 {
     // Copy adjusted function information
     for (UnwindFunctionWin func : unwindFunctions)
@@ -213,8 +213,8 @@ void UnwindBuilderWin::finalize(char* target, size_t offset, void* funcAddress, 
         func.beginOffset += uint32_t(offset);
 
         // Whole block is a part of a 'single function'
-        if (func.endOffset == kFullBlockFuncton)
-            func.endOffset = uint32_t(funcSize);
+        if (func.endOffset == kFullBlockFunction)
+            func.endOffset = uint32_t(blockSize);
         else
             func.endOffset += uint32_t(offset);
 
@@ -226,6 +226,8 @@ void UnwindBuilderWin::finalize(char* target, size_t offset, void* funcAddress, 
 
     // Copy unwind codes
     memcpy(target, rawData, size_t(rawDataPos - rawData));
+
+    return unwindFunctions.size();
 }
 
 } // namespace CodeGen

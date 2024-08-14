@@ -59,6 +59,7 @@ public:
     const_iterator begin() const;
     const_iterator end() const;
     iterator erase(const_iterator it);
+    void erase(TypeId ty);
 
     size_t size() const;
     bool empty() const;
@@ -307,6 +308,9 @@ struct NormalizedType
     /// Returns true if the type is a subtype of string(it could be a singleton). Behaves like Type::isString()
     bool isSubtypeOfString() const;
 
+    /// Returns true if the type is a subtype of boolean(it could be a singleton). Behaves like Type::isBoolean()
+    bool isSubtypeOfBooleans() const;
+
     /// Returns true if this type should result in error suppressing behavior.
     bool shouldSuppressErrors() const;
 
@@ -360,7 +364,6 @@ public:
     Normalizer& operator=(Normalizer&) = delete;
 
     // If this returns null, the typechecker should emit a "too complex" error
-    const NormalizedType* DEPRECATED_normalize(TypeId ty);
     std::shared_ptr<const NormalizedType> normalize(TypeId ty);
     void clearNormal(NormalizedType& norm);
 
@@ -395,7 +398,7 @@ public:
     TypeId negate(TypeId there);
     void subtractPrimitive(NormalizedType& here, TypeId ty);
     void subtractSingleton(NormalizedType& here, TypeId ty);
-    NormalizationResult intersectNormalWithNegationTy(TypeId toNegate, NormalizedType& intersect, bool useDeprecated = false);
+    NormalizationResult intersectNormalWithNegationTy(TypeId toNegate, NormalizedType& intersect);
 
     // ------- Normalizing intersections
     TypeId intersectionOfTops(TypeId here, TypeId there);
@@ -404,8 +407,8 @@ public:
     void intersectClassesWithClass(NormalizedClassType& heres, TypeId there);
     void intersectStrings(NormalizedStringType& here, const NormalizedStringType& there);
     std::optional<TypePackId> intersectionOfTypePacks(TypePackId here, TypePackId there);
-    std::optional<TypeId> intersectionOfTables(TypeId here, TypeId there);
-    void intersectTablesWithTable(TypeIds& heres, TypeId there);
+    std::optional<TypeId> intersectionOfTables(TypeId here, TypeId there, Set<TypeId>& seenSet);
+    void intersectTablesWithTable(TypeIds& heres, TypeId there, Set<TypeId>& seenSetTypes);
     void intersectTables(TypeIds& heres, const TypeIds& theres);
     std::optional<TypeId> intersectionOfFunctions(TypeId here, TypeId there);
     void intersectFunctionsWithFunction(NormalizedFunctionType& heress, TypeId there);
@@ -413,7 +416,7 @@ public:
     NormalizationResult intersectTyvarsWithTy(NormalizedTyvars& here, TypeId there, Set<TypeId>& seenSetTypes);
     NormalizationResult intersectNormals(NormalizedType& here, const NormalizedType& there, int ignoreSmallerTyvars = -1);
     NormalizationResult intersectNormalWithTy(NormalizedType& here, TypeId there, Set<TypeId>& seenSetTypes);
-    NormalizationResult normalizeIntersections(const std::vector<TypeId>& intersections, NormalizedType& outType);
+    NormalizationResult normalizeIntersections(const std::vector<TypeId>& intersections, NormalizedType& outType, Set<TypeId>& seenSet);
 
     // Check for inhabitance
     NormalizationResult isInhabited(TypeId ty);
@@ -423,6 +426,7 @@ public:
 
     // Check for intersections being inhabited
     NormalizationResult isIntersectionInhabited(TypeId left, TypeId right);
+    NormalizationResult isIntersectionInhabited(TypeId left, TypeId right, Set<TypeId>& seenSet);
 
     // -------- Convert back from a normalized type to a type
     TypeId typeFromNormal(const NormalizedType& norm);
