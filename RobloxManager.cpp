@@ -85,15 +85,30 @@ void RobloxManager::Initialize() {
         if (results.empty()) {
             logger->PrintWarning(RbxStu::RobloxManager, std::format("Failed to find function '{}'!", fName));
         } else {
+            void *mostDesirable = *results.data();
             if (results.size() > 1) {
                 logger->PrintWarning(
                         RbxStu::RobloxManager,
                         "More than one candidate has matched the signature. This is generally not something "
                         "problematic, but it may mean the signature has too many wildcards that makes it not unique. "
                         "The first result will be chosen.");
+
+                auto closest = *results.data();
+                for (const auto &result: results) {
+                    if (reinterpret_cast<std::uintptr_t>(result) -
+                                reinterpret_cast<std::uintptr_t>(GetModuleHandle(nullptr)) <
+                        (reinterpret_cast<std::uintptr_t>(closest) -
+                         reinterpret_cast<std::uintptr_t>(GetModuleHandle(nullptr)))) {
+                        mostDesirable = result;
+                    }
+                }
             }
+            // Here we need to get a little bit smart. It is very possible we have MORE than one result.
+            // To combat this, we want to grab the address that is closest to GetModuleHandleA(nullptr).
+            // A mere attempt at making THIS, less painful.
+
             this->m_mapRobloxFunctions[fName] =
-                    *results.data(); // Grab first result, it doesn't really matter to be honest.
+                    mostDesirable; // Grab first result, it doesn't really matter to be honest.
         }
     }
 
