@@ -55,10 +55,13 @@ public:
 namespace RbxStu {
 /// @brief Defines a section for use in the logger
 #define DefineSectionName(varName, sectionName) constexpr auto varName = sectionName
+
     DefineSectionName(Execution, "RbxStu::Execution");
     DefineSectionName(MainThread, "RbxStu::MainThread");
     DefineSectionName(ByteScanner, "RbxStu::ByteScanner");
     DefineSectionName(RobloxManager, "RbxStu::RobloxManager");
     DefineSectionName(HookedFunction, "RbxStu::HookedFunction<anonymous>");
+    DefineSectionName(LuauManager, "RbxStu::LuauManager");
+
 #undef DefineSectionName
 }; // namespace RbxStu

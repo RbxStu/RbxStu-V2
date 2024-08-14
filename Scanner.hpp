@@ -17,74 +17,9 @@ struct SignatureByte {
     unsigned char szlookForByte;
     bool bIsWildcard;
 
-    static Signature GetSignatureFromString(_In_ const std::string &aob, _In_ const std::string &mask) {
-        auto logger = Logger::GetSingleton();
-        auto nAob = Utilities::SplitBy(aob, ' ');
-        auto nMask = Utilities::SplitBy(mask, ' ');
-        if (nAob.size() != nMask.size()) {
-            logger->PrintError(RbxStu::ByteScanner,
-                               std::format("Failed to parse signature + mask. Reason: The array of bytes and the mask "
-                                           "do not match in size when normalized. Size of AOB: {}. Size of Mask: {}",
-                                           nAob.size(), nMask.size()));
-            return {};
-        }
+    static Signature GetSignatureFromString(_In_ const std::string &aob, _In_ const std::string &mask);
 
-        for (std::int32_t i = 0; i < nMask.size(); i++) {
-            for (std::int32_t j = 0; j < nMask[i].size(); i++) {
-                nMask[i][j] = std::tolower(nMask[i][j]); // Normalize mask to lower characters to avoid issues.
-            }
-        }
-
-        Signature sig;
-        for (std::int32_t i = 0; i < nAob.size(); i++) {
-            if (nMask[i].find('x') != std::string::npos) {
-                sig.push_back(SignatureByte{static_cast<unsigned char>('\0'), true});
-                continue;
-            }
-
-            auto parsed = strtoul(nAob[i].data(), nullptr, 16);
-
-            if (parsed > 255) { // We needn't bottom check, as its an unsigned long.
-                logger->PrintWarning(
-                        RbxStu::ByteScanner,
-                        std::format(
-                                "Failed to parse signature + mask. Reason: Value outside of the unsigned "
-                                "char range. Value parsed: {}; Skipping byte, this may result in undefined behaviour.",
-                                parsed));
-                continue;
-            }
-
-            sig.push_back(SignatureByte{static_cast<unsigned char>(parsed), false});
-        }
-    }
-
-    static Signature GetSignatureFromIDAString(_In_ const std::string &aob) {
-        auto logger = Logger::GetSingleton();
-        Signature sig;
-
-        for (auto byte: Utilities::SplitBy(aob, ' ')) {
-            if (byte.find('?') != std::string::npos) {
-                sig.push_back(SignatureByte{static_cast<unsigned char>('\0'), true});
-                continue;
-            }
-
-            auto parsed = strtoul(byte.data(), nullptr, 16);
-
-            if (parsed > 255) { // We needn't bottom check, as its an unsigned long.
-                logger->PrintWarning(
-                        RbxStu::ByteScanner,
-                        std::format(
-                                "Failed to parse IDA signature. Reason: Value outside of the unsigned "
-                                "char range. Value parsed: {}; Skipping byte, this may result in undefined behaviour.",
-                                parsed));
-                continue;
-            }
-
-            sig.push_back(SignatureByte{static_cast<unsigned char>(parsed), false});
-        }
-
-        return sig;
-    }
+    static Signature GetSignatureFromIDAString(_In_ const std::string &aob);
 };
 
 /// @brief Allows you to do AOB Scans on the current process with a signature.
@@ -111,5 +46,6 @@ public:
     /// @brief Scans from the given start address for the given signature.
     /// @param signature [in] A Vector containing the SignatureByte list that must be matched.
     /// @param lpStartAddress [in, opt] The address to start scanning from.
-    std::vector<void *> Scan(_In_ const Signature &signature, _In_opt_ const void *lpStartAddress = GetModuleHandle(nullptr));
+    std::vector<void *> Scan(_In_ const Signature &signature,
+                             _In_opt_ const void *lpStartAddress = GetModuleHandle(nullptr));
 };

@@ -15,7 +15,7 @@ namespace RbxStu {
 #define MakeSignature_FromIDA(signatureName, idaSignature)                                                             \
     const static Signature signatureName = SignatureByte::GetSignatureFromIDAString(idaSignature)
 
-    namespace FunctionDefinitions {
+    namespace StudioFunctionDefinitions {
         using r_RBX_ScriptContext_scriptStart = void(__fastcall *)(void *scriptContext, void *baseScript);
         using r_RBX_ScriptContext_openStateImpl = bool(__fastcall *)(void *scriptContext, void *unk_0,
                                                                      std::int32_t unk_1, std::int32_t unk_2);
@@ -30,9 +30,9 @@ namespace RbxStu {
         using r_RBX_ScriptContext_resumeDelayedThreads = void *(__fastcall *) (void *scriptContext);
 
         using r_RBX_DataModel_getStudioGameStateType = RBX::DataModelType(__fastcall *)(void *dataModel);
-    } // namespace FunctionDefinitions
+    } // namespace StudioFunctionDefinitions
 
-    namespace Signatures {
+    namespace StudioSignatures {
         MakeSignature_FromIDA(RBX_ScriptContext_scriptStart,
                               "48 89 54 24 ? 48 89 4C 24 ? 53 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 8B FA "
                               "4C 8B E9 0F 57 C0 66 0F 7F 44 24 ? 48 8B 42 ? 48 85 C0 74 08 F0 FF 40 ? 48 8B 42 ? 48 "
@@ -110,7 +110,7 @@ namespace RbxStu {
                 {"RBX::Console::StandardOut", RBX_Console_StandardOut},
         };
 
-    } // namespace Signatures
+    } // namespace StudioSignatures
 
 #undef MakeSignature_FromIDA
 } // namespace RbxStu
@@ -136,9 +136,11 @@ public:
 
     std::optional<std::int64_t> IdentityToCapability(std::int32_t identity);
 
-    RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut GetRobloxPrint();
+    RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut GetRobloxPrint();
 
     bool IsInitialized() const;
+
+    void *GetRobloxFunction(const std::string &functionName);
 
     void *GetHookOriginal(const std::string &functionName);
 

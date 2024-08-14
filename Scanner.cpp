@@ -6,6 +6,75 @@
 
 std::shared_ptr<Scanner> Scanner::pInstance;
 
+Signature SignatureByte::GetSignatureFromString(const std::string &aob, const std::string &mask) {
+    auto logger = Logger::GetSingleton();
+    auto nAob = Utilities::SplitBy(aob, ' ');
+    auto nMask = Utilities::SplitBy(mask, ' ');
+    if (nAob.size() != nMask.size()) {
+        logger->PrintError(RbxStu::ByteScanner,
+                           std::format("Failed to parse signature + mask. Reason: The array of bytes and the mask "
+                                       "do not match in size when normalized. Size of AOB: {}. Size of Mask: {}",
+                                       nAob.size(), nMask.size()));
+        return {};
+    }
+
+    for (std::int32_t i = 0; i < nMask.size(); i++) {
+        for (std::int32_t j = 0; j < nMask[i].size(); i++) {
+            nMask[i][j] = std::tolower(nMask[i][j]); // Normalize mask to lower characters to avoid issues.
+        }
+    }
+
+    Signature sig;
+    for (std::int32_t i = 0; i < nAob.size(); i++) {
+        if (nMask[i].find('x') != std::string::npos) {
+            sig.push_back(SignatureByte{static_cast<unsigned char>('\0'), true});
+            continue;
+        }
+
+        auto parsed = strtoul(nAob[i].data(), nullptr, 16);
+
+        if (parsed > 255) { // We needn't bottom check, as its an unsigned long.
+            logger->PrintWarning(
+                    RbxStu::ByteScanner,
+                    std::format("Failed to parse signature + mask. Reason: Value outside of the unsigned "
+                                "char range. Value parsed: {}; Skipping byte, this may result in undefined behaviour.",
+                                parsed));
+            continue;
+        }
+
+        sig.push_back(SignatureByte{static_cast<unsigned char>(parsed), false});
+    }
+
+    return sig;
+}
+Signature SignatureByte::GetSignatureFromIDAString(const std::string &aob) {
+    auto logger = Logger::GetSingleton();
+    Signature sig;
+
+    for (auto byte: Utilities::SplitBy(aob, ' ')) {
+        if (byte.find('?') != std::string::npos) {
+            sig.push_back(SignatureByte{static_cast<unsigned char>('\0'), true});
+            continue;
+        }
+
+        auto parsed = strtoul(byte.data(), nullptr, 16);
+
+        if (parsed > 255) { // We needn't bottom check, as its an unsigned long.
+            logger->PrintWarning(
+                    RbxStu::ByteScanner,
+                    std::format("Failed to parse IDA signature. Reason: Value outside of the unsigned "
+                                "char range. Value parsed: {}; Skipping byte, this may result in undefined behaviour.",
+                                parsed));
+            continue;
+        }
+
+        sig.push_back(SignatureByte{static_cast<unsigned char>(parsed), false});
+    }
+
+    return sig;
+}
+
+
 std::vector<void *> Scanner::ScanInternal(const unsigned char *buffer, const std::size_t bufferSize,
                                           const Signature &signature,
                                           const MEMORY_BASIC_INFORMATION &memoryInformation) {

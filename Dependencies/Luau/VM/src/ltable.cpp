@@ -46,7 +46,7 @@ static_assert(TKey{{NULL}, {0}, LUA_TNIL, MAXSIZE - 1}.next == MAXSIZE - 1, "not
 static_assert(TKey{{NULL}, {0}, LUA_TNIL, -(MAXSIZE - 1)}.next == -(MAXSIZE - 1), "not enough bits for next");
 
 // empty hash data points to dummynode so that we can always dereference it
-const LuaNode luaH_dummynode = *reinterpret_cast<LuaNode*>(RBX::Studio::Offsets::_luaH_dummynode);
+const LuaNode luaH_dummynode = *reinterpret_cast<LuaNode*>(RBX::Studio::Offsets::luaH_dummynode);
 
 
 #define dummynode (&luaH_dummynode)

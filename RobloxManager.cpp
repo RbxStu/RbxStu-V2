@@ -15,13 +15,13 @@ void *rbx__scriptcontext__resumeWaitingThreads(void *scriptContext) {
     auto robloxManager = RobloxManager::GetSingleton();
     // auto logger = Logger::GetSingleton();
 
-    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
+    return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
             robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(scriptContext);
 }
 
 std::int32_t rbx__datamodel__getstudiogamestatetype(void *dataModel) {
     auto robloxManager = RobloxManager::GetSingleton();
-    auto original = reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_DataModel_getStudioGameStateType>(
+    auto original = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_getStudioGameStateType>(
             robloxManager->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
 
     if (!robloxManager->IsInitialized())
@@ -79,7 +79,7 @@ void RobloxManager::Initialize() {
 
     logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions (Simple step)... [1/3]");
 
-    for (const auto &[fName, fSignature]: RbxStu::Signatures::s_signatureMap) {
+    for (const auto &[fName, fSignature]: RbxStu::StudioSignatures::s_signatureMap) {
         const auto results = scanner->Scan(fSignature);
 
         if (results.empty()) {
@@ -150,7 +150,7 @@ std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
     }
 
 
-    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_ScriptContext_getGlobalState>(
+    return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getGlobalState>(
             this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"])(scriptContext, nullptr, nullptr);
 }
 
@@ -192,10 +192,10 @@ std::optional<std::int64_t> RobloxManager::IdentityToCapability(std::int32_t ide
         }
     }
 
-    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_Security_IdentityToCapability>(
+    return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Security_IdentityToCapability>(
             this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"])(&identity);
 }
-RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut RobloxManager::GetRobloxPrint() {
+RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut RobloxManager::GetRobloxPrint() {
     auto logger = Logger::GetSingleton();
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager,
@@ -210,10 +210,17 @@ RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut RobloxManager::GetRobloxP
     }
 
 
-    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut>(
+    return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut>(
             this->m_mapRobloxFunctions["RBX::Console::StandardOut"]);
 }
 bool RobloxManager::IsInitialized() const { return this->m_bInitialized; }
+
+void *RobloxManager::GetRobloxFunction(const std::string &functionName) {
+    if (this->m_mapRobloxFunctions.contains(functionName)) {
+        return this->m_mapRobloxFunctions[functionName];
+    }
+    return nullptr;
+}
 
 void *RobloxManager::GetHookOriginal(const std::string &functionName) {
     if (this->m_mapHookMap.contains(functionName)) {

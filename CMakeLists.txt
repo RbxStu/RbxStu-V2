@@ -6,6 +6,8 @@ set(BUILD_SHARED_LIBS OFF)
 set(PROJECT_NAME Module)
 set(CMAKE_CXX_STANDARD 23)
 
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /INCREMENTAL:NO")
+
 add_library(Module SHARED
         main.cpp
         Logger.cpp
@@ -18,6 +20,8 @@ add_library(Module SHARED
         RobloxManager.hpp
         Roblox/TypeDefinitions.hpp
         Roblox/TypeDefinitions.hpp
+        LuauManager.cpp
+        LuauManager.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
@@ -71,6 +75,7 @@ target_link_libraries(${PROJECT_NAME}
         # Luau.Analysis
         Luau.VM
         Luau.VM.Internals
+        Luau.EqSat
 
         # Imgui
         Imgui
