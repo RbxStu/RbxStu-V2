@@ -119,9 +119,10 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
     std::vector<std::future<std::vector<void *>>> scansVector{};
     std::vector<void *> results{};
     MEMORY_BASIC_INFORMATION memoryInfo{};
+#if _DEBUG
     logger->PrintInformation(RbxStu::ByteScanner,
                              std::format("Beginning scan from address {} to far beyond!", lpStartAddress));
-
+#endif
     auto startAddress = reinterpret_cast<std::uintptr_t>(lpStartAddress);
 
     while (VirtualQuery(reinterpret_cast<void *>(startAddress), &memoryInfo, sizeof(MEMORY_BASIC_INFORMATION))) {
@@ -160,8 +161,10 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
         }
     }
 
+#if _DEBUG
     logger->PrintInformation(
             RbxStu::ByteScanner,
             std::format("Scan finalized. Found {} candidates for the given signature.", results.size()));
+#endif
     return results;
 }
