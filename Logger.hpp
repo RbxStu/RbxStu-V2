@@ -59,5 +59,6 @@ namespace RbxStu {
     DefineSectionName(MainThread, "RbxStu::MainThread");
     DefineSectionName(ByteScanner, "RbxStu::ByteScanner");
     DefineSectionName(RobloxManager, "RbxStu::RobloxManager");
+    DefineSectionName(HookedFunction, "RbxStu::HookedFunction<anonymous>");
 #undef DefineSectionName
 }; // namespace RbxStu
