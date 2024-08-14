@@ -22,4 +22,31 @@ namespace RBX {
             Waiting = 3,
         };
     } // namespace Luau
+
+    enum DataModelType : std::int32_t {
+        DataModelType_Edit = 0,
+        DataModelType_PlayClient = 1,
+        DataModelType_PlayServer = 2,
+        DataModelType_MainMenuStandalone = 3,
+        DataModelType_Null = 4
+    };
+
+    static std::string DataModelTypeToString(const std::int32_t num) {
+        if (num == 0) {
+            return "StudioGameStateType_Edit";
+        }
+        if (num == 1) {
+            return "StudioGameStateType_PlayClient";
+        }
+        if (num == 2) {
+            return "StudioGameStateType_PlayServer";
+        }
+        if (num == 3) {
+            return "StudioGameStateType_Standalone";
+        }
+        if (num == 4) {
+            return "StudioGameStateType_Null";
+        }
+        return "<Invalid StudioGameStateType>";
+    }
 } // namespace RBX
