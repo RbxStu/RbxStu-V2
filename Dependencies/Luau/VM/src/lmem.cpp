@@ -420,8 +420,54 @@ static void* newgcoblock(lua_State* L, int sizeClass)
     return block;
 }
 
+template<typename T>
+static bool is_pointer_valid(T* tValue)
+{
+    // Templates fuck themselves if you don't have it like this lol
+
+    const auto ptr = reinterpret_cast<void*>(tValue);
+    auto buf = MEMORY_BASIC_INFORMATION{};
+
+    // Query a full page.
+    if (const auto read = VirtualQuery(ptr, &buf, sizeof(buf)); read != 0 && sizeof(buf) != read)
+    {
+        // I honestly dont care.
+    }
+    else if (read == 0)
+    {
+        return false;
+    }
+
+    if (buf.State & MEM_FREE == MEM_FREE)
+    {
+        return false; // The memory is not owned by the process, no need to do anything, we can already assume
+        // we cannot read it.
+    }
+
+    auto validProtections = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+
+    if (buf.Protect & validProtections)
+    {
+        return true;
+    }
+    if (buf.Protect & (PAGE_GUARD | PAGE_NOACCESS))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 static void freeblock(lua_State* L, int sizeClass, void* block)
 {
+    if (reinterpret_cast<std::uintptr_t>(block) > 0x00007FF000000000)
+        return;
+
+    if (!is_pointer_valid(static_cast<std::uintptr_t*>(block)) ||
+        !is_pointer_valid(reinterpret_cast<std::uintptr_t**>(reinterpret_cast<std::uintptr_t>(block) - 8)) ||
+        !is_pointer_valid(*reinterpret_cast<std::uintptr_t**>(reinterpret_cast<std::uintptr_t>(block) - 8)))
+        return;
+
     global_State* g = L->global;
 
     // the user data is right after the metadata
