@@ -186,7 +186,7 @@ void LuauManager::Initialize() {
     //  To obtain these data pointers, we must first obtain two key functions, lua_pushvalue and luaH_new
     //  Then we create a lua_State ourselves and we make calls that make them return to either the stack or to a data
     //  structure the pointer to them. This is by far the cleanest and easiest method, and avoids sins like crawling
-    //  assembly and doing binary tomfoolery.
+    //  assembly and doing binary tomfoolery, or the upmost WORST choice like sigging .rdata or .data, which is insane.
 
     logger->PrintInformation(RbxStu::LuauManager, "Initializing lua_State for dumping");
     lua_State *luaState = luaL_newstate();
