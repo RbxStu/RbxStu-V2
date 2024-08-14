@@ -3,8 +3,66 @@
 //
 
 #include "RobloxManager.hpp"
+
+#include <MinHook.h>
+#include <shared_mutex>
+
 #include "Scanner.hpp"
 
+std::shared_mutex __robloxmanager__singleton__lock;
+
+void *rbx__scriptcontext__resumeWaitingThreads(void *scriptContext) {
+    auto robloxManager = RobloxManager::GetSingleton();
+    // auto logger = Logger::GetSingleton();
+
+    return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
+            robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(scriptContext);
+}
+
+std::int32_t rbx__datamodel__getstudiogamestatetype(void *dataModel) {
+    auto robloxManager = RobloxManager::GetSingleton();
+    auto original = reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_DataModel_getStudioGameStateType>(
+            robloxManager->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
+
+    if (!robloxManager->IsInitialized())
+        return original(dataModel);
+
+    switch (auto dataModelType = original(dataModel)) {
+        case RBX::DataModelType::DataModelType_Edit:
+            if (robloxManager->GetCurrentDataModel(RBX::DataModelType::DataModelType_Edit) != dataModel) {
+                auto logger = Logger::GetSingleton();
+                logger->PrintInformation(RbxStu::HookedFunction, "Obtained Newest Edit Mode DataModel!");
+                robloxManager->SetCurrentDataModel(RBX::DataModelType::DataModelType_Edit, dataModel);
+            }
+            break;
+        case RBX::DataModelType_PlayClient:
+            if (robloxManager->GetCurrentDataModel(RBX::DataModelType::DataModelType_PlayClient) != dataModel) {
+                auto logger = Logger::GetSingleton();
+                logger->PrintInformation(RbxStu::HookedFunction, "Obtained Newest Playing Client DataModel!");
+                robloxManager->SetCurrentDataModel(RBX::DataModelType_PlayClient, dataModel);
+            }
+            break;
+
+        case RBX::DataModelType_MainMenuStandalone:
+            if (robloxManager->GetCurrentDataModel(RBX::DataModelType::DataModelType_MainMenuStandalone) != dataModel) {
+                auto logger = Logger::GetSingleton();
+                logger->PrintInformation(RbxStu::HookedFunction,
+                                         "Obtained Newest Standalone (Main Menu of Studio) DataModel!");
+                robloxManager->SetCurrentDataModel(RBX::DataModelType_MainMenuStandalone, dataModel);
+            }
+            break;
+
+        case RBX::DataModelType_PlayServer:
+            if (robloxManager->GetCurrentDataModel(RBX::DataModelType::DataModelType_PlayServer) != dataModel) {
+                auto logger = Logger::GetSingleton();
+                logger->PrintInformation(RbxStu::HookedFunction, "Obtained Newest Playing Server DataModel!");
+                robloxManager->SetCurrentDataModel(RBX::DataModelType_PlayServer, dataModel);
+            }
+            break;
+    }
+
+    return original(dataModel);
+}
 
 std::shared_ptr<RobloxManager> RobloxManager::pInstance;
 
@@ -16,7 +74,10 @@ void RobloxManager::Initialize() {
     }
     auto scanner = Scanner::GetSingleton();
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing Roblox Manager [1/3]");
-    logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions... [1/3]");
+    logger->PrintInformation(RbxStu::RobloxManager, "Initializing MinHook for function hooking [1/3]");
+    MH_Initialize();
+
+    logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions (Simple step)... [1/3]");
 
     for (const auto &[fName, fSignature]: RbxStu::Signatures::s_signatureMap) {
         const auto results = scanner->Scan(fSignature);
@@ -36,18 +97,34 @@ void RobloxManager::Initialize() {
         }
     }
 
-    logger->PrintInformation(RbxStu::RobloxManager, "Functions Found via scanning:");
+    logger->PrintInformation(RbxStu::RobloxManager, "Functions Found via simple scanning:");
     for (const auto &[funcName, funcAddress]: this->m_mapRobloxFunctions) {
         logger->PrintInformation(RbxStu::RobloxManager, std::format("- '{}' at address {}.", funcName, funcAddress));
     }
 
+    // logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions (Specialized step)... [2/3]");
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
+
+    this->m_mapHookMap["RBX::ScriptContext::resumeDelayedThreads"] = new void *();
+    MH_CreateHook(this->m_mapRobloxFunctions["RBX::ScriptContext::resumeDelayedThreads"],
+                  rbx__scriptcontext__resumeWaitingThreads,
+                  &this->m_mapHookMap["RBX::ScriptContext::resumeDelayedThreads"]);
+    MH_EnableHook(this->m_mapRobloxFunctions["RBX::ScriptContext::resumeDelayedThreads"]);
+
+    this->m_mapHookMap["RBX::DataModel::getStudioGameStateType"] = new void *();
+    MH_CreateHook(this->m_mapRobloxFunctions["RBX::DataModel::getStudioGameStateType"],
+                  rbx__datamodel__getstudiogamestatetype,
+                  &this->m_mapHookMap["RBX::DataModel::getStudioGameStateType"]);
+    MH_EnableHook(this->m_mapRobloxFunctions["RBX::DataModel::getStudioGameStateType"]);
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initialization Completed. [3/3]");
     this->m_bInitialized = true;
 }
+
+
 std::shared_ptr<RobloxManager> RobloxManager::GetSingleton() {
+    std::lock_guard lock{__robloxmanager__singleton__lock};
     if (RobloxManager::pInstance == nullptr)
         RobloxManager::pInstance = std::make_shared<RobloxManager>();
 
@@ -135,4 +212,29 @@ RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut RobloxManager::GetRobloxP
 
     return reinterpret_cast<RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut>(
             this->m_mapRobloxFunctions["RBX::Console::StandardOut"]);
+}
+bool RobloxManager::IsInitialized() const { return this->m_bInitialized; }
+
+void *RobloxManager::GetHookOriginal(const std::string &functionName) {
+    if (this->m_mapHookMap.contains(functionName)) {
+        return this->m_mapHookMap[functionName];
+    }
+
+    return nullptr;
+}
+
+void *RobloxManager::GetCurrentDataModel(RBX::DataModelType dataModelType) const {
+    if (this->m_bInitialized && this->m_mapDataModelMap.contains(dataModelType))
+        return this->m_mapDataModelMap.at(dataModelType);
+
+    return nullptr;
+}
+
+void RobloxManager::SetCurrentDataModel(RBX::DataModelType dataModelType, void *dataModel) {
+    if (this->m_bInitialized) {
+        this->m_mapDataModelMap[dataModelType] = dataModel;
+        Logger::GetSingleton()->PrintInformation(RbxStu::RobloxManager,
+                                                 std::format("DataModel of type {} modified to point to: {}",
+                                                             RBX::DataModelTypeToString(dataModelType), dataModel));
+    }
 }

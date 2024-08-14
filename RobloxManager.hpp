@@ -27,6 +27,9 @@ namespace RbxStu {
         using r_RBX_Console_StandardOut = std::int32_t(__fastcall *)(RBX::Console::MessageType dwMessageId,
                                                                      const char *szFormatString, ...);
 
+        using r_RBX_ScriptContext_resumeDelayedThreads = void *(__fastcall *) (void *scriptContext);
+
+        using r_RBX_DataModel_getStudioGameStateType = RBX::DataModelType(__fastcall *)(void *dataModel);
     } // namespace FunctionDefinitions
 
     namespace Signatures {
@@ -81,11 +84,19 @@ namespace RbxStu {
                               "0F 84 89 01 00 ? 0F 57 F6 0F 57 D2 BA ? ? ? ? 48 8B CB E8 ? ? ? ? 0F 28 F8 33 FF 66 0F "
                               "2F F0 77 56 0F 57 C0 F2 0F 5A C7");
 
+        MakeSignature_FromIDA(RBX_ScriptContext_resumeDelayedThreads,
+                              "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 8B F1 80 3D ?? "
+                              "?? ?? ?? ?? 74 ?? 80 3D ?? ?? ?? ?? ?? 74 ?? 48 8B ");
+
         MakeSignature_FromIDA(RBX_Console_StandardOut,
                               "48 8B C4 48 89 50 ? 4C 89 40 ? 4C 89 48 ? 53 48 83 EC ? 8B D9 4C 8D 40 ? 48 8D 48 ? E8 "
                               "? ? ? ? 90 33 C0 48 89 44 24 ? 48 C7 44 24 ? ? ? ? ? 48 89 44 24 ? 88 44 24 ?s");
 
+        MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8b 81 60 04 00 00 C3 CC CC CC CC");
+
         static const std::map<std::string, Signature> s_signatureMap = {
+                {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},
+                {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
                 {"RBX::ScriptContext::openStateImpl", RBX_ScriptContext_openStateImpl},
                 {"RBX::ScriptContext::getGlobalState", RBX_ScriptContext_getGlobalState},
@@ -111,6 +122,10 @@ private:
 
     bool m_bInitialized;
     std::map<std::string, void *> m_mapRobloxFunctions;
+    std::map<std::string, void *> m_mapHookMap;
+
+    // Roblox fields.
+    std::map<RBX::DataModelType, void *> m_mapDataModelMap;
 
     void Initialize();
 
@@ -122,4 +137,11 @@ public:
     std::optional<std::int64_t> IdentityToCapability(std::int32_t identity);
 
     RbxStu::FunctionDefinitions::r_RBX_Console_StandardOut GetRobloxPrint();
+
+    bool IsInitialized() const;
+
+    void *GetHookOriginal(const std::string &functionName);
+
+    void *GetCurrentDataModel(RBX::DataModelType type) const;
+    void SetCurrentDataModel(RBX::DataModelType type, _In_ void *dataModel);
 };
