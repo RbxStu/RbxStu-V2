@@ -117,7 +117,7 @@ private:
 
 int luaD_rawrunprotected(lua_State* L, Pfunc f, void* ud)
 {
-    return RBX::Studio::Functions::rLuaD_rawrununprotected(L, f, ud);
+    return RBX::Studio::Functions::rLuaD_rawrununprotected(L, f, ud); // Hand control of our exception handler to Roblox.
     int status = 0;
 
     try
@@ -157,7 +157,7 @@ int luaD_rawrunprotected(lua_State* L, Pfunc f, void* ud)
 l_noret luaD_throw(lua_State* L, int errcode)
 {
     RBX::Studio::Functions::rLuaD_throw(L, errcode);
-    throw lua_exception(L, errcode);
+    // throw lua_exception(L, errcode);
 }
 #endif
 

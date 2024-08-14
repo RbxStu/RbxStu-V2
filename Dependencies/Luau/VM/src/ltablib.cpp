@@ -11,10 +11,6 @@
 #include "ldebug.h"
 #include "lvm.h"
 
-LUAU_DYNAMIC_FASTFLAGVARIABLE(LuauFastCrossTableMove, false)
-LUAU_DYNAMIC_FASTFLAGVARIABLE(LuauFastTableMaxn, false)
-LUAU_DYNAMIC_FASTFLAGVARIABLE(LuauFasterConcat, false)
-
 static int foreachi(lua_State* L)
 {
     luaL_checktype(L, 1, LUA_TTABLE);
@@ -57,41 +53,24 @@ static int maxn(lua_State* L)
     double max = 0;
     luaL_checktype(L, 1, LUA_TTABLE);
 
-    if (DFFlag::LuauFastTableMaxn)
+    Table* t = hvalue(L->base);
+
+    for (int i = 0; i < t->sizearray; i++)
     {
-        Table* t = hvalue(L->base);
-
-        for (int i = 0; i < t->sizearray; i++)
-        {
-            if (!ttisnil(&t->array[i]))
-                max = i + 1;
-        }
-
-        for (int i = 0; i < sizenode(t); i++)
-        {
-            LuaNode* n = gnode(t, i);
-
-            if (!ttisnil(gval(n)) && ttisnumber(gkey(n)))
-            {
-                double v = nvalue(gkey(n));
-
-                if (v > max)
-                    max = v;
-            }
-        }
+        if (!ttisnil(&t->array[i]))
+            max = i + 1;
     }
-    else
+
+    for (int i = 0; i < sizenode(t); i++)
     {
-        lua_pushnil(L); // first key
-        while (lua_next(L, 1))
+        LuaNode* n = gnode(t, i);
+
+        if (!ttisnil(gval(n)) && ttisnumber(gkey(n)))
         {
-            lua_pop(L, 1); // remove value
-            if (lua_type(L, -1) == LUA_TNUMBER)
-            {
-                double v = lua_tonumber(L, -1);
-                if (v > max)
-                    max = v;
-            }
+            double v = nvalue(gkey(n));
+
+            if (v > max)
+                max = v;
         }
     }
 
@@ -144,68 +123,6 @@ static void moveelements(lua_State* L, int srct, int dstt, int f, int e, int t)
         }
 
         luaC_barrierfast(L, dst);
-    }
-    else if (DFFlag::LuauFastCrossTableMove && dst != src)
-    {
-        // compute the array slice we have to copy over
-        int slicestart = f < 1 ? 0 : (f > src->sizearray ? src->sizearray : f - 1);
-        int sliceend = e < 1 ? 0 : (e > src->sizearray ? src->sizearray : e);
-        LUAU_ASSERT(slicestart <= sliceend);
-
-        int slicecount = sliceend - slicestart;
-
-        if (slicecount > 0)
-        {
-            // array slice starting from INT_MIN is impossible, so we don't have to worry about int overflow
-            int dstslicestart = f < 1 ? -f + 1 : 0;
-
-            // copy over the slice
-            for (int i = 0; i < slicecount; ++i)
-            {
-                lua_rawgeti(L, srct, slicestart + i + 1);
-                lua_rawseti(L, dstt, dstslicestart + t + i);
-            }
-        }
-
-        // copy the remaining elements that could be in the hash part
-        int hashpartsize = sizenode(src);
-
-        // select the strategy with the least amount of steps
-        if (n <= hashpartsize)
-        {
-            for (int i = 0; i < n; ++i)
-            {
-                // skip array slice elements that were already copied over
-                if (cast_to(unsigned int, f + i - 1) < cast_to(unsigned int, src->sizearray))
-                    continue;
-
-                lua_rawgeti(L, srct, f + i);
-                lua_rawseti(L, dstt, t + i);
-            }
-        }
-        else
-        {
-            // source and destination tables are different, so we can iterate over source hash part directly
-            int i = hashpartsize;
-
-            while (i--)
-            {
-                LuaNode* node = gnode(src, i);
-                if (ttisnumber(gkey(node)))
-                {
-                    double n = nvalue(gkey(node));
-
-                    int k;
-                    luai_num2int(k, n);
-
-                    if (luai_numeq(cast_num(k), n) && k >= f && k <= e)
-                    {
-                        lua_rawgeti(L, srct, k);
-                        lua_rawseti(L, dstt, t - f + k);
-                    }
-                }
-            }
-        }
     }
     else
     {
@@ -314,7 +231,7 @@ static int tmove(lua_State* L)
 
 static void addfield(lua_State* L, luaL_Strbuf* b, int i, Table* t)
 {
-    if (DFFlag::LuauFasterConcat && t && unsigned(i - 1) < unsigned(t->sizearray) && ttisstring(&t->array[i - 1]))
+    if (t && unsigned(i - 1) < unsigned(t->sizearray) && ttisstring(&t->array[i - 1]))
     {
         TString* ts = tsvalue(&t->array[i - 1]);
         luaL_addlstring(b, getstr(ts), ts->len);
@@ -336,14 +253,14 @@ static int tconcat(lua_State* L)
     int i = luaL_optinteger(L, 3, 1);
     int last = luaL_opt(L, luaL_checkinteger, 4, lua_objlen(L, 1));
 
-    Table* t = DFFlag::LuauFasterConcat ? hvalue(L->base) : NULL;
+    Table* t = hvalue(L->base);
 
     luaL_Strbuf b;
     luaL_buffinit(L, &b);
     for (; i < last; i++)
     {
         addfield(L, &b, i, t);
-        if (!DFFlag::LuauFasterConcat || lsep != 0)
+        if (lsep != 0)
             luaL_addlstring(&b, sep, lsep);
     }
     if (i == last) // add last value (if interval was not empty)

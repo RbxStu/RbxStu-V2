@@ -489,7 +489,7 @@ typedef struct Table
 #define twoto(x) ((int)(1 << (x)))
 #define sizenode(t) (twoto((t)->lsizenode))
 
-#define luaO_nilobject (reinterpret_cast<lua_TValue *>(RBX::Studio::Offsets::_luaO_nilobject))
+#define luaO_nilobject (reinterpret_cast<lua_TValue*>(RBX::Studio::Offsets::_luaO_nilobject))
 
 LUAI_DATA const TValue luaO_nilobject_;
 

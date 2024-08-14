@@ -82,9 +82,10 @@ l_noret luaL_errorL(lua_State* L, const char* fmt, ...)
 {
     va_list argp;
     va_start(argp, fmt);
-    luaG_runerrorL(L, fmt, argp); // Override.
+    luaG_runerrorL(L, fmt, argp); // Override luaL_errorL.
     luaL_where(L, 1);
     lua_pushvfstring(L, fmt, argp);
+    va_end(argp);
     lua_concat(L, 2);
     lua_error(L);
 }
