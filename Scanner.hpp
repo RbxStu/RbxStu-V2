@@ -14,7 +14,6 @@ struct SignatureByte;
 typedef std::vector<SignatureByte> Signature;
 
 struct SignatureByte {
-public:
     unsigned char szlookForByte;
     bool bIsWildcard;
 
