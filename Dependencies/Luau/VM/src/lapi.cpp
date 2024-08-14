@@ -12,7 +12,6 @@
 #include "lvm.h"
 #include "lnumutils.h"
 #include "lbuffer.h"
-#include "StudioOffsets.h"
 
 #include <string.h>
 

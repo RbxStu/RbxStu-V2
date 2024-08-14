@@ -7,7 +7,6 @@
 #include "lgc.h"
 #include "lmem.h"
 #include "lvm.h"
-#include "StudioOffsets.h"
 
 #if LUA_USE_LONGJMP
 #include <setjmp.h>
@@ -117,7 +116,6 @@ private:
 
 int luaD_rawrunprotected(lua_State* L, Pfunc f, void* ud)
 {
-    return RBX::Studio::Functions::luaD_rawrununprotected(L, f, ud); // Hand control of our exception handler to Roblox.
     int status = 0;
 
     try
@@ -156,8 +154,7 @@ int luaD_rawrunprotected(lua_State* L, Pfunc f, void* ud)
 
 l_noret luaD_throw(lua_State* L, int errcode)
 {
-    RBX::Studio::Functions::luaD_throw(L, errcode);
-    // throw lua_exception(L, errcode);
+    throw lua_exception(L, errcode);
 }
 #endif
 

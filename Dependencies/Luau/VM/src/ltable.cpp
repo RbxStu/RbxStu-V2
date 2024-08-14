@@ -46,10 +46,9 @@ static_assert(TKey{{NULL}, {0}, LUA_TNIL, MAXSIZE - 1}.next == MAXSIZE - 1, "not
 static_assert(TKey{{NULL}, {0}, LUA_TNIL, -(MAXSIZE - 1)}.next == -(MAXSIZE - 1), "not enough bits for next");
 
 // empty hash data points to dummynode so that we can always dereference it
-const LuaNode luaH_dummynode = *reinterpret_cast<LuaNode*>(RBX::Studio::Offsets::luaH_dummynode);
+#define luaH_dummynode (*reinterpret_cast<LuaNode*>(RBX::Studio::Offsets::_luaH_dummynode))
 
-
-#define dummynode (&luaH_dummynode)
+#define dummynode (reinterpret_cast<LuaNode*>(RBX::Studio::Offsets::_luaH_dummynode))
 
 // hash is always reduced mod 2^k
 #define hashpow2(t, n) (gnode(t, lmod((n), sizenode(t))))

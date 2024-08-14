@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-const TValue luaO_nilobject_ = *luaO_nilobject;// {{NULL}, {0}, LUA_TNIL};
+#define luaO_nilobject_ = *luaO_nilobject;// {{NULL}, {0}, LUA_TNIL};
 
 int luaO_log2(unsigned int x)
 {

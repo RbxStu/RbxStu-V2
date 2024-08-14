@@ -18,7 +18,7 @@ static std::uintptr_t _luaO_nilobject = 0xDEADBEEF;
 
 // Find " ,"metatable": ", and go to the top of the second xref, a ldebug
 // function. It will contain two references to luaH_dummynode.
-static std::uintptr_t luaH_dummynode = 0xDEADBEEF;
+static std::uintptr_t _luaH_dummynode = 0xDEADBEEF;
 
 // The way we get our lua state is the classic, hooking.
 // Signature: 0F 84 88 00 00 00 81 FA EF D8 FF FF 74 45 81 FA F0 D8 FF FF 74 32 48 8B 41 ? 44 2B CA 48 8B 48 ? 4C 8B 01 41 0F B6 40 ? 44 3B C8 7F 12

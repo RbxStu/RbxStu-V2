@@ -491,8 +491,6 @@ typedef struct Table
 
 #define luaO_nilobject (reinterpret_cast<lua_TValue*>(RBX::Studio::Offsets::_luaO_nilobject))
 
-LUAI_DATA const TValue luaO_nilobject_;
-
 #define ceillog2(x) (luaO_log2((x)-1) + 1)
 
 LUAI_FUNC int luaO_log2(unsigned int x);
