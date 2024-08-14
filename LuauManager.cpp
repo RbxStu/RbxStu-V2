@@ -192,27 +192,33 @@ void LuauManager::Initialize() {
     lua_State *luaState = luaL_newstate();
 
     {
+
+        if (this->m_mapLuauFunctions["lua_pushvalue"] == nullptr) {
+            logger->PrintError(RbxStu::LuauManager, "Failed to obtain lua_pushvalue, cannot resolve luaO_nilobject!");
+
+            throw std::exception("Failed to resolve required function using signatures, cowardly refusing to complete "
+                                 "LuauManagers' initialization step.");
+        }
+
         logger->PrintInformation(RbxStu::LuauManager,
                                  std::format("Invoking lua_pushvalue(lua_State *L, int32_t idx) @ {} ...",
                                              this->m_mapLuauFunctions["lua_pushvalue"]));
-        auto nilObj = static_cast<std::uintptr_t(__fastcall *)(lua_State * L, int32_t lua_index)>(
-                this->m_mapLuauFunctions["lua_pushvalue"])(luaState, 1);
-        logger->PrintInformation(RbxStu::LuauManager, std::format("Call successful into address {}!",
-                                                                  this->m_mapLuauFunctions["lua_pushvalue"]));
-        RBX::Studio::Offsets::_luaO_nilobject = nilObj;
+        RBX::Studio::Offsets::_luaO_nilobject =
+                static_cast<std::uintptr_t(__fastcall *)(lua_State * L, int32_t lua_index)>(
+                        this->m_mapLuauFunctions["lua_pushvalue"])(luaState, 1);
 
         logger->PrintInformation(RbxStu::LuauManager,
-                                 std::format("Resolved luaO_nilObject to pointer {}",
+                                 std::format("Resolved luaO_nilobject to pointer {}",
                                              reinterpret_cast<void *>(RBX::Studio::Offsets::_luaO_nilobject)));
 
-        auto luaH_new = static_cast<void *(__fastcall *) (void *L, int32_t narray, int32_t nhash)>(
+        const auto luaH_new = static_cast<void *(__fastcall *) (void *L, int32_t narray, int32_t nhash)>(
                 this->m_mapLuauFunctions["luaH_new"]);
 
         if (luaH_new == nullptr) {
             logger->PrintError(RbxStu::LuauManager, "Failed to obtain luaH_new, cannot resolve luaH_dummyNode!");
 
-            throw std::exception(
-                    "Failed to resolve required function using signatures, cowardly refusing to start execution");
+            throw std::exception("Failed to resolve required function using signatures, cowardly refusing to complete "
+                                 "LuauManagers' initialization step.");
         }
 
         logger->PrintInformation(RbxStu::LuauManager,
