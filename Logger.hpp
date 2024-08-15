@@ -10,6 +10,7 @@
 #include "Roblox/TypeDefinitions.hpp"
 
 class Logger final {
+    /// @brief Private, Static shared pointer into the instance.
     static std::shared_ptr<Logger> pInstance;
 
     /// @brief Disables buffering.
