@@ -112,6 +112,10 @@ int main() {
     AllocConsole();
     const auto logger = Logger::GetSingleton();
     logger->Initialize(true);
+    logger->PrintInformation(RbxStu::MainThread,
+                             std::format("-- Studio Base: {}", static_cast<void *>(GetModuleHandle(nullptr))));
+    logger->PrintInformation(RbxStu::MainThread,
+                             std::format("-- RbxStu Base: {}", static_cast<void *>(GetModuleHandle("Module.dll"))));
     logger->PrintInformation(RbxStu::MainThread, "Initializing RbxStu V2");
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
     const auto robloxManager = RobloxManager::GetSingleton();
@@ -122,8 +126,29 @@ int main() {
     logger->PrintInformation(RbxStu::MainThread, std::format("Capability for identity 10: {}",
                                                              robloxManager->IdentityToCapability(10).value()));
 
+
     robloxManager->GetRobloxPrint()(RBX::Console::MessageType::InformationBlue,
-                                    "Hello, world! I'm not here for %s. I'm here for %s.", "NOTHING", "EVERYTHING");
+                                    "RbxStu: Waiting for client DataModel...");
+    while (robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient) == nullptr) {
+        _mm_pause();
+    }
+
+    while (true) {
+        if (!robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+            _mm_pause();
+            continue;
+        }
+
+        robloxManager->GetRobloxPrint()(RBX::Console::MessageType::InformationBlue,
+                                        "RbxStu: Client DataModel obtained!");
+
+        while (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+            _mm_pause();
+        }
+
+        robloxManager->GetRobloxPrint()(RBX::Console::MessageType::Warning,
+                                        "RbxStu: Client DataModel lost. Awaiting for new DataModel...");
+    }
 
     return 0;
 }
