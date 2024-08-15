@@ -232,5 +232,9 @@ void *LuauManager::GetHookOriginal(const std::string &functionName) {
         return this->m_mapHookMap[functionName];
     }
 
+    if (this->m_mapLuauFunctions.contains(functionName)) {
+        return this->m_mapLuauFunctions[functionName];
+    }
+
     return nullptr;
 }
