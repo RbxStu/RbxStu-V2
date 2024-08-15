@@ -7,6 +7,8 @@
 #include <memory>
 #include <string>
 
+#include "Roblox/TypeDefinitions.hpp"
+
 class Logger final {
     static std::shared_ptr<Logger> pInstance;
 
@@ -20,10 +22,10 @@ class Logger final {
     std::string m_szMessageBuffer;
 
     /// @brief Flushes the buffer into the standard output.
-    void Flush();
+    void Flush(RBX::Console::MessageType messageType);
 
     /// @brief Flushes the buffer only if the buffer is full.
-    void FlushIfFull();
+    void FlushIfFull(RBX::Console::MessageType messageType);
 
 public:
     /// @brief Obtains the Singleton for the Logger instance.
