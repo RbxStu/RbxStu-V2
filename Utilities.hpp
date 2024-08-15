@@ -9,6 +9,7 @@
 
 class Utilities final {
 public:
+    /// @brief Splits the given std::string into a std::vector<std::string> using the given character as a separator.
     __forceinline static std::vector<std::string> SplitBy(const std::string &target, const char split) {
         std::vector<std::string> splitted;
         std::stringstream stream(target);
@@ -21,10 +22,14 @@ public:
         return splitted;
     }
 
+    /// @return True if the DLL is running in a WINE powered environment underneath Linux.
     __forceinline static bool IsWine() {
         return GetProcAddress(GetModuleHandle("ntdll.dll"), "wine_get_version") != nullptr;
     }
 
+    /// @brief Used to validate a pointer.
+    /// @remarks This template does NOT validate ANY data inside the pointer. It just validates that the pointer is at
+    /// LEAST of the size of the given type, and that the pointer is allocated in memory.
     template<typename T>
     __forceinline static bool IsPointerValid(T *tValue) { // Validate pointers.
         const auto ptr = reinterpret_cast<void *>(tValue);
@@ -35,6 +40,10 @@ public:
             // I honestly dont care.
         } else if (read == 0) {
             return false;
+        }
+
+        if (buf.RegionSize < sizeof(T)) {
+            return false; // Allocated region is too small to fit type T inside.
         }
 
         if (buf.State & MEM_FREE == MEM_FREE) {
