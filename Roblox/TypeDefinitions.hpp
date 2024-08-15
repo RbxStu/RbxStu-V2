@@ -72,12 +72,14 @@ namespace RBX {
         char _398[0x28];
         char _3c0[0x50];
         char _410[0x50];
+        /// @brief Describes the DataModel type.
         enum RBX::DataModelType m_dwDataModelType;
         char _464[0x4c];
         char _4b0[0x50];
         char _500[0x41];
         char _541[1];
         char _542[1];
+        /// @brief Whether the current DataModel is marked as "Closed" (closed by RBX::DataModel::doCloseDataModel).
         bool m_bIsClosed;
     };
 
