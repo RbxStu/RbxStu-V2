@@ -30,6 +30,7 @@ namespace RbxStu {
         using r_RBX_ScriptContext_resumeDelayedThreads = void *(__fastcall *) (void *scriptContext);
 
         using r_RBX_DataModel_getStudioGameStateType = RBX::DataModelType(__fastcall *)(void *dataModel);
+        using r_RBX_DataModel_doCloseDataModel = void(__fastcall *)(void *dataModel);
     } // namespace StudioFunctionDefinitions
 
     namespace StudioSignatures {
@@ -94,6 +95,11 @@ namespace RbxStu {
 
         MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8b 81 60 04 00 00 C3 CC CC CC CC");
 
+        MakeSignature_FromIDA(RBX_DataModel_doDataModelClose,
+                              "40 53 48 83 ec ?? 80 3D ?? ?? ?? ?? 00 48 8b d9 74 ?? 80 3d ?? ?? ?? ?? 00 74 ?? 48 8B "
+                              "?? ?? ?? ?? ?? 3C 06 72 ?? 48 C1 E8 08 3C 03 72 ?? EB ?? 80 3D ?? ?? ?? ?? 00 74 21 0f "
+                              "10 ?? ?? ?? ?? ?? 4C 8B 41 08");
+
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
@@ -108,7 +114,7 @@ namespace RbxStu {
                 {"RBX::Security::IdentityToCapability", RBX_Security_IdentityToCapability},
                 {"RBX::ProximityPrompt::onTriggered", RBX_ProximityPrompt_onTriggered},
                 {"RBX::Console::StandardOut", RBX_Console_StandardOut},
-        };
+                {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose}};
 
     } // namespace StudioSignatures
 
@@ -125,7 +131,7 @@ private:
     std::map<std::string, void *> m_mapHookMap;
 
     // Roblox fields.
-    std::map<RBX::DataModelType, void *> m_mapDataModelMap;
+    std::map<RBX::DataModelType, RBX::DataModel *> m_mapDataModelMap;
 
     void Initialize();
 
@@ -144,6 +150,8 @@ public:
 
     void *GetHookOriginal(const std::string &functionName);
 
-    void *GetCurrentDataModel(RBX::DataModelType type) const;
-    void SetCurrentDataModel(RBX::DataModelType type, _In_ void *dataModel);
+    RBX::DataModel *GetCurrentDataModel(RBX::DataModelType type) const;
+    void SetCurrentDataModel(RBX::DataModelType dataModelType, _In_ RBX::DataModel *dataModel);
+
+    bool IsDataModelValid(const RBX::DataModelType &type) const;
 };

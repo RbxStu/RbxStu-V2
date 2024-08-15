@@ -18,8 +18,47 @@ void *rbx__scriptcontext__resumeWaitingThreads(void *scriptContext) {
     return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
             robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(scriptContext);
 }
+void rbx__datamodel__dodatamodelclose(void **dataModelContainer) {
+    // DataModel = *(dataModelContainer + 0x8)
+    auto dataModel = *reinterpret_cast<void **>(reinterpret_cast<std::uintptr_t>(dataModelContainer) + 0x8);
 
-std::int32_t rbx__datamodel__getstudiogamestatetype(void *dataModel) {
+    const auto robloxManager = RobloxManager::GetSingleton();
+    const auto original = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_doCloseDataModel>(
+            robloxManager->GetHookOriginal("RBX::DataModel::doDataModelClose"));
+
+    if (!robloxManager->IsInitialized())
+        return original(dataModelContainer);
+
+    const auto getStudioGameStateType =
+            reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_getStudioGameStateType>(
+                    robloxManager->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
+
+    const auto logger = Logger::GetSingleton();
+    if (!getStudioGameStateType) {
+        logger->PrintWarning(RbxStu::HookedFunction,
+                             "A DataModel has been closed, but we don't know the type, as RobloxManager has failed to "
+                             "obtain RBX::DataModel::getStudioGameStateType, cleaning up all significant DataModel "
+                             "pointers for RobloxManager instead!");
+
+        robloxManager->SetCurrentDataModel(RBX::DataModelType_PlayClient, nullptr);
+        robloxManager->SetCurrentDataModel(RBX::DataModelType_PlayServer, nullptr);
+        robloxManager->SetCurrentDataModel(RBX::DataModelType_Edit, nullptr);
+        robloxManager->SetCurrentDataModel(RBX::DataModelType_MainMenuStandalone, nullptr);
+        robloxManager->SetCurrentDataModel(RBX::DataModelType_Null, nullptr);
+    } else {
+        logger->PrintWarning(RbxStu::HookedFunction,
+                             std::format("The DataModel corresponding to {} (DataModelTypeID: {}) has been closed. "
+                                         "(Closed DataModel: {})",
+                                         RBX::DataModelTypeToString(getStudioGameStateType(dataModel)),
+                                         static_cast<std::int32_t>(getStudioGameStateType(dataModel)), dataModel));
+        robloxManager->SetCurrentDataModel(getStudioGameStateType(dataModel), nullptr);
+    }
+
+
+    return original(dataModelContainer);
+}
+
+std::int32_t rbx__datamodel__getstudiogamestatetype(RBX::DataModel *dataModel) {
     auto robloxManager = RobloxManager::GetSingleton();
     auto original = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_getStudioGameStateType>(
             robloxManager->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
@@ -89,9 +128,12 @@ void RobloxManager::Initialize() {
             if (results.size() > 1) {
                 logger->PrintWarning(
                         RbxStu::RobloxManager,
-                        "More than one candidate has matched the signature. This is generally not something "
-                        "problematic, but it may mean the signature has too many wildcards that makes it not unique. "
-                        "The first result will be chosen.");
+                        std::format(
+                                "More than one candidate has matched the signature. This is generally not something "
+                                "problematic, but it may mean the signature has too many wildcards that makes it not "
+                                "unique. "
+                                "The first result will be chosen. Affected function: {}",
+                                fName));
 
                 auto closest = *results.data();
                 for (const auto &result: results) {
@@ -132,6 +174,11 @@ void RobloxManager::Initialize() {
                   rbx__datamodel__getstudiogamestatetype,
                   &this->m_mapHookMap["RBX::DataModel::getStudioGameStateType"]);
     MH_EnableHook(this->m_mapRobloxFunctions["RBX::DataModel::getStudioGameStateType"]);
+
+    this->m_mapHookMap["RBX::DataModel::doDataModelClose"] = new void *();
+    MH_CreateHook(this->m_mapRobloxFunctions["RBX::DataModel::doDataModelClose"], rbx__datamodel__dodatamodelclose,
+                  &this->m_mapHookMap["RBX::DataModel::doDataModelClose"]);
+    MH_EnableHook(this->m_mapRobloxFunctions["RBX::DataModel::doDataModelClose"]);
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initialization Completed. [3/3]");
     this->m_bInitialized = true;
@@ -245,18 +292,39 @@ void *RobloxManager::GetHookOriginal(const std::string &functionName) {
     return nullptr;
 }
 
-void *RobloxManager::GetCurrentDataModel(RBX::DataModelType dataModelType) const {
+static std::shared_mutex __datamodelModificationMutex;
+
+RBX::DataModel *RobloxManager::GetCurrentDataModel(RBX::DataModelType dataModelType) const {
+    std::lock_guard lock{__datamodelModificationMutex};
     if (this->m_bInitialized && this->m_mapDataModelMap.contains(dataModelType))
         return this->m_mapDataModelMap.at(dataModelType);
 
     return nullptr;
 }
 
-void RobloxManager::SetCurrentDataModel(RBX::DataModelType dataModelType, void *dataModel) {
-    if (this->m_bInitialized) {
+void RobloxManager::SetCurrentDataModel(RBX::DataModelType dataModelType, RBX::DataModel *dataModel) {
+    std::lock_guard lock{__datamodelModificationMutex};
+    if (this->m_bInitialized && dataModel != nullptr) {
+        const auto logger = Logger::GetSingleton();
+        if (dataModel->m_bIsClosed) {
+            logger->PrintWarning(RbxStu::RobloxManager,
+                                 std::format("Attempted to change the current DataModel of type {} but the provided "
+                                             "DataModel is marked as closed!",
+                                             RBX::DataModelTypeToString(dataModelType)));
+            return;
+        }
         this->m_mapDataModelMap[dataModelType] = dataModel;
-        Logger::GetSingleton()->PrintInformation(RbxStu::RobloxManager,
-                                                 std::format("DataModel of type {} modified to point to: {}",
-                                                             RBX::DataModelTypeToString(dataModelType), dataModel));
+        logger->PrintInformation(RbxStu::RobloxManager, std::format("DataModel of type {} modified to point to: {}",
+                                                                    RBX::DataModelTypeToString(dataModelType),
+                                                                    reinterpret_cast<void *>(dataModel)));
     }
+}
+
+bool RobloxManager::IsDataModelValid(const RBX::DataModelType &type) const {
+    if (this->m_bInitialized && this->GetCurrentDataModel(type)) {
+        return Utilities::IsPointerValid(this->GetCurrentDataModel(type)) &&
+               !this->GetCurrentDataModel(type)->m_bIsClosed;
+    }
+
+    return false;
 }
