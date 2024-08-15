@@ -65,8 +65,8 @@ static void luau__freeblock(lua_State *L, uint32_t sizeClass, void *block) {
         return;
 
     if (!Utilities::IsPointerValid(static_cast<std::uintptr_t *>(block)) ||
-        !Utilities::IsPointerValid((reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) - 8)) ||
-        !Utilities::IsPointerValid((*reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) - 8)))
+        !Utilities::IsPointerValid(reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) - 8)) ||
+        !Utilities::IsPointerValid(*reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) - 8)))
         return;
 
     return (reinterpret_cast<RbxStu::LuauFunctionDefinitions::freeblock>(
