@@ -421,7 +421,7 @@ static void* newgcoblock(lua_State* L, int sizeClass)
 }
 
 template<typename T>
-static bool is_pointer_valid(T* tValue)
+static bool IsPointerValid(T* tValue)
 {
     // Templates fuck themselves if you don't have it like this lol
 
@@ -463,9 +463,9 @@ static void freeblock(lua_State* L, int sizeClass, void* block)
     if (reinterpret_cast<std::uintptr_t>(block) > 0x00007FF000000000)
         return;
 
-    if (!is_pointer_valid(static_cast<std::uintptr_t*>(block)) ||
-        !is_pointer_valid(reinterpret_cast<std::uintptr_t**>(reinterpret_cast<std::uintptr_t>(block) - 8)) ||
-        !is_pointer_valid(*reinterpret_cast<std::uintptr_t**>(reinterpret_cast<std::uintptr_t>(block) - 8)))
+    if (!IsPointerValid(static_cast<std::uintptr_t*>(block)) ||
+        !IsPointerValid(reinterpret_cast<std::uintptr_t**>(reinterpret_cast<std::uintptr_t>(block) - 8)) ||
+        !IsPointerValid(*reinterpret_cast<std::uintptr_t**>(reinterpret_cast<std::uintptr_t>(block) - 8)))
         return;
 
     global_State* g = L->global;
