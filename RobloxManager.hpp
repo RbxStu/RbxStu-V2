@@ -22,7 +22,7 @@ namespace RbxStu {
         using r_RBX_ExtraSpace_initializeFrom = void *(__fastcall *) (void *newExtraSpace, void *baseExtraSpace);
         using r_RBX_ScriptContext_getGlobalState = lua_State *(__fastcall *) (void *scriptContext, void *identity,
                                                                               void *unk_0);
-        using r_RBX_Security_IdentityToCapability = std::int64_t(__fastcall *)(std::int32_t *pIdentity);
+        using r_RBX_Security_IdentityToCapability = std::int64_t(__fastcall *)(const std::int32_t *pIdentity);
 
         using r_RBX_Console_StandardOut = std::int32_t(__fastcall *)(RBX::Console::MessageType dwMessageId,
                                                                      const char *szFormatString, ...);
@@ -122,36 +122,94 @@ namespace RbxStu {
 } // namespace RbxStu
 
 
+/// @brief Manages the way RbxStu interacts with Roblox specific internal functions.
 class RobloxManager final {
-private:
+    /// @brief Private, Static shared pointer into the instance.
     static std::shared_ptr<RobloxManager> pInstance;
 
-    bool m_bInitialized;
+    /// @brief The map for Roblox functions. May include hooked functions.
     std::map<std::string, void *> m_mapRobloxFunctions;
+
+    /// @brief The map for the original Roblox functions for when a Roblox functions is hooked. Guaranteed to not
+    /// contain any hooked functions
     std::map<std::string, void *> m_mapHookMap;
 
-    // Roblox fields.
+    /// @brief The map used to keep track of the valid RBX::DataModel pointers.
     std::map<RBX::DataModelType, RBX::DataModel *> m_mapDataModelMap;
 
+    /// @brief Whether the current instance is initialized.
+    bool m_bInitialized = false;
+
+    /// @brief Initializes the RobloxManager instance, obtaining all functions from their respective signatures and
+    /// establishing the initial hooks required for the manager to operate as expected.
     void Initialize();
 
 public:
+    /// @brief Obtains the shared pointer that points to the global singleton for the current class.
+    /// @return Singleton for RobloxManager as a std::shared_ptr<RobloxManager>.
     static std::shared_ptr<RobloxManager> GetSingleton();
 
+    /// @brief Attempts to obtain the L->global->mainthread for the given ScriptContext instance.
+    /// @param ScriptContext [in] A pointer in memory towards a valid ScriptContext instance.
+    /// @return A std::optional<lua_State *> which pointers to a non-array lua_State *, which is the ScriptContext's
+    /// main lua_State thread.
+    /// @remarks This function does not obtain the DataModel of ScriptContext, it is up to the callers responsability to
+    /// obtain the correct ScriptContext to obtain the correct lua_State. This function may also fail to execute, in
+    /// case that RBX::ScriptContext::getGlobalState cannot be found on the Roblox Studio assembly via AOB search.
     std::optional<lua_State *> GetGlobalState(_In_ void *ScriptContext);
 
-    std::optional<std::int64_t> IdentityToCapability(std::int32_t identity);
+    /// @brief Attempts to convert the given identity into a capability.
+    /// @param identity The identity to obtain the capabilities for, valid from [1 - 10].
+    /// @return A std::optional<std::int64_t> which is a representation of the capability the identity is supposed to
+    /// represent.
+    /// @remarks This function will resort to known behaviour if the Roblox AOB search fails.
+    std::optional<std::int64_t> IdentityToCapability(const std::int32_t &identity);
 
-    RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut GetRobloxPrint();
+    /// @brief Obtains the print address for the Roblox console. Used to print to the Roblox Developer Console.
+    /// @return A std::optional<...> which holds the pointer to the Developer Console's standard output.
+    /// @remarks Calling this function is unsafe if the optional type is not checked for its validity!
+    std::optional<RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut> GetRobloxPrint();
 
+    /// @brief Returns whether this instance of RobloxManager is initialized.
+    /// @return Whether the instance is initialized to completion.
     bool IsInitialized() const;
 
+    /// @brief Obtains a Roblox function from the list of functions that were found successfully via scanning.
+    /// @remark The returned function may be hooked by RobloxManager to add functionality. In case you wish for the
+    /// ORIGINAL function, use GetHookOriginal(const std::string &functionName) instead!
+    /// @return A type-less pointer into the start of the function.
     void *GetRobloxFunction(const std::string &functionName);
 
+    /// @brief Obtains the original function given the function's name.
+    /// @param functionName The name of the Roblox function to obtain the original from.
+    /// @note This function may return non-hooked functions as well.
+    /// @remark WARNING ON USAGE: This function is for internal usage of RobloxManager, whilst callers may use it to
+    /// obtain the original version of a Roblox function on the remote Roblox environment or to hook it themselves, this
+    /// is discouraged, and wrong, do NOT do that.
+    /// @return A type-less pointer into the start of the original function.
     void *GetHookOriginal(const std::string &functionName);
 
-    RBX::DataModel *GetCurrentDataModel(RBX::DataModelType type) const;
-    void SetCurrentDataModel(RBX::DataModelType dataModelType, _In_ RBX::DataModel *dataModel);
+    /// @brief Obtains the most recient and up-to-date DataModel for the given DataModel type.
+    /// @param type Describes the type of DataModel to check for.
+    /// @return A std::optional<RBX::DataModel *> into an instance of a DataModel which is of the type described on the
+    /// parameter.
+    std::optional<RBX::DataModel *> GetCurrentDataModel(const RBX::DataModelType &type) const;
 
+    /// @brief Updates the current DataModel pointer for the given type.
+    /// @param dataModelType Describes the type of DataModel to check for.
+    /// @param dataModel [in] The pointer to the RBX::DataModel structure to replace the current one for.
+    /// @remark This function will not accept DataModel structures whose m_bIsClosed field is set to true, this is to
+    /// guarantee RobloxManager's behaviour.
+    /// @return A std::optional<RBX::DataModel *> into an instance of a DataModel which is of the type described on the
+    /// parameter.
+    void SetCurrentDataModel(const RBX::DataModelType &dataModelType, _In_ RBX::DataModel *dataModel);
+
+    /// @brief Validates the DataModel for the given DataModelType.
+    /// @param type Describes the type of DataModel to check the validity of.
+    /// @remark This function is meant for internal usage. It is exposed with the reason that it may be useful to
+    /// callers to validate any RBX::DataModel instance that may have been obtained.
+    /// @return A boolean that describes if the following is true valid:
+    ///     - The pointer is on an allocated memory page.
+    ///     - The DataModel has not been closed ((RBX::DataModel *)->m_bIsClosed).
     bool IsDataModelValid(const RBX::DataModelType &type) const;
 };
