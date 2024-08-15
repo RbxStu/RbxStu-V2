@@ -216,7 +216,9 @@ std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
             this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"])(scriptContext, nullptr, nullptr);
 }
 
-std::optional<std::int64_t> RobloxManager::IdentityToCapability(std::int32_t identity) {
+std::optional<std::int64_t> RobloxManager::IdentityToCapability(const std::int32_t &identity) {
+    static_assert(identity <= 10 && identity > 0, "identity should be less than or equal to 10");
+
     auto logger = Logger::GetSingleton();
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager,
@@ -257,18 +259,19 @@ std::optional<std::int64_t> RobloxManager::IdentityToCapability(std::int32_t ide
     return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Security_IdentityToCapability>(
             this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"])(&identity);
 }
-RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut RobloxManager::GetRobloxPrint() {
+
+std::optional<RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut> RobloxManager::GetRobloxPrint() {
     auto logger = Logger::GetSingleton();
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager,
                            "Failed to print to the roblox console. Reason: RobloxManager is not initialized.");
-        return nullptr;
+        return {};
     }
 
     if (!this->m_mapRobloxFunctions.contains("RBX::Console::StandardOut")) {
         logger->PrintWarning(RbxStu::RobloxManager, "-- WARN: RobloxManager has failed to fetch the address for "
                                                     "RBX::Console::StandardOut, printing to console is unavailable.");
-        return nullptr;
+        return {};
     }
 
 
@@ -289,20 +292,20 @@ void *RobloxManager::GetHookOriginal(const std::string &functionName) {
         return this->m_mapHookMap[functionName];
     }
 
-    return nullptr;
+    return this->GetRobloxFunction(functionName); // Redirect to GetRobloxFunction.
 }
 
 static std::shared_mutex __datamodelModificationMutex;
 
-RBX::DataModel *RobloxManager::GetCurrentDataModel(RBX::DataModelType dataModelType) const {
+std::optional<RBX::DataModel *> RobloxManager::GetCurrentDataModel(const RBX::DataModelType &dataModelType) const {
     std::lock_guard lock{__datamodelModificationMutex};
     if (this->m_bInitialized && this->m_mapDataModelMap.contains(dataModelType))
         return this->m_mapDataModelMap.at(dataModelType);
 
-    return nullptr;
+    return {};
 }
 
-void RobloxManager::SetCurrentDataModel(RBX::DataModelType dataModelType, RBX::DataModel *dataModel) {
+void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType, RBX::DataModel *dataModel) {
     std::lock_guard lock{__datamodelModificationMutex};
     if (this->m_bInitialized) {
         const auto logger = Logger::GetSingleton();
@@ -330,9 +333,9 @@ void RobloxManager::SetCurrentDataModel(RBX::DataModelType dataModelType, RBX::D
 }
 
 bool RobloxManager::IsDataModelValid(const RBX::DataModelType &type) const {
-    if (this->m_bInitialized && this->GetCurrentDataModel(type)) {
-        return Utilities::IsPointerValid(this->GetCurrentDataModel(type)) &&
-               !this->GetCurrentDataModel(type)->m_bIsClosed;
+    if (this->m_bInitialized && this->GetCurrentDataModel(type).has_value()) {
+        const auto dataModel = this->GetCurrentDataModel(type).value();
+        return Utilities::IsPointerValid(dataModel) && !dataModel->m_bIsClosed;
     }
 
     return false;
