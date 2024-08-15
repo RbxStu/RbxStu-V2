@@ -50,7 +50,7 @@ namespace RBX {
         return "<Invalid StudioGameStateType>";
     }
 
-    struct DataModel {  // Offset.
+    struct DataModel {
         char _0[0x50];
         char _50[0x50];
         char _a0[0x50];
