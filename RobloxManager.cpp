@@ -34,6 +34,9 @@ void rbx__datamodel__dodatamodelclose(void **dataModelContainer) {
                     robloxManager->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
 
     const auto logger = Logger::GetSingleton();
+
+    original(dataModelContainer);
+
     if (!getStudioGameStateType) {
         logger->PrintWarning(RbxStu::HookedFunction,
                              "A DataModel has been closed, but we don't know the type, as RobloxManager has failed to "
@@ -51,11 +54,8 @@ void rbx__datamodel__dodatamodelclose(void **dataModelContainer) {
                                          "(Closed DataModel: {})",
                                          RBX::DataModelTypeToString(getStudioGameStateType(dataModel)),
                                          static_cast<std::int32_t>(getStudioGameStateType(dataModel)), dataModel));
-        robloxManager->SetCurrentDataModel(getStudioGameStateType(dataModel), nullptr);
+        robloxManager->SetCurrentDataModel(getStudioGameStateType(dataModel), static_cast<RBX::DataModel *>(dataModel));
     }
-
-
-    return original(dataModelContainer);
 }
 
 std::int32_t rbx__datamodel__getstudiogamestatetype(RBX::DataModel *dataModel) {
@@ -304,13 +304,22 @@ RBX::DataModel *RobloxManager::GetCurrentDataModel(RBX::DataModelType dataModelT
 
 void RobloxManager::SetCurrentDataModel(RBX::DataModelType dataModelType, RBX::DataModel *dataModel) {
     std::lock_guard lock{__datamodelModificationMutex};
-    if (this->m_bInitialized && dataModel != nullptr) {
+    if (this->m_bInitialized) {
         const auto logger = Logger::GetSingleton();
-        if (dataModel->m_bIsClosed) {
+        if (dataModel && dataModel->m_bIsClosed) {
             logger->PrintWarning(RbxStu::RobloxManager,
                                  std::format("Attempted to change the current DataModel of type {} but the provided "
                                              "DataModel is marked as closed!",
                                              RBX::DataModelTypeToString(dataModelType)));
+            return;
+        }
+        if (dataModel == nullptr) {
+            logger->PrintError(
+                    RbxStu::RobloxManager,
+                    std::format("Attempted to change the DataModel pointer from {} to nullptr. This may lead to "
+                                "undefined behaviour from callers who expect the DataModel to be a valid pointer! The "
+                                "operation will not be allowed to continue.",
+                                static_cast<void *>(this->m_mapDataModelMap[dataModelType])));
             return;
         }
         this->m_mapDataModelMap[dataModelType] = dataModel;
