@@ -207,8 +207,16 @@ void LuauManager::Initialize() {
 
     logger->PrintInformation(RbxStu::LuauManager, "- Installing pointer check hook into freeblock...");
     this->m_mapHookMap["freeblock"] = new void *();
-    MH_CreateHook(this->m_mapLuauFunctions["freeblock"], luau__freeblock, &this->m_mapLuauFunctions["freeblock"]);
-    MH_EnableHook(this->m_mapLuauFunctions["freeblock"]);
+    
+    // Error checking, because Dottik didn't add it.
+    if(MH_CreateHook(this->m_mapLuauFunctions["freeblock"], luau__freeblock, &this->m_mapLuauFunctions["freeblock"]) != MH_OK) {
+        throw std::exception("Creating freeblock hook failed.");
+    }
+    
+    if (MH_EnableHook(this->m_mapLuauFunctions["freeblock"]) != MH_OK) {
+       throw std::exception("Enabling freeblock hook failed."); 
+    }
+    
     logger->PrintInformation(RbxStu::LuauManager, "- Hook installed!");
 
 
