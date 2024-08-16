@@ -31,6 +31,19 @@ namespace RBX {
         DataModelType_Null = 4
     };
 
+    static const char *GetStringFromSharedString(void *sharedString) {
+        // Obtained from finding LuaVM::Load. The second or third argument is the scripts' source.
+        // The string is an RBX::ProtectedString. RBX::ProtectedString holds two pointers, one to source and one to
+        // bytecode. The bytecode is kept at protectedString + 0x8, while the source is kept at protectedString + 0x0.
+        // Keep this in mind if this update changes!
+
+        // The *sharedDeref + 0x10 pointer arithmetic comes from the function called to obtain the string from the RBX::ProtectedString instnace.
+
+
+        auto sharedDeref = *reinterpret_cast<void **>(sharedString);
+        return reinterpret_cast<const char *>(reinterpret_cast<std::uintptr_t>(sharedDeref) + 0x10);
+    }
+
     static std::string DataModelTypeToString(const std::int32_t num) {
         if (num == 0) {
             return "StudioGameStateType_Edit";
