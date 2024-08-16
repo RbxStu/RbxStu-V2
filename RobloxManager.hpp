@@ -100,6 +100,28 @@ namespace RbxStu {
                               "?? ?? ?? ?? ?? 3C 06 72 ?? 48 C1 E8 08 3C 03 72 ?? EB ?? 80 3D ?? ?? ?? ?? 00 74 21 0f "
                               "10 ?? ?? ?? ?? ?? 4C 8B 41 08");
 
+        MakeSignature_FromIDA(RBX_Instance_removeAllChildren,
+                              "48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B 41 ? 48 85 C0 74 70 66 66 0F 1F 84 00 00 00 "
+                              "00 00 48 8B 48 ? 48 8B 59 ? 48 85 DB 74 08");
+
+        MakeSignature_FromIDA(
+                RBX_Instance_remove,
+                "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 "
+                "41 05 00 00 00 75 12 48 8B 0D ? ? ? ? 48 85 C9 74 06 48 8B 01 FF 50 ? 48 8B 7B ? 48 85 FF 74 08");
+
+        MakeSignature_FromIDA(
+                RBX_DataModel_clearContents,
+                "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 0F 29 B4 24 ? ? ? ? 4C 8B "
+                "E9 48 8D 81 ? ? ? ? 48 89 44 24 ? 48 8B C8 E8 ? ? ? ? 48 8B 18 48 85 DB 74 56");
+
+        MakeSignature_FromIDA(
+                RBX_ScriptContext_setThreadIdentityAndSandbox,
+                "48 89 5C 24 ? 55 56 41 54 41 56 41 57 48 83 EC ? 45 33 F6 4D 8B F8 44 38 35 1A E9 C3 06 4C 8B E2 48 "
+                "8B D9 44 89 B4 24 90 00 00 ? 41 8D 76 ? 74 07");
+
+        MakeSignature_FromIDA(LuaVM_Load, "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D ? ? ? 48 81 EC ? ? ? "
+                                          "? 4D 8B E1 49 8B D8 4C 8B EA");
+
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
@@ -110,10 +132,15 @@ namespace RbxStu {
                 {"RBX::ScriptContext::task_defer", RBX_ScriptContext_task_defer},
                 {"RBX::ScriptContext::task_spawn", RBX_ScriptContext_task_spawn},
                 {"RBX::ScriptContext::task_delay", RBX_ScriptContext_task_delay},
+                {"RBX::ScriptContext::setThreadIdentityAndSandbox", RBX_ScriptContext_setThreadIdentityAndSandbox},
                 {"RBX::ExtraSpace::initializeFrom", RBX_ExtraSpace_initializeFrom},
                 {"RBX::Security::IdentityToCapability", RBX_Security_IdentityToCapability},
                 {"RBX::ProximityPrompt::onTriggered", RBX_ProximityPrompt_onTriggered},
                 {"RBX::Console::StandardOut", RBX_Console_StandardOut},
+                {"RBX::Instance::removeAllChildren", RBX_Instance_removeAllChildren},
+                {"RBX::Instance::remove", RBX_Instance_remove},
+                {"RBX::DataModel::clearContents", RBX_DataModel_clearContents},
+                {"LuaVM::Load", LuaVM_Load},
                 {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose}};
 
     } // namespace StudioSignatures
