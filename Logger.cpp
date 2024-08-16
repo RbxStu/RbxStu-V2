@@ -30,7 +30,7 @@ void Logger::Flush(const RBX::Console::MessageType messageType) {
             std::cout << termcolor::bright_red << this->m_szMessageBuffer << termcolor::reset << std::endl;
             break;
         case RBX::Console::MessageType::InformationBlue:
-            std::cout << termcolor::bright_grey << this->m_szMessageBuffer << termcolor::reset << std::endl;
+            std::cout << termcolor::bright_blue << this->m_szMessageBuffer << termcolor::reset << std::endl;
             break;
         case RBX::Console::MessageType::Warning:
             std::cout << termcolor::bright_yellow << this->m_szMessageBuffer << termcolor::reset << std::endl;
