@@ -15,6 +15,9 @@ void *rbx__scriptcontext__resumeWaitingThreads(void *scriptContext) {
     auto robloxManager = RobloxManager::GetSingleton();
     // auto logger = Logger::GetSingleton();
 
+    // logger->PrintInformation(RbxStu::HookedFunction,
+    //                          std::format("ScriptContext::resumeWaitingThreads. ScriptContext: {}", scriptContext));
+
     return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
             robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(scriptContext);
 }
@@ -217,9 +220,14 @@ std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
 }
 
 std::optional<std::int64_t> RobloxManager::IdentityToCapability(const std::int32_t &identity) {
-    static_assert(identity <= 10 && identity > 0, "identity should be less than or equal to 10");
+    const auto logger = Logger::GetSingleton();
 
-    auto logger = Logger::GetSingleton();
+    if (identity > 10 || identity < 0) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "[IdentityToCapability] identity should more than zero and less than or equal to 10");
+        return {};
+    }
+
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager,
                            "Failed to get identity to capability. Reason: RobloxManager is not initialized.");
