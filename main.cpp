@@ -127,8 +127,8 @@ int main() {
                                                              robloxManager->IdentityToCapability(10).value()));
 
 
-    robloxManager->GetRobloxPrint()(RBX::Console::MessageType::InformationBlue,
-                                    "RbxStu: Waiting for client DataModel...");
+    auto robloxPrint = robloxManager->GetRobloxPrint().value();
+    robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Waiting for client DataModel...");
     while (robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient) == nullptr) {
         _mm_pause();
     }
@@ -139,15 +139,13 @@ int main() {
             continue;
         }
 
-        robloxManager->GetRobloxPrint()(RBX::Console::MessageType::InformationBlue,
-                                        "RbxStu: Client DataModel obtained!");
+        robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Client DataModel obtained!");
 
         while (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
             _mm_pause();
         }
 
-        robloxManager->GetRobloxPrint()(RBX::Console::MessageType::Warning,
-                                        "RbxStu: Client DataModel lost. Awaiting for new DataModel...");
+        robloxPrint(RBX::Console::MessageType::Warning, "RbxStu: Client DataModel lost. Awaiting for new DataModel...");
     }
 
     return 0;
