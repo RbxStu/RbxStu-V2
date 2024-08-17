@@ -169,7 +169,7 @@ namespace RbxStu {
 /// @brief Manages the way RbxStu interacts with Roblox specific internal functions.
 class RobloxManager final {
     /// @brief Private, Static shared pointer into the instance.
-    volatile static std::shared_ptr<RobloxManager> pInstance;
+     static std::shared_ptr<RobloxManager> pInstance;
 
     /// @brief The map for Roblox functions. May include hooked functions.
     std::map<std::string, void *> m_mapRobloxFunctions;
@@ -179,10 +179,10 @@ class RobloxManager final {
     std::map<std::string, void *> m_mapHookMap;
 
     /// @brief The map used to keep track of the valid RBX::DataModel pointers.
-    volatile std::map<RBX::DataModelType, RBX::DataModel *> m_mapDataModelMap;
+    std::map<RBX::DataModelType, RBX::DataModel *> m_mapDataModelMap;
 
     /// @brief Whether the current instance is initialized.
-    volatile bool m_bInitialized = false;
+     bool m_bInitialized = false;
 
     /// @brief Initializes the RobloxManager instance, obtaining all functions from their respective signatures and
     /// establishing the initial hooks required for the manager to operate as expected.
