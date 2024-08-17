@@ -9,10 +9,11 @@
 
 #include <DbgHelp.h> // Must be positioned here because else include failure.
 
-// #include "LuauManager.hpp"
+#include "Communication.hpp"
 #include "LuauManager.hpp"
 #include "RobloxManager.hpp"
 #include "Scanner.hpp"
+#include "Scheduler.hpp"
 
 long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
     const auto *pContext = pExceptionPointers->ContextRecord;
@@ -121,17 +122,14 @@ int main() {
     const auto robloxManager = RobloxManager::GetSingleton();
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing LuauManager...");
     const auto luauManager = LuauManager::GetSingleton();
+    logger->PrintInformation(RbxStu::MainThread, "-- Initializing Communication...");
 
-    Sleep(1000);
-    logger->PrintInformation(RbxStu::MainThread, std::format("Capability for identity 10: {}",
-                                                             robloxManager->IdentityToCapability(10).value()));
+    std::thread(Communication::HandlePipe, "CommunicationPipe").detach();
 
+    const auto robloxPrint = robloxManager->GetRobloxPrint().value();
 
-    auto robloxPrint = robloxManager->GetRobloxPrint().value();
     robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Waiting for client DataModel...");
-    while (robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient) == nullptr) {
-        _mm_pause();
-    }
+    logger->PrintInformation(RbxStu::MainThread, "Waiting for the client DataModel...");
 
     while (true) {
         if (!robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
@@ -140,12 +138,16 @@ int main() {
         }
 
         robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Client DataModel obtained!");
+        logger->PrintInformation(RbxStu::MainThread, "Obtained Client DataModel");
+        const auto scheduler = Scheduler::GetSingleton();
 
         while (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
             _mm_pause();
         }
 
-        robloxPrint(RBX::Console::MessageType::Warning, "RbxStu: Client DataModel lost. Awaiting for new DataModel...");
+        robloxPrint(RBX::Console::MessageType::Warning,
+                    "RbxStu: Client DataModel lost. Awaiting for new Client DataModel...");
+        logger->PrintInformation(RbxStu::MainThread, "Client DataModel lost. Awaiting for new Client DataModel...");
     }
 
     return 0;

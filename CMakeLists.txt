@@ -20,6 +20,12 @@ add_library(Module SHARED
         Roblox/TypeDefinitions.hpp
         LuauManager.cpp
         LuauManager.hpp
+        Scheduler.hpp
+        Scheduler.cpp
+        Security.hpp
+        Security.cpp
+        Communication.cpp
+        Communication.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")

@@ -8,18 +8,76 @@
 #include <shared_mutex>
 
 #include "Scanner.hpp"
+#include "Scheduler.hpp"
+#include "Security.hpp"
 
 std::shared_mutex __robloxmanager__singleton__lock;
 
-void *rbx__scriptcontext__resumeWaitingThreads(void *scriptContext) {
-    auto robloxManager = RobloxManager::GetSingleton();
-    // auto logger = Logger::GetSingleton();
+std::shared_mutex __rbx__scriptcontext__resumeWaitingThreads__lock;
+
+void *rbx__scriptcontext__resumeWaitingThreads(
+        void *waitingHybridScriptsJob) { // the "scriptContext" is actually a std::vector of waitinghybridscripts as it
+                                         // seems.
+
+    const auto robloxManager = RobloxManager::GetSingleton();
+    const auto logger = Logger::GetSingleton();
+    const auto scheduler = Scheduler::GetSingleton();
+    const auto security = Security::GetSingleton();
+
+    if (!robloxManager->IsInitialized())
+        return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
+                robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(waitingHybridScriptsJob);
+
+    __rbx__scriptcontext__resumeWaitingThreads__lock.lock();
+    auto ScriptContext =
+            *reinterpret_cast<void **>(*reinterpret_cast<std::uintptr_t *>(waitingHybridScriptsJob) + 0x1F8);
 
     // logger->PrintInformation(RbxStu::HookedFunction,
-    //                          std::format("ScriptContext::resumeWaitingThreads. ScriptContext: {}", scriptContext));
+    //                         std::format("ScriptContext::resumeWaitingThreads. ScriptContext: {:#x}", ScriptContext));
 
+    if (!scheduler->IsInitialized()) { // !scheduler->is_initialized()
+        auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_getDataModel>(
+                robloxManager->GetRobloxFunction("RBX::ScriptContext::getDataModel"));
+        if (getDataModel == nullptr) {
+            logger->PrintWarning(RbxStu::HookedFunction, "Initialization of Scheduler may be unstable! Cannot "
+                                                         "determine DataModel for the obtained ScriptContext!");
+        } else {
+            const auto expectedDataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
+            if (!expectedDataModel.has_value() || getDataModel(ScriptContext) != expectedDataModel.value() ||
+                !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+                goto __scriptContext_resumeWaitingThreads__cleanup;
+            }
+        }
+
+        const auto rL = robloxManager->GetGlobalState(ScriptContext);
+        if (rL.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+            const auto robloxL = rL.value();
+            lua_State *L = lua_newthread(robloxL);
+
+            security->SetThreadSecurity(L);
+
+            const auto dataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
+
+            if (!dataModel.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+                logger->PrintError(RbxStu::HookedFunction, "DataModel has become invalid on scheduler initialization! "
+                                                           "Assuming the play test has stopped!");
+                goto __scriptContext_resumeWaitingThreads__cleanup;
+            }
+            scheduler->InitializeWith(L, robloxL, dataModel.value());
+            lua_pop(L, 1); // Reset stack.
+        }
+    } else if (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+        scheduler->StepScheduler(scheduler->GetGlobalExecutorState().value());
+    } else {
+        logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
+                                                     "initialized, resetting scheduler!");
+        scheduler->ResetScheduler();
+    }
+
+__scriptContext_resumeWaitingThreads__cleanup:
+    __rbx__scriptcontext__resumeWaitingThreads__lock.unlock();
     return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
-            robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(scriptContext);
+            robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(waitingHybridScriptsJob);
 }
 void rbx__datamodel__dodatamodelclose(void **dataModelContainer) {
     // DataModel = *(dataModelContainer + 0x8)
@@ -106,7 +164,7 @@ std::int32_t rbx__datamodel__getstudiogamestatetype(RBX::DataModel *dataModel) {
     return original(dataModel);
 }
 
-std::shared_ptr<RobloxManager> RobloxManager::pInstance;
+ std::shared_ptr<RobloxManager> RobloxManager::pInstance;
 
 void RobloxManager::Initialize() {
     auto logger = Logger::GetSingleton();
@@ -202,6 +260,9 @@ std::shared_ptr<RobloxManager> RobloxManager::GetSingleton() {
 
 std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
     auto logger = Logger::GetSingleton();
+    const uint64_t identity = 8;
+    const uint64_t script = 0;
+
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager,
                            "Failed to Get Global State. Reason: RobloxManager is not initialized.");
@@ -216,7 +277,7 @@ std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
 
 
     return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getGlobalState>(
-            this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"])(scriptContext, nullptr, nullptr);
+            this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"])(scriptContext, &identity, &script);
 }
 
 std::optional<std::int64_t> RobloxManager::IdentityToCapability(const std::int32_t &identity) {
@@ -286,6 +347,43 @@ std::optional<RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut> Robl
     return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut>(
             this->m_mapRobloxFunctions["RBX::Console::StandardOut"]);
 }
+
+std::optional<lua_CFunction> RobloxManager::GetRobloxTaskDefer() {
+    auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Cannot obtain task_defer. Reason: RobloxManager is not initialized.");
+        return {};
+    }
+
+    if (!this->m_mapRobloxFunctions.contains("RBX::ScriptContext::task_defer")) {
+        logger->PrintWarning(RbxStu::RobloxManager, "-- WARN: RobloxManager has failed to fetch the address for "
+                                                    "RBX::ScriptContext::task_defer, deferring a task is unavailable.");
+        return {};
+    }
+
+
+    return reinterpret_cast<lua_CFunction>(this->m_mapRobloxFunctions["RBX::ScriptContext::task_defer"]);
+}
+
+std::optional<lua_CFunction> RobloxManager::GetRobloxTaskSpawn() {
+    auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Cannot obtain task_spawn. Reason: RobloxManager is not initialized.");
+        return {};
+    }
+
+    if (!this->m_mapRobloxFunctions.contains("RBX::ScriptContext::task_spawn")) {
+        logger->PrintWarning(RbxStu::RobloxManager, "-- WARN: RobloxManager has failed to fetch the address for "
+                                                    "RBX::ScriptContext::task_spawn, spawning a task is unavailable.");
+        return {};
+    }
+
+
+    return reinterpret_cast<lua_CFunction>(this->m_mapRobloxFunctions["RBX::ScriptContext::task_spawn"]);
+}
+
 bool RobloxManager::IsInitialized() const { return this->m_bInitialized; }
 
 void *RobloxManager::GetRobloxFunction(const std::string &functionName) {
