@@ -20,8 +20,11 @@ namespace RbxStu {
         using r_RBX_ScriptContext_openStateImpl = bool(__fastcall *)(void *scriptContext, void *unk_0,
                                                                      std::int32_t unk_1, std::int32_t unk_2);
         using r_RBX_ExtraSpace_initializeFrom = void *(__fastcall *) (void *newExtraSpace, void *baseExtraSpace);
-        using r_RBX_ScriptContext_getGlobalState = lua_State *(__fastcall *) (void *scriptContext, void *identity,
-                                                                              void *unk_0);
+
+        using r_RBX_ScriptContext_getGlobalState = lua_State *(__fastcall *) (void *scriptContext,
+                                                                              const uint64_t *identity,
+                                                                              const uint64_t *unk_0);
+
         using r_RBX_Security_IdentityToCapability = std::int64_t(__fastcall *)(const std::int32_t *pIdentity);
 
         using r_RBX_Console_StandardOut = std::int32_t(__fastcall *)(RBX::Console::MessageType dwMessageId,
@@ -31,6 +34,8 @@ namespace RbxStu {
 
         using r_RBX_DataModel_getStudioGameStateType = RBX::DataModelType(__fastcall *)(void *dataModel);
         using r_RBX_DataModel_doCloseDataModel = void(__fastcall *)(void *dataModel);
+        using r_RBX_DataModel_getDataModel = void *(__fastcall *) (void *scriptContext);
+
     } // namespace StudioFunctionDefinitions
 
     namespace StudioSignatures {
@@ -122,8 +127,10 @@ namespace RbxStu {
         MakeSignature_FromIDA(LuaVM_Load, "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D ? ? ? 48 81 EC ? ? ? "
                                           "? 4D 8B E1 49 8B D8 4C 8B EA");
 
+        MakeSignature_FromIDA(RBX_ScriptContext_getDataModel,
+                              "48 83 EC ? 48 85 C9 74 72 48 89 7C 24 ? 48 8B 79 ? 48 85 FF 74 22");
+
         static const std::map<std::string, Signature> s_signatureMap = {
-                {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
                 {"RBX::ScriptContext::openStateImpl", RBX_ScriptContext_openStateImpl},
@@ -132,16 +139,26 @@ namespace RbxStu {
                 {"RBX::ScriptContext::task_defer", RBX_ScriptContext_task_defer},
                 {"RBX::ScriptContext::task_spawn", RBX_ScriptContext_task_spawn},
                 {"RBX::ScriptContext::task_delay", RBX_ScriptContext_task_delay},
+                {"RBX::ScriptContext::getDataModel", RBX_ScriptContext_getDataModel},
                 {"RBX::ScriptContext::setThreadIdentityAndSandbox", RBX_ScriptContext_setThreadIdentityAndSandbox},
+
                 {"RBX::ExtraSpace::initializeFrom", RBX_ExtraSpace_initializeFrom},
+
                 {"RBX::Security::IdentityToCapability", RBX_Security_IdentityToCapability},
+
                 {"RBX::ProximityPrompt::onTriggered", RBX_ProximityPrompt_onTriggered},
+
                 {"RBX::Console::StandardOut", RBX_Console_StandardOut},
+
                 {"RBX::Instance::removeAllChildren", RBX_Instance_removeAllChildren},
                 {"RBX::Instance::remove", RBX_Instance_remove},
+
                 {"RBX::DataModel::clearContents", RBX_DataModel_clearContents},
+                {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose},
+                {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},
+
                 {"LuaVM::Load", LuaVM_Load},
-                {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose}};
+        };
 
     } // namespace StudioSignatures
 
@@ -152,7 +169,7 @@ namespace RbxStu {
 /// @brief Manages the way RbxStu interacts with Roblox specific internal functions.
 class RobloxManager final {
     /// @brief Private, Static shared pointer into the instance.
-    static std::shared_ptr<RobloxManager> pInstance;
+    volatile static std::shared_ptr<RobloxManager> pInstance;
 
     /// @brief The map for Roblox functions. May include hooked functions.
     std::map<std::string, void *> m_mapRobloxFunctions;
@@ -162,10 +179,10 @@ class RobloxManager final {
     std::map<std::string, void *> m_mapHookMap;
 
     /// @brief The map used to keep track of the valid RBX::DataModel pointers.
-    std::map<RBX::DataModelType, RBX::DataModel *> m_mapDataModelMap;
+    volatile std::map<RBX::DataModelType, RBX::DataModel *> m_mapDataModelMap;
 
     /// @brief Whether the current instance is initialized.
-    bool m_bInitialized = false;
+    volatile bool m_bInitialized = false;
 
     /// @brief Initializes the RobloxManager instance, obtaining all functions from their respective signatures and
     /// establishing the initial hooks required for the manager to operate as expected.
@@ -196,6 +213,10 @@ public:
     /// @return A std::optional<...> which holds the pointer to the Developer Console's standard output.
     /// @remarks Calling this function is unsafe if the optional type is not checked for its validity!
     std::optional<RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut> GetRobloxPrint();
+
+    std::optional<lua_CFunction> GetRobloxTaskDefer();
+
+    std::optional<lua_CFunction> GetRobloxTaskSpawn();
 
     /// @brief Returns whether this instance of RobloxManager is initialized.
     /// @return Whether the instance is initialized to completion.
