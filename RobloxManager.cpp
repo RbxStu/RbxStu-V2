@@ -15,6 +15,9 @@ std::shared_mutex __robloxmanager__singleton__lock;
 
 std::shared_mutex __rbx__scriptcontext__resumeWaitingThreads__lock;
 
+/// @brief Used for the hook of RBX::ScriptContext::resumeWaitingThreads to prevent accessing uninitialized lua_States.
+std::atomic_int calledBeforeCount;
+
 void *rbx__scriptcontext__resumeWaitingThreads(
         void *waitingHybridScriptsJob) { // the "scriptContext" is actually a std::vector of waitinghybridscripts as it
                                          // seems.
@@ -49,11 +52,19 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             }
         }
 
+        // HACK!: We do not want to initialize the scheduler on the
+        // first resumptions of waiting threads. This will cause
+        // us to access invalid memory, as the global state is not truly set up yet apparently,
+        // race conditions at their finest!
+        if (calledBeforeCount <= 6) {
+            calledBeforeCount += 1;
+            goto __scriptContext_resumeWaitingThreads__cleanup;
+        }
+
         const auto rL = robloxManager->GetGlobalState(ScriptContext);
         if (rL.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
             const auto robloxL = rL.value();
             lua_State *L = lua_newthread(robloxL);
-
             security->SetThreadSecurity(L);
 
             const auto dataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
@@ -66,7 +77,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             scheduler->InitializeWith(L, robloxL, dataModel.value());
             lua_pop(L, 1); // Reset stack.
         }
-    } else if (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+    } else if (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient) && scheduler->IsInitialized()) {
         scheduler->StepScheduler(scheduler->GetGlobalExecutorState().value());
     } else {
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
@@ -74,6 +85,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
         scheduler->ResetScheduler();
     }
 
+    calledBeforeCount = 0;
 __scriptContext_resumeWaitingThreads__cleanup:
     __rbx__scriptcontext__resumeWaitingThreads__lock.unlock();
     return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_resumeDelayedThreads>(
@@ -164,7 +176,7 @@ std::int32_t rbx__datamodel__getstudiogamestatetype(RBX::DataModel *dataModel) {
     return original(dataModel);
 }
 
- std::shared_ptr<RobloxManager> RobloxManager::pInstance;
+std::shared_ptr<RobloxManager> RobloxManager::pInstance;
 
 void RobloxManager::Initialize() {
     auto logger = Logger::GetSingleton();
