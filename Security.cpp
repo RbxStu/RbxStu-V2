@@ -45,7 +45,7 @@ bool Security::SetLuaClosureSecurity(Closure *lClosure) {
     auto *pMem = pProto->userdata != nullptr ? static_cast<std::uintptr_t *>(pProto->userdata)
                                              : static_cast<std::uintptr_t *>(malloc(sizeof(std::uintptr_t)));
 
-    *pMem = 0x3F;
+    *pMem = RobloxManager::GetSingleton()->IdentityToCapability(8).value();
     set_proto(pProto, pMem);
     return true;
 }
