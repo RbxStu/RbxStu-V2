@@ -131,6 +131,7 @@ int main() {
     robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Waiting for client DataModel...");
     logger->PrintInformation(RbxStu::MainThread, "Waiting for the client DataModel...");
 
+    const auto scheduler = Scheduler::GetSingleton();
     while (true) {
         if (!robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
             _mm_pause();
@@ -139,7 +140,6 @@ int main() {
 
         robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Client DataModel obtained!");
         logger->PrintInformation(RbxStu::MainThread, "Obtained Client DataModel");
-        const auto scheduler = Scheduler::GetSingleton();
 
         while (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
             _mm_pause();
