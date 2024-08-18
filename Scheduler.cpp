@@ -7,6 +7,7 @@
 #include "RobloxManager.hpp"
 #include "Security.hpp"
 #include "lstate.h"
+#include "lualib.h"
 
 std::shared_ptr<Scheduler> Scheduler::pInstance;
 
@@ -164,6 +165,15 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
                                          reinterpret_cast<void *>(this->m_pClientDataModel.value()),
                                          reinterpret_cast<void *>(this->m_lsRoblox.value()),
                                          reinterpret_cast<void *>(this->m_lsInitialisedWith.value())));
+
+    logger->PrintInformation(RbxStu::Scheduler, "Sandboxing threads to avoid environment issues!");
+
+    luaL_sandboxthread(rL);
+    luaL_sandboxthread(L);
+
+    logger->PrintInformation(RbxStu::Scheduler, "Initializing Environment for the executor thread!");
+
+    this->ScheduleJob("local part = Instance.new(\"Part\");part.Parent = workspace");
 }
 
 void Scheduler::ResetScheduler() {
