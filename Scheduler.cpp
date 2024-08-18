@@ -3,6 +3,7 @@
 #include <shared_mutex>
 
 #include "Luau/Compiler.h"
+#include "Luau/Compiler/src/Builtins.h"
 #include "RobloxManager.hpp"
 #include "Security.hpp"
 #include "lstate.h"
@@ -29,13 +30,13 @@ SchedulerJob Scheduler::DequeueSchedulerJob() {
     return job;
 }
 
-void Scheduler::ExecuteSchedulerJob(lua_State *runOn, std::unique_ptr<SchedulerJob> job) {
+void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
+    const auto logger = Logger::GetSingleton();
+    const auto robloxManager = RobloxManager::GetSingleton();
+    const auto security = Security::GetSingleton();
     if (job->bIsLuaCode) {
         if (job->luaJob.szluaCode.empty())
             return;
-        const auto logger = Logger::GetSingleton();
-        const auto robloxManager = RobloxManager::GetSingleton();
-        const auto security = Security::GetSingleton();
 
         logger->PrintInformation(RbxStu::Scheduler, "Compiling Bytecode...");
 
@@ -82,7 +83,38 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, std::unique_ptr<SchedulerJ
 
             throw std::exception("Cannot run Scheduler job!");
         }
+
+        return;
+    } else if (job->bIsYieldingJob) {
+        if (job->IsJobCompleted()) {
+            // If the job is completed, we want to call RBX::ScriptContext::resume using it!
+            // else we want to enqueue it again to check it on the next cycle of the scheduler, as the yielding will
+            // else never end!
+
+            if (const auto callback = job->GetCallback(); callback.has_value()) {
+                const auto nargs = callback.value()(job->yieldJob.threadRef.thread);
+                logger->PrintWarning(RbxStu::Scheduler, "Starting resumption!");
+                robloxManager->ResumeScript(&job->yieldJob.threadRef, nargs);
+
+                job->FreeResources();
+            } else {
+                logger->PrintError(RbxStu::Scheduler,
+                                   "Callback has no value despite the job being marked as completed!");
+            }
+        } else {
+            this->m_qSchedulerJobs.emplace(*job);
+            // Due to the nature of this architecture, when we have only one job left, we will just start calling it
+            // again and again Which is truly terrible for performance, and I should refactor to separate the execution
+            // from the resumption, but whats done its done...
+
+            // if (this->m_qSchedulerJobs.size() == 1)
+            //     _mm_pause();
+        }
+        return;
     }
+
+    logger->PrintError(RbxStu::Scheduler, "Cannot find a valid job to step into; not even a stub one!");
+    throw std::exception("Valid job not found!");
 };
 
 std::shared_mutex __scheduler_init;
@@ -116,7 +148,7 @@ void Scheduler::StepScheduler(lua_State *runner) {
                 "environment into segments which are not supposed to have such elevated access!");
     }
     auto job = this->DequeueSchedulerJob();
-    this->ExecuteSchedulerJob(runner, std::make_unique<SchedulerJob>(job));
+    this->ExecuteSchedulerJob(runner, &job);
 }
 
 void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *dataModel) {
@@ -125,12 +157,13 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     this->m_lsRoblox = rL;
     this->m_lsInitialisedWith = L;
 
-    Logger::GetSingleton()->PrintInformation(
-            RbxStu::Scheduler, std::format("Task Scheduler initialized!\nInternal State: \n\t- m_pClientDataModel: "
-                                           "{}\n\t- m_lsRoblox: {}\n\t- m_lsInitialisedWith: {}",
-                                           reinterpret_cast<void *>(this->m_pClientDataModel.value()),
-                                           reinterpret_cast<void *>(this->m_lsRoblox.value()),
-                                           reinterpret_cast<void *>(this->m_lsInitialisedWith.value())));
+    const auto logger = Logger::GetSingleton();
+    logger->PrintInformation(RbxStu::Scheduler,
+                             std::format("Task Scheduler initialized!\nInternal State: \n\t- m_pClientDataModel: "
+                                         "{}\n\t- m_lsRoblox: {}\n\t- m_lsInitialisedWith: {}",
+                                         reinterpret_cast<void *>(this->m_pClientDataModel.value()),
+                                         reinterpret_cast<void *>(this->m_lsRoblox.value()),
+                                         reinterpret_cast<void *>(this->m_lsInitialisedWith.value())));
 }
 
 void Scheduler::ResetScheduler() {
@@ -139,6 +172,12 @@ void Scheduler::ResetScheduler() {
     this->m_lsRoblox = {};
     this->m_lsInitialisedWith = {};
     this->m_pClientDataModel = {};
+
+    while (!this->m_qSchedulerJobs.empty()) {
+        // Clear job queue
+        this->m_qSchedulerJobs.pop();
+    }
+
     logger->PrintInformation(RbxStu::Scheduler, "Scheduler reset completed. All fields set to no value.");
 }
 

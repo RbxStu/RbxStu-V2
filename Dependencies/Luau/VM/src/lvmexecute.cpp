@@ -3041,6 +3041,8 @@ exit:;
 
 void luau_execute(lua_State* L)
 {
+    return reinterpret_cast<RBX::Studio::FunctionTypes::luau_execute>(RbxStuOffsets::GetSingleton()->GetOffset("luau_execute"))(L);
+
     if (L->singlestep)
         luau_execute<true>(L);
     else

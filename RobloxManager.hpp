@@ -12,6 +12,8 @@
 #include "lua.h"
 
 namespace RbxStu {
+    enum RbxPointerEncryptionType { ADD, SUB, XOR, UNDETERMINED };
+
 #define MakeSignature_FromIDA(signatureName, idaSignature)                                                             \
     const static Signature signatureName = SignatureByte::GetSignatureFromIDAString(idaSignature)
 
@@ -34,11 +36,20 @@ namespace RbxStu {
 
         using r_RBX_DataModel_getStudioGameStateType = RBX::DataModelType(__fastcall *)(void *dataModel);
         using r_RBX_DataModel_doCloseDataModel = void(__fastcall *)(void *dataModel);
-        using r_RBX_DataModel_getDataModel = void *(__fastcall *) (void *scriptContext);
+        using r_RBX_ScriptContext_getDataModel = RBX::DataModel *(__fastcall *) (void *scriptContext);
+
+        using r_RBX_ScriptContext_resume = void(__fastcall *)(void *scriptContext, std::int32_t unk[0x2],
+                                                              RBX::Lua::WeakThreadRef **ppWeakThreadRef, int32_t nRet,
+                                                              bool isError, char const *szErrorMessage);
 
     } // namespace StudioFunctionDefinitions
 
     namespace StudioSignatures {
+        MakeSignature_FromIDA(
+                RBX_RBXCRASH,
+                "48 89 5C 24 ? 48 89 7C 24 ? 48 89 4C 24 ? 55 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B FA 48 8B D9 "
+                "48 8B 05 ? ? ? ? 48 85 C0 74 0A FF D0 84 C0 0F 84 D0 04 00 ? E8 ? ? ? ? 85 C0 0F 84 C3 04 00 ?");
+
         MakeSignature_FromIDA(RBX_ScriptContext_scriptStart,
                               "48 89 54 24 ? 48 89 4C 24 ? 53 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 8B FA "
                               "4C 8B E9 0F 57 C0 66 0F 7F 44 24 ? 48 8B 42 ? 48 85 C0 74 08 F0 FF 40 ? 48 8B 42 ? 48 "
@@ -130,6 +141,14 @@ namespace RbxStu {
         MakeSignature_FromIDA(RBX_ScriptContext_getDataModel,
                               "48 83 EC ? 48 85 C9 74 72 48 89 7C 24 ? 48 8B 79 ? 48 85 FF 74 22");
 
+        MakeSignature_FromIDA(RBX_ScriptContext_resume,
+                              "48 8B C4 44 89 48 ? 4C 89 40 ? 48 89 50 ? 48 89 48 ? 53 56 57 41 54 41 55 41 56 41 57 "
+                              "48 81 EC ? ? ? ? 0F 29 70 ? 4D 8B E8 48 8B F2 48 8B F9 48 89 8C 24 ? ? ? ? 48 89 8C 24 "
+                              "? ? ? ? 8B 0D ? ? ? ? E8 ? ? ? ? 89 44 24 ?");
+
+        MakeSignature_FromIDA(
+                RBX_ScriptContext_validateThreadAccess,
+                "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B DA 48 8B E9 80");
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
@@ -141,6 +160,10 @@ namespace RbxStu {
                 {"RBX::ScriptContext::task_delay", RBX_ScriptContext_task_delay},
                 {"RBX::ScriptContext::getDataModel", RBX_ScriptContext_getDataModel},
                 {"RBX::ScriptContext::setThreadIdentityAndSandbox", RBX_ScriptContext_setThreadIdentityAndSandbox},
+                {"RBX::ScriptContext::resume", RBX_ScriptContext_resume},
+                {"RBX::ScriptContext::validateThreadAccess", RBX_ScriptContext_validateThreadAccess},
+
+                {"RBX::RBXCRASH", RBX_RBXCRASH},
 
                 {"RBX::ExtraSpace::initializeFrom", RBX_ExtraSpace_initializeFrom},
 
@@ -184,6 +207,12 @@ class RobloxManager final {
     /// @brief Whether the current instance is initialized.
     bool m_bInitialized = false;
 
+    /// @brief The map used to hold scanned data pointers.
+    std::map<std::string, void *> m_mapDataPointersMap;
+
+    /// @brief The map used to hold the pointer's encryption type and the identifier.
+    std::map<std::string, RbxStu::RbxPointerEncryptionType> m_mapPointerEncryptionMap;
+
     /// @brief Initializes the RobloxManager instance, obtaining all functions from their respective signatures and
     /// establishing the initial hooks required for the manager to operate as expected.
     void Initialize();
@@ -218,6 +247,9 @@ public:
 
     std::optional<lua_CFunction> GetRobloxTaskSpawn();
 
+    std::optional<void *> GetScriptContext(lua_State *L);
+    std::optional<RBX::DataModel *> GetDataModelFromScriptContext(void *scriptContext);
+
     /// @brief Returns whether this instance of RobloxManager is initialized.
     /// @return Whether the instance is initialized to completion.
     bool IsInitialized() const;
@@ -228,12 +260,17 @@ public:
     /// @return A type-less pointer into the start of the function.
     void *GetRobloxFunction(const std::string &functionName);
 
+    /// @brief Resumes a lua_State through the Roblox scheduler
+    /// @param threadRef The thread reference representing the state of the thread for yielding
+    /// @param nret The number of returns after yielding.
+    void ResumeScript(RBX::Lua::WeakThreadRef *threadRef, std::int32_t nret);
+
     /// @brief Obtains the original function given the function's name.
     /// @param functionName The name of the Roblox function to obtain the original from.
     /// @note This function may return non-hooked functions as well.
-    /// @remark WARNING ON USAGE: This function is for internal usage of RobloxManager, whilst callers may use it to
-    /// obtain the original version of a Roblox function on the remote Roblox environment or to hook it themselves, this
-    /// is discouraged, and wrong, do NOT do that.
+    /// @remark WARNING ON USAGE: This function is for internal usage of RobloxManager, whilst callers may use
+    /// it to obtain the original version of a Roblox function on the remote Roblox environment or to hook it
+    /// themselves, this is discouraged, and wrong, do NOT do that.
     /// @return A type-less pointer into the start of the original function.
     void *GetHookOriginal(const std::string &functionName);
 

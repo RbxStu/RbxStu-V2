@@ -1,5 +1,8 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
 // This code is based on Lua 5.x implementation licensed under MIT License; see lua_LICENSE.txt for details
+#include <cstdio>
+
+
 #include "lvm.h"
 
 #include "lstate.h"
@@ -9,7 +12,7 @@
 #include "ldo.h"
 #include "lnumutils.h"
 
-#include <string.h>
+#include <cstring>
 
 // limit for table tag-method chains (to avoid loops)
 #define MAXTAGLOOP 100
@@ -95,6 +98,10 @@ static void callTM(lua_State* L, const TValue* f, const TValue* p1, const TValue
 
 void luaV_gettable(lua_State* L, const TValue* t, TValue* key, StkId val)
 {
+    // printf("gettable: %p\n", RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"));
+    // if (nullptr != RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"))
+    //     return reinterpret_cast<RBX::Studio::FunctionTypes::luaV_gettable>(RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"))(L, key, t, val);
+
     int loop;
     for (loop = 0; loop < MAXTAGLOOP; loop++)
     {
@@ -130,6 +137,10 @@ void luaV_gettable(lua_State* L, const TValue* t, TValue* key, StkId val)
 
 void luaV_settable(lua_State* L, const TValue* t, TValue* key, StkId val)
 {
+    // printf("settable: %p\n", RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"));
+    // if (nullptr != RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"))
+    //     return reinterpret_cast<RBX::Studio::FunctionTypes::luaV_settable>(RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"))(L, key, t, val);
+
     int loop;
     TValue temp;
     for (loop = 0; loop < MAXTAGLOOP; loop++)

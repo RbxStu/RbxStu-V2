@@ -348,6 +348,7 @@ target_sources(Luau.VM PRIVATE
     VM/src/lvmexecute.cpp
     VM/src/lvmload.cpp
     VM/src/lvmutils.cpp
+    VM/src/StudioOffsets.cpp
 
     VM/src/lapi.h
     VM/src/lbuffer.h

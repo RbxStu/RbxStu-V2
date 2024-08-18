@@ -62,6 +62,7 @@ namespace RbxStu {
     DefineSectionName(ByteScanner, "RbxStu::ByteScanner");
     DefineSectionName(RobloxManager, "RbxStu::RobloxManager");
     DefineSectionName(HookedFunction, "RbxStu::HookedFunction<anonymous>");
+    DefineSectionName(Hooked_RBXCrash, "RbxStu::HookedFunctions<RBX::RBXCRASH>");
     DefineSectionName(LuauManager, "RbxStu::LuauManager");
     DefineSectionName(Scheduler, "RbxStu::Scheduler");
     DefineSectionName(Communication, "RbxStu::Communication");

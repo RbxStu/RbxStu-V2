@@ -39,4 +39,7 @@ public:
     /// is discouraged, and wrong, do NOT do that.
     /// @return A type-less pointer into the start of the original function.
     void *GetHookOriginal(const std::string &functionName);
+
+    void *GetFunction(const std::string &functionName);
+    ;
 };

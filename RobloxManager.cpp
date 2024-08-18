@@ -5,13 +5,70 @@
 #include "RobloxManager.hpp"
 
 #include <MinHook.h>
+#include <Windows.h>
 #include <shared_mutex>
 
+#include <DbgHelp.h>
+
+#include "LuauManager.hpp"
 #include "Scanner.hpp"
 #include "Scheduler.hpp"
 #include "Security.hpp"
+#include "lualib.h"
 
 std::shared_mutex __robloxmanager__singleton__lock;
+
+void rbx__scriptcontext__validatethreadaccess(void *scriptContext, lua_State *L) {
+    Logger::GetSingleton()->PrintWarning(RbxStu::HookedFunction,
+                                         "Thread Accesses are not being validated! Studio may become unstable! This "
+                                         "warning will appear if the validation hook has not been removed yet!");
+}
+
+
+void rbx_rbxcrash(const char *crashType, const char *crashDescription) {
+    const auto logger = Logger::GetSingleton();
+
+    if (crashType == nullptr)
+        crashType = "Unknown";
+
+    if (crashDescription == nullptr)
+        crashDescription = "Not described";
+
+    logger->PrintError(RbxStu::Hooked_RBXCrash, "CRASH TRIGGERED!");
+    logger->PrintInformation(RbxStu::Hooked_RBXCrash, std::format("CRASH TYPE: {}", crashType));
+    logger->PrintInformation(RbxStu::Hooked_RBXCrash, std::format("CRASH DESCRIPTION: {}", crashDescription));
+
+    logger->PrintInformation(RbxStu::Hooked_RBXCrash, "Displaying stack trace!");
+
+    SymInitialize(GetCurrentProcess(), nullptr, TRUE);
+
+    void *stack[256];
+    const unsigned short frameCount = RtlCaptureStackBackTrace(0, 100, stack, nullptr);
+
+    for (unsigned short i = 0; i < frameCount; ++i) {
+        auto address = reinterpret_cast<DWORD64>(stack[i]);
+        char symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+        auto *symbol = reinterpret_cast<SYMBOL_INFO *>(symbolBuffer);
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen = MAX_SYM_NAME;
+
+        DWORD value{};
+        DWORD *pValue = &value;
+        if (SymFromAddr(GetCurrentProcess(), address, nullptr, symbol) && ((*pValue = symbol->Address - address)) &&
+            SymFromAddr(GetCurrentProcess(), address, reinterpret_cast<PDWORD64>(pValue), symbol)) {
+            printf(("[Stack Frame %d] Inside %s @ 0x%p; Studio Rebase: 0x%p\r\n"), i, symbol->Name, address,
+                   address - reinterpret_cast<std::uintptr_t>(GetModuleHandleA("RobloxStudioBeta.exe")) + 0x140000000);
+        } else {
+            printf(("[Stack Frame %d] Unknown Subroutine @ 0x%p; Studio Rebase: 0x%p\r\n"), i, symbol->Name, address,
+                   address - reinterpret_cast<std::uintptr_t>(GetModuleHandleA("RobloxStudioBeta.exe")) + 0x140000000);
+        }
+    }
+
+    SymCleanup(GetCurrentProcess());
+    MessageBoxA(nullptr, ("Studio Crash"), ("Execution suspended. RBXCRASH has been called."), MB_OK);
+
+    Sleep(60000);
+}
 
 std::shared_mutex __rbx__scriptcontext__resumeWaitingThreads__lock;
 
@@ -32,21 +89,21 @@ void *rbx__scriptcontext__resumeWaitingThreads(
                 robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(waitingHybridScriptsJob);
 
     __rbx__scriptcontext__resumeWaitingThreads__lock.lock();
-    auto ScriptContext =
+    auto scriptContext =
             *reinterpret_cast<void **>(*reinterpret_cast<std::uintptr_t *>(waitingHybridScriptsJob) + 0x1F8);
 
     // logger->PrintInformation(RbxStu::HookedFunction,
     //                         std::format("ScriptContext::resumeWaitingThreads. ScriptContext: {:#x}", ScriptContext));
 
     if (!scheduler->IsInitialized()) { // !scheduler->is_initialized()
-        auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_getDataModel>(
+        auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getDataModel>(
                 robloxManager->GetRobloxFunction("RBX::ScriptContext::getDataModel"));
         if (getDataModel == nullptr) {
             logger->PrintWarning(RbxStu::HookedFunction, "Initialization of Scheduler may be unstable! Cannot "
                                                          "determine DataModel for the obtained ScriptContext!");
         } else {
             const auto expectedDataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
-            if (!expectedDataModel.has_value() || getDataModel(ScriptContext) != expectedDataModel.value() ||
+            if (!expectedDataModel.has_value() || getDataModel(scriptContext) != expectedDataModel.value() ||
                 !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
                 goto __scriptContext_resumeWaitingThreads__cleanup;
             }
@@ -55,27 +112,40 @@ void *rbx__scriptcontext__resumeWaitingThreads(
         // HACK!: We do not want to initialize the scheduler on the
         // first resumptions of waiting threads. This will cause
         // us to access invalid memory, as the global state is not truly set up yet apparently,
-        // race conditions at their finest!
-        if (calledBeforeCount <= 6) {
+        // race conditions at their finest! This had to be increased, because Roblox.
+        if (calledBeforeCount <= 256) {
             calledBeforeCount += 1;
             goto __scriptContext_resumeWaitingThreads__cleanup;
         }
 
-        const auto rL = robloxManager->GetGlobalState(ScriptContext);
-        if (rL.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-            const auto robloxL = rL.value();
-            lua_State *L = lua_newthread(robloxL);
+        const auto optionalrL = robloxManager->GetGlobalState(scriptContext);
+        logger->PrintWarning(RbxStu::HookedFunction,
+                             std::format("WaitingHybridScriptsJob: {}", waitingHybridScriptsJob));
+        logger->PrintWarning(RbxStu::HookedFunction, std::format("ScriptContext: {}", scriptContext));
+        logger->PrintWarning(RbxStu::HookedFunction, std::format("ScriptContext__GlobalState: {}",
+                                                                 reinterpret_cast<void *>(optionalrL.value())));
+
+
+        if (optionalrL.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+            const auto robloxL = optionalrL.value();
+            logger->PrintInformation(RbxStu::HookedFunction,
+                                     std::format("getglobalstate: {}; getglobalstate->global->mainthread: {}",
+                                                 reinterpret_cast<void *>(robloxL),
+                                                 reinterpret_cast<void *>(robloxL->global->mainthread)));
+            lua_State *rL = lua_newthread(robloxL);
+            lua_pop(robloxL, 1);
+            lua_State *L = lua_newthread(robloxL->global->mainthread);
+            lua_pop(robloxL->global->mainthread, 1);
             security->SetThreadSecurity(L);
 
             const auto dataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
 
             if (!dataModel.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-                logger->PrintError(RbxStu::HookedFunction, "DataModel has become invalid on scheduler initialization! "
+                logger->PrintError(RbxStu::HookedFunction, "DataModel has become invalid on scheduler initialization!"
                                                            "Assuming the play test has stopped!");
                 goto __scriptContext_resumeWaitingThreads__cleanup;
             }
-            scheduler->InitializeWith(L, robloxL, dataModel.value());
-            lua_pop(L, 1); // Reset stack.
+            scheduler->InitializeWith(L, rL, dataModel.value());
         }
     } else if (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient) && scheduler->IsInitialized()) {
         scheduler->StepScheduler(scheduler->GetGlobalExecutorState().value());
@@ -232,7 +302,43 @@ void RobloxManager::Initialize() {
         logger->PrintInformation(RbxStu::RobloxManager, std::format("- '{}' at address {}.", funcName, funcAddress));
     }
 
-    // logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions (Specialized step)... [2/3]");
+    logger->PrintInformation(RbxStu::RobloxManager, "Additional dumping step... [2/3]");
+
+    {
+        logger->PrintInformation(RbxStu::RobloxManager, "Attempting to obtain ");
+        { // getglobalstate encryption dump, both functions' encryption match correctly.
+
+            auto functionStart = this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"];
+            const auto asm_0 = reinterpret_cast<std::uint8_t *>(reinterpret_cast<std::uintptr_t>(functionStart) + 0x56);
+
+            switch (*asm_0) {
+                case 0x2B: // sub ecx, dword ptr [rax]
+                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is SUB");
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
+                            RbxStu::RbxPointerEncryptionType::SUB;
+                    break;
+
+                case 0x3: // add ecx, dword ptr [rax]
+                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is ADD");
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
+                            RbxStu::RbxPointerEncryptionType::ADD;
+                    break;
+
+                case 0x33: // xor ecx, dword ptr [rax]
+                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is XOR");
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
+                            RbxStu::RbxPointerEncryptionType::XOR;
+                    break;
+
+                default:
+                    logger->PrintInformation(RbxStu::RobloxManager,
+                                             std::format("Encryption match failed found code: {}", *asm_0));
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
+                            RbxStu::RbxPointerEncryptionType::UNDETERMINED;
+                    break;
+            }
+        }
+    }
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
 
@@ -253,10 +359,21 @@ void RobloxManager::Initialize() {
                   &this->m_mapHookMap["RBX::DataModel::doDataModelClose"]);
     MH_EnableHook(this->m_mapRobloxFunctions["RBX::DataModel::doDataModelClose"]);
 
+    this->m_mapHookMap["RBX::ScriptContext::validateThreadAccess"] = new void *();
+
+    this->m_mapHookMap["RBX::RBXCRASH"] = new void *();
+    MH_CreateHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"], rbx_rbxcrash, &this->m_mapHookMap["RBX::RBXCRASH"]);
+    MH_EnableHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"]);
+
+    this->m_mapHookMap["RBX::ScriptContext::validateThreadAccess"] = new void *();
+
+    MH_CreateHook(this->m_mapRobloxFunctions["RBX::ScriptContext::validateThreadAccess"],
+                  rbx__scriptcontext__validatethreadaccess,
+                  &this->m_mapHookMap["RBX::ScriptContext::validateThreadAccess"]);
+
     logger->PrintInformation(RbxStu::RobloxManager, "Initialization Completed. [3/3]");
     this->m_bInitialized = true;
 }
-
 
 std::shared_ptr<RobloxManager> RobloxManager::GetSingleton() {
     std::lock_guard lock{__robloxmanager__singleton__lock};
@@ -272,7 +389,7 @@ std::shared_ptr<RobloxManager> RobloxManager::GetSingleton() {
 
 std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
     auto logger = Logger::GetSingleton();
-    const uint64_t identity = 8;
+    const uint64_t identity = 0;
     const uint64_t script = 0;
 
     if (!this->m_bInitialized) {
@@ -379,7 +496,7 @@ std::optional<lua_CFunction> RobloxManager::GetRobloxTaskDefer() {
 }
 
 std::optional<lua_CFunction> RobloxManager::GetRobloxTaskSpawn() {
-    auto logger = Logger::GetSingleton();
+    const auto logger = Logger::GetSingleton();
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager,
                            "Cannot obtain task_spawn. Reason: RobloxManager is not initialized.");
@@ -395,7 +512,40 @@ std::optional<lua_CFunction> RobloxManager::GetRobloxTaskSpawn() {
 
     return reinterpret_cast<lua_CFunction>(this->m_mapRobloxFunctions["RBX::ScriptContext::task_spawn"]);
 }
+std::optional<void *> RobloxManager::GetScriptContext(lua_State *L) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager, "Cannot obtain resume. Reason: RobloxManager is not initialized.");
+        return {};
+    }
 
+    const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
+    if (L->userdata == nullptr) {
+        logger->PrintWarning(RbxStu::RobloxManager,
+                             "Failed to retrieve ScriptContext from lua_State*! L->userdata == nullptr");
+        return {};
+    }
+    const auto scriptContext = extraSpace->sharedExtraSpace->scriptContext;
+    return scriptContext;
+}
+
+std::optional<RBX::DataModel *> RobloxManager::GetDataModelFromScriptContext(void *scriptContext) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager, "Cannot obtain resume. Reason: RobloxManager is not initialized.");
+        return {};
+    }
+
+    if (!this->m_mapRobloxFunctions.contains("RBX::ScriptContext::getDataModel")) {
+        logger->PrintWarning(RbxStu::RobloxManager, "-- WARN: RobloxManager has failed to fetch the address for "
+                                                    "RBX::ScriptContext::getDataModel, obtaining the DataModel from a "
+                                                    "ScriptContext instance is unavailable");
+        return {};
+    }
+
+    return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getDataModel>(
+            this->m_mapRobloxFunctions["RBX::ScriptContext::getDataModel"])(scriptContext);
+}
 bool RobloxManager::IsInitialized() const { return this->m_bInitialized; }
 
 void *RobloxManager::GetRobloxFunction(const std::string &functionName) {
@@ -403,6 +553,55 @@ void *RobloxManager::GetRobloxFunction(const std::string &functionName) {
         return this->m_mapRobloxFunctions[functionName];
     }
     return nullptr;
+}
+
+void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::int32_t nret) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager, "Cannot obtain resume. Reason: RobloxManager is not initialized.");
+        return;
+    }
+
+    if (!this->m_mapRobloxFunctions.contains("RBX::ScriptContext::resume")) {
+        logger->PrintWarning(RbxStu::RobloxManager, "-- WARN: RobloxManager has failed to fetch the address for "
+                                                    "RBX::ScriptContext::resume, resuming threads is unavailable");
+        return;
+    }
+
+    auto resumeFunction = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_resume>(
+            this->m_mapRobloxFunctions["RBX::ScriptContext::resume"]);
+
+    auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(threadRef->thread->userdata);
+
+    auto scriptContext = extraSpace->sharedExtraSpace->scriptContext;
+
+    /// HACK: Roblox validates thread accesses when calling resume. This is probably becasue they'd crash otherwise, but
+    /// we don't care, we are already probably dereferencing nullptr somewhere, so we don't care what happens
+    /// truthfully, we just want to not call RBXCRASH when the validation fails, the quickest, and easiest way, is to
+    /// simply kill the function entirely using a hook, allowing us to not put effort; but also not suffer that much.
+
+    logger->PrintWarning(RbxStu::RobloxManager, "Disabling thread access checks!");
+
+    MH_EnableHook(this->m_mapRobloxFunctions["RBX::ScriptContext::validateThreadAccess"]);
+
+    int32_t out[0x2];
+    logger->PrintInformation(RbxStu::RobloxManager,
+                             std::format("Resuming thread {}!", reinterpret_cast<void *>(threadRef->thread)));
+
+
+    /// Roblox has decided to make our lifes more annoying. ScriptContext, when calling resume, must be offset (its
+    /// address), by 0x698. This is done as a "Facet Check", ugly stuff, but if we don't do it, we will cause an access
+    /// violation, this offset can be updated by searching for xrefs to "[FLog::ScriptContext] Resuming script: %p"
+
+    resumeFunction(reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(scriptContext) + 0x698), out, &threadRef,
+                   nret, false, nullptr);
+
+
+    logger->PrintInformation(RbxStu::RobloxManager, std::format("Received out: [0x0]: {}; [0x1]: {}", out[0], out[1]));
+
+    logger->PrintWarning(RbxStu::RobloxManager, "Enabling roblox thread access checks!");
+
+    MH_DisableHook(this->m_mapRobloxFunctions["RBX::ScriptContext::validateThreadAccess"]);
 }
 
 void *RobloxManager::GetHookOriginal(const std::string &functionName) {

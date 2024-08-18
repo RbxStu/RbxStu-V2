@@ -4,7 +4,17 @@
 
 #pragma once
 #include <cstdint>
+
+#include "lstate.h"
 namespace RBX {
+    namespace Lua {
+        struct WeakThreadRef {
+            std::atomic_int32_t _Refs;
+            lua_State *thread;
+            int32_t thread_ref;
+            int32_t objectId;
+        };
+    } // namespace Lua
     namespace Console {
         enum MessageType : std::int32_t {
             Standard = 0,
@@ -37,7 +47,8 @@ namespace RBX {
         // bytecode. The bytecode is kept at protectedString + 0x8, while the source is kept at protectedString + 0x0.
         // Keep this in mind if this update changes!
 
-        // The *sharedDeref + 0x10 pointer arithmetic comes from the function called to obtain the string from the RBX::ProtectedString instnace.
+        // The *sharedDeref + 0x10 pointer arithmetic comes from the function called to obtain the string from the
+        // RBX::ProtectedString instnace.
 
 
         auto sharedDeref = *reinterpret_cast<void **>(sharedString);

@@ -9,6 +9,7 @@
 #include <shared_mutex>
 #include "RobloxManager.hpp"
 #include "Scanner.hpp"
+#include "Scheduler.hpp"
 #include "lobject.h"
 #include "lualib.h"
 
@@ -20,6 +21,7 @@ namespace RbxStu {
     namespace LuauFunctionDefinitions {
         using luaH_new = void *(__fastcall *) (void *L, int32_t narray, int32_t nhash);
         using freeblock = void(__fastcall *)(lua_State *L, int32_t sizeClass, void *block);
+        using lua_pushvalue = void(__fastcall *)(lua_State *L, int idx);
     } // namespace LuauFunctionDefinitions
 
     namespace LuauSignatures {
@@ -36,7 +38,7 @@ namespace RbxStu {
         _MakeSignature_FromIDA(_luaC_step, "48 8B 59 ? B8 ? ? ? ? 0F B6 F2 0F 29 74 24 ? 4C 8B F1 44 8B 43 ?");
 
         _MakeSignature_FromIDA(
-                _luaD_rawrunprotected,
+                _luaD_rawrununprotected,
                 "48 89 4C 24 ? 48 83 EC ? 48 8B C2 49 8B D0 FF D0 33 C0 EB 04 8B 44 24 48 48 83 C4 ? C3");
 
         _MakeSignature_FromIDA(_luaH_new,
@@ -48,17 +50,25 @@ namespace RbxStu {
                 _freeblock,
                 "4C 8B 51 ? 49 83 E8 ? 44 8B CA 4C 8B D9 49 8B 10 48 83 7A 28 00 75 22 83 7A 30 00 7D 1C 49 63 C1");
 
+        _MakeSignature_FromIDA(_luaV_settable,
+                               "48 89 5C 24 ? 48 89 6C 24 ? 56 41 54 41 57 48 83 EC ? 48 89 7C 24 ? 4D 8B E1 4C 89 74 "
+                               "24 ? 4D 8B F8 48 8B F2 48 8B D9 33 ED 0F 1F 44 00 00 83 7E 0C 06 75 4C");
+
+        _MakeSignature_FromIDA(
+                _luaV_gettable,
+                "48 89 5C 24 ? 55 41 54 41 55 41 56 41 57 48 83 EC ? 48 89 74 24 ? 4C 8D 2D EA 8D 62 03 48 89 7C 24 ? "
+                "4D 8B E1 4D 8B F8 48 8B DA 4C 8B F1 33 ED 83 7B 0C 06 75 76 48 8B 33 49 8B D7 48 8B CE E8 ? ? ? ?");
         const static std::map<std::string, Signature> s_luauSignatureMap = {
+                {"luaV_settable", _luaV_settable}, {"luaV_gettable", _luaV_gettable},
                 {"luaD_throw", _luaD_throw},       {"luau_execute", _luau_execute},
                 {"lua_pushvalue", _lua_pushvalue}, {"luaE_newthread", _luaE_newthread},
-                {"luaC_step", _luaC_step},         {"luaD_rawrunprotected", _luaD_rawrunprotected},
+                {"luaC_step", _luaC_step},         {"luaD_rawrununprotected", _luaD_rawrununprotected},
                 {"luaH_new", _luaH_new},           {"freeblock", _freeblock}};
         // TODO: Assess whether freeblock is required once again to be hooked due to stability issues.
     } // namespace LuauSignatures
 
 #undef _MakeSignature_FromIDA
 } // namespace RbxStu
-
 
 static void luau__freeblock(lua_State *L, uint32_t sizeClass, void *block) {
     if (reinterpret_cast<std::uintptr_t>(block) > 0x00007FF000000000)
@@ -135,18 +145,20 @@ void LuauManager::Initialize() {
 
 
     logger->PrintInformation(RbxStu::LuauManager, "Overwriting .data pointers for RVM [2/4]");
-    RBX::Studio::Offsets::fireproximityprompt =
-            reinterpret_cast<std::uintptr_t>(robloxManager->GetRobloxFunction("RBX::ProximityPrompt::onTriggered"));
+    RbxStuOffsets::GetSingleton()->SetOffset("fireproximityprompt",
+                                             robloxManager->GetRobloxFunction("RBX::ProximityPrompt::onTriggered"));
+
 
 #define MapFunction(funcName, mappedName)                                                                              \
-    RBX::Studio::Offsets::funcName = reinterpret_cast<std::uintptr_t>(this->m_mapLuauFunctions[mappedName]);           \
-    RBX::Studio::Functions::funcName =                                                                                 \
-            reinterpret_cast<RBX::Studio::FunctionTypes::funcName>(RBX::Studio::Offsets::funcName)
+    RbxStuOffsets::GetSingleton()->SetOffset(mappedName, this->m_mapLuauFunctions[mappedName])
+
     MapFunction(luau_execute, "luau_execute");
     MapFunction(luaD_throw, "luaD_throw");
     MapFunction(luaE_newthread, "luaE_newthread");
     MapFunction(luaC_Step, "luaC_step");
     MapFunction(luaD_rawrununprotected, "luaD_rawrununprotected");
+    MapFunction(luaV_gettable, "luaV_gettable");
+    MapFunction(luaV_settable, "luaV_settable");
 #undef MapFunction
 
     logger->PrintInformation(RbxStu::LuauManager, "Resolving data pointers to luaH_dummyNode and luaO_nilObject [3/4]");
@@ -171,13 +183,13 @@ void LuauManager::Initialize() {
         logger->PrintInformation(RbxStu::LuauManager,
                                  std::format("Invoking lua_pushvalue(lua_State *L, int32_t idx) @ {} ...",
                                              this->m_mapLuauFunctions["lua_pushvalue"]));
-        RBX::Studio::Offsets::_luaO_nilobject =
-                static_cast<std::uintptr_t(__fastcall *)(lua_State * L, int32_t lua_index)>(
-                        this->m_mapLuauFunctions["lua_pushvalue"])(luaState, 1);
+        const auto offsets = RbxStuOffsets::GetSingleton();
+        offsets->SetOffset("luaO_nilobject", static_cast<void *(__fastcall *) (lua_State * L, int32_t lua_index)>(
+                                                     this->m_mapLuauFunctions["lua_pushvalue"])(luaState, 1));
 
         logger->PrintInformation(RbxStu::LuauManager,
                                  std::format("Resolved luaO_nilobject to pointer {}",
-                                             reinterpret_cast<void *>(RBX::Studio::Offsets::_luaO_nilobject)));
+                                             reinterpret_cast<void *>(offsets->GetOffset("luaO_nilobject"))));
 
         const auto luaH_new = static_cast<void *(__fastcall *) (void *L, int32_t narray, int32_t nhash)>(
                 this->m_mapLuauFunctions["luaH_new"]);
@@ -193,10 +205,11 @@ void LuauManager::Initialize() {
                                  std::format("Invoking luaH_new(lua_State *L, int32_t narray, int32_t nhash) @ {} ...",
                                              this->m_mapLuauFunctions["luaH_new"]));
         auto table = luaH_new(luaState, 0, 0);
-        RBX::Studio::Offsets::_luaH_dummynode = reinterpret_cast<std::uintptr_t>(static_cast<Table *>(table)->node);
+        offsets->SetOffset("luaH_dummynode", (static_cast<Table *>(table)->node));
+
         logger->PrintInformation(RbxStu::LuauManager,
                                  std::format("Resolved luaH_dummyNode to pointer {}",
-                                             reinterpret_cast<void *>(RBX::Studio::Offsets::_luaH_dummynode)));
+                                             reinterpret_cast<void *>(offsets->GetOffset("luaH_dummynode"))));
     }
 
     logger->PrintInformation(RbxStu::LuauManager, "Cleaning up lua_State used to obtain values... ");
@@ -214,13 +227,12 @@ void LuauManager::Initialize() {
         MH_OK) {
         logger->PrintError(RbxStu::LuauManager, "Failed to create freeblock hook!");
         throw std::exception("Creating freeblock hook failed.");
-        }
+    }
 
     if (MH_EnableHook(this->m_mapLuauFunctions["freeblock"]) != MH_OK) {
         logger->PrintError(RbxStu::LuauManager, "Failed to enable freeblock hook!");
         throw std::exception("Enabling freeblock hook failed.");
     }
-
 
     logger->PrintInformation(RbxStu::LuauManager, "Initialization completed [4/4]");
     this->m_bIsInitialized = true;
@@ -248,3 +260,4 @@ void *LuauManager::GetHookOriginal(const std::string &functionName) {
 
     return nullptr;
 }
+void *LuauManager::GetFunction(const std::string &functionName) { return this->m_mapLuauFunctions[functionName]; }

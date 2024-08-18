@@ -6,6 +6,7 @@
 #include "ldo.h"
 #include "ldebug.h"
 
+#include <Windows.h>
 #include <string.h>
 
 /*

@@ -101,7 +101,7 @@ long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
 
     // Clean up
     SymCleanup(GetCurrentProcess());
-    MessageBoxA(nullptr, ("ERROR"), ("ERROR. LOOK AT CLI."), MB_OK);
+    MessageBoxA(nullptr, ("Studio Crash"), ("RbxStu exception filter has been run! Stacktrace on Studio's CLI."), MB_OK);
     printf("Stack frames captured - Waiting for 30s before handing to executee... \r\n");
     Sleep(30000);
 

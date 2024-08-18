@@ -46,9 +46,9 @@ static_assert(TKey{{NULL}, {0}, LUA_TNIL, MAXSIZE - 1}.next == MAXSIZE - 1, "not
 static_assert(TKey{{NULL}, {0}, LUA_TNIL, -(MAXSIZE - 1)}.next == -(MAXSIZE - 1), "not enough bits for next");
 
 // empty hash data points to dummynode so that we can always dereference it
-#define luaH_dummynode (*reinterpret_cast<LuaNode*>(RBX::Studio::Offsets::_luaH_dummynode))
+#define luaH_dummynode (*reinterpret_cast<LuaNode*>(RbxStuOffsets::GetSingleton()->GetOffset("luaH_dummynode")))
 
-#define dummynode (reinterpret_cast<LuaNode*>(RBX::Studio::Offsets::_luaH_dummynode))
+#define dummynode (reinterpret_cast<LuaNode*>(RbxStuOffsets::GetSingleton()->GetOffset("luaH_dummynode")))
 
 // hash is always reduced mod 2^k
 #define hashpow2(t, n) (gnode(t, lmod((n), sizenode(t))))
@@ -628,13 +628,16 @@ const TValue* luaH_getnum(Table* t, int key)
 const TValue* luaH_getstr(Table* t, TString* key)
 {
     LuaNode* n = hashstr(t, key);
-    for (;;)
-    { // check whether `key' is somewhere in the chain
-        if (ttisstring(gkey(n)) && tsvalue(gkey(n)) == key)
-            return gval(n); // that's it
-        if (gnext(n) == 0)
-            break;
-        n += gnext(n);
+    if (n != nullptr)
+    {
+        for (;;)
+        { // check whether `key' is somewhere in the chain
+            if (ttisstring(gkey(n)) && tsvalue(gkey(n)) == key)
+                return gval(n); // that's it
+            if (gnext(n) == 0)
+                break;
+            n += gnext(n);
+        }
     }
     return luaO_nilobject;
 }
