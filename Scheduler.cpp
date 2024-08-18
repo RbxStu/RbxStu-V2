@@ -2,6 +2,7 @@
 #include <iostream>
 #include <shared_mutex>
 
+#include "Environment/EnvironmentManager.hpp"
 #include "Luau/Compiler.h"
 #include "Luau/Compiler/src/Builtins.h"
 #include "LuauManager.hpp"
@@ -229,6 +230,9 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
         throw std::exception("Cannot run Scheduler job!");
     }
+
+    const auto envManager = EnvironmentManager::GetSingleton();
+    envManager->PushEnvironment(L);
 
     lua_settop(L, 0);
     lua_settop(rL, 0);

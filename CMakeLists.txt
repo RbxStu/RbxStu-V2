@@ -26,6 +26,10 @@ add_library(Module SHARED
         Security.cpp
         Communication.cpp
         Communication.hpp
+        Environment/EnvironmentManager.cpp
+        Environment/EnvironmentManager.hpp
+        Environment/Libraries/Globals.cpp
+        Environment/Libraries/Globals.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
