@@ -27,7 +27,7 @@ void Security::SetThreadSecurity(lua_State *L) {
     auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
 
     plStateUd->identity = 8;
-    plStateUd->capabilities = 0x3FFFF00 | RobloxManager::GetSingleton()->IdentityToCapability(8).value();
+    plStateUd->capabilities = 0x3FBF897F; // Find the Capability To String, and OR them all together.
     // Magical constant | Custom_Identity (Or Capabilities in some cases)
 }
 
@@ -45,7 +45,7 @@ bool Security::SetLuaClosureSecurity(Closure *lClosure) {
     auto *pMem = pProto->userdata != nullptr ? static_cast<std::uintptr_t *>(pProto->userdata)
                                              : static_cast<std::uintptr_t *>(malloc(sizeof(std::uintptr_t)));
 
-    *pMem = 0x3FFFF00 | RobloxManager::GetSingleton()->IdentityToCapability(8).value();
+    *pMem = 0x3FBF897F; // 0x3FFFF00 | RobloxManager::GetSingleton()->IdentityToCapability(8).value();
     set_proto(pProto, pMem);
     return true;
 }
