@@ -4,6 +4,7 @@
 
 #include "Luau/Compiler.h"
 #include "Luau/Compiler/src/Builtins.h"
+#include "LuauManager.hpp"
 #include "RobloxManager.hpp"
 #include "Security.hpp"
 #include "lstate.h"
@@ -134,31 +135,39 @@ void Scheduler::StepScheduler(lua_State *runner) {
     // Here we will check if the DataModel obtained is correct, as in, our data model is successful!
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto logger = Logger::GetSingleton();
-    const auto dataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
-    if (!dataModel.has_value() || this->m_pClientDataModel != dataModel.value()) {
+    if (const auto dataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
+        !dataModel.has_value() || this->m_pClientDataModel != dataModel.value()) {
         logger->PrintWarning(RbxStu::Scheduler, "The task scheduler's internal state is out of date! Reason: DataModel "
                                                 "pointer is invalid! Executing reinitialization sub-routine!");
         this->ResetScheduler();
         return;
     }
-    if (runner != this->m_lsInitialisedWith) {
-        logger->PrintWarning(
-                RbxStu::Scheduler,
-                "The task scheduler's RbxStu state is different than the provided one to execute operations on. This "
-                "may result in wrong behaviour inside of Luau and could potentially leak the elevated RbxStu "
-                "environment into segments which are not supposed to have such elevated access!");
-    }
+    // if (runner != this->m_lsInitialisedWith.value()) {
+    //     logger->PrintWarning(
+    //             RbxStu::Scheduler,
+    //             "The task scheduler's RbxStu state is different than the provided one to execute operations on. This
+    //             " "may result in wrong behaviour inside of Luau and could potentially leak the elevated RbxStu "
+    //             "environment into segments which are not supposed to have such elevated access! Reason: gt and L are
+    //             different!");
+    // }
     auto job = this->DequeueSchedulerJob();
     this->ExecuteSchedulerJob(runner, &job);
 }
 
 void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *dataModel) {
     std::lock_guard g{__scheduler_init};
+    const auto logger = Logger::GetSingleton();
+    const auto robloxManager = RobloxManager::GetSingleton();
+
+    if (const auto luauManager = LuauManager::GetSingleton();
+        !robloxManager->IsInitialized() || !luauManager->IsInitialized()) {
+        logger->PrintWarning(RbxStu::Scheduler, "LuauManager/RobloxManager is not initialized yet...");
+        return;
+    }
     this->m_pClientDataModel = dataModel;
     this->m_lsRoblox = rL;
     this->m_lsInitialisedWith = L;
 
-    const auto logger = Logger::GetSingleton();
     logger->PrintInformation(RbxStu::Scheduler,
                              std::format("Task Scheduler initialized!\nInternal State: \n\t- m_pClientDataModel: "
                                          "{}\n\t- m_lsRoblox: {}\n\t- m_lsInitialisedWith: {}",
@@ -166,6 +175,7 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
                                          reinterpret_cast<void *>(this->m_lsRoblox.value()),
                                          reinterpret_cast<void *>(this->m_lsInitialisedWith.value())));
 
+    const auto security = Security::GetSingleton();
     logger->PrintInformation(RbxStu::Scheduler, "Sandboxing threads to avoid environment issues!");
 
     luaL_sandboxthread(rL);
@@ -173,7 +183,55 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     logger->PrintInformation(RbxStu::Scheduler, "Initializing Environment for the executor thread!");
 
-    this->ScheduleJob("local part = Instance.new(\"Part\");part.Parent = workspace");
+    logger->PrintInformation(RbxStu::Scheduler, "Elevating rL and L!");
+
+    security->SetThreadSecurity(rL);
+    security->SetThreadSecurity(L);
+
+    logger->PrintInformation(RbxStu::Scheduler, "Initializing Heartbeat signal...");
+
+    lua_pushcclosure(
+            L,
+            [](lua_State *L) -> int32_t {
+                const auto scheduler = Scheduler::GetSingleton();
+                if (scheduler->IsInitialized())
+                    scheduler->StepScheduler(L);
+                return 0;
+            },
+            nullptr, 0);
+    lua_setglobal(L, "scheduler");
+
+    auto opts = Luau::CompileOptions{};
+    opts.debugLevel = 0;
+    opts.optimizationLevel = 2;
+    const auto bytecode = Luau::compile("game:GetService(\"RunService\").Heartbeat:Connect(scheduler)", opts);
+
+
+    if (luau_load(L, "SchedulerHookInit", bytecode.c_str(), bytecode.size(), 0) != LUA_OK) {
+        const char *err = lua_tostring(L, -1);
+        logger->PrintError(RbxStu::Scheduler, err);
+        lua_pop(L, 1);
+        return;
+    }
+
+    security->SetLuaClosureSecurity(lua_toclosure(L, -1));
+
+    if (robloxManager->GetRobloxTaskDefer().has_value()) {
+        const auto defer = robloxManager->GetRobloxTaskDefer().value();
+        defer(L);
+    } else if (robloxManager->GetRobloxTaskSpawn().has_value()) {
+        const auto spawn = robloxManager->GetRobloxTaskSpawn().value();
+        spawn(L);
+    } else {
+        logger->PrintError(RbxStu::Scheduler,
+                           "Execution attempt failed. There is no function that can run the code through Roblox's "
+                           "scheduler! Reason: task.defer and task.spawn were not found on the sigging step.");
+
+        throw std::exception("Cannot run Scheduler job!");
+    }
+
+    lua_settop(L, 0);
+    lua_settop(rL, 0);
 }
 
 void Scheduler::ResetScheduler() {

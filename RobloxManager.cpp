@@ -147,9 +147,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             }
             scheduler->InitializeWith(L, rL, dataModel.value());
         }
-    } else if (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient) && scheduler->IsInitialized()) {
-        scheduler->StepScheduler(scheduler->GetGlobalExecutorState().value());
-    } else {
+    } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
                                                      "initialized, resetting scheduler!");
         scheduler->ResetScheduler();

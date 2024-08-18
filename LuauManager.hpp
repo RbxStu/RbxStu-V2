@@ -31,6 +31,8 @@ public:
     /// @return Singleton for LuauManager as a std::shared_ptr<LuauManager>.
     static std::shared_ptr<LuauManager> GetSingleton();
 
+    bool IsInitialized() const;
+
     /// @brief Obtains the original function given the function's name.
     /// @param functionName The name of the Luau function to obtain the original from.
     /// @note This function may return non-hooked functions as well.
@@ -41,5 +43,4 @@ public:
     void *GetHookOriginal(const std::string &functionName);
 
     void *GetFunction(const std::string &functionName);
-    ;
 };

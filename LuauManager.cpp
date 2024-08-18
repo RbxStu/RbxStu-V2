@@ -248,6 +248,7 @@ std::shared_ptr<LuauManager> LuauManager::GetSingleton() {
 
     return LuauManager::pInstance;
 }
+bool LuauManager::IsInitialized() const { return this->m_bIsInitialized; }
 
 void *LuauManager::GetHookOriginal(const std::string &functionName) {
     if (this->m_mapHookMap.contains(functionName)) {
