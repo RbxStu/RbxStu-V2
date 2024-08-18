@@ -33,7 +33,7 @@ Signature SignatureByte::GetSignatureFromString(const std::string &aob, const st
 
         auto parsed = strtoul(nAob[i].data(), nullptr, 16);
 
-        if (parsed > 255) { // We needn't bottom check, as its an unsigned long.
+        if (parsed > 255) { // We needn't bottom check, as it's an unsigned long.
             logger->PrintWarning(
                     RbxStu::ByteScanner,
                     std::format("Failed to parse signature + mask. Reason: Value outside of the unsigned "
