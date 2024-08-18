@@ -29,16 +29,22 @@ void Communication::HandlePipe(const std::string &szPipeName) {
     logger->PrintInformation(RbxStu::Communication,
                              std::format("Created Named ANSI Pipe -> '{}' for obtaining Luau code.", name));
 
-    while (hPipe != INVALID_HANDLE_VALUE) {
-        if (ConnectNamedPipe(hPipe, nullptr) != FALSE) {
-            while (ReadFile(hPipe, BufferSize, sizeof(BufferSize) - 1, &Read, nullptr) != FALSE) {
-                BufferSize[Read] = '\0';
-                Script += BufferSize;
-            }
+    logger->PrintInformation(RbxStu::Communication, "Connecting to Named Pipe...");
+    ConnectNamedPipe(hPipe, nullptr);
 
-            scheduler->ScheduleJob(Script);
-            Script.clear();
+    logger->PrintInformation(RbxStu::Communication, "Connected! Awaiting Luau code!");
+    while (hPipe != INVALID_HANDLE_VALUE && ReadFile(hPipe, BufferSize, sizeof(BufferSize) - 1, &Read, nullptr)) {
+        if (GetLastError() == ERROR_IO_PENDING) {
+            logger->PrintError(RbxStu::Communication, "RbxStu does not handle asynchronous IO requests. Pipe "
+                                                        "requests must be synchronous (This should not happen)");
+            _mm_pause();
+            continue;
         }
-        DisconnectNamedPipe(hPipe);
+        BufferSize[Read] = '\0';
+        Script += BufferSize;
+
+        logger->PrintInformation(RbxStu::Communication, "Pipe request received! Scheduling...");
+        scheduler->ScheduleJob(Script);
+        Script.clear();
     }
 }
