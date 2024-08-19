@@ -98,9 +98,8 @@ static void callTM(lua_State* L, const TValue* f, const TValue* p1, const TValue
 
 void luaV_gettable(lua_State* L, const TValue* t, TValue* key, StkId val)
 {
-    // printf("gettable: %p\n", RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"));
-    // if (nullptr != RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"))
-    //     return reinterpret_cast<RBX::Studio::FunctionTypes::luaV_gettable>(RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"))(L, key, t, val);
+    if (nullptr != RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"))
+        return reinterpret_cast<RBX::Studio::FunctionTypes::luaV_gettable>(RbxStuOffsets::GetSingleton()->GetOffset("luaV_gettable"))(L, t, key, val);
 
     int loop;
     for (loop = 0; loop < MAXTAGLOOP; loop++)
@@ -137,9 +136,8 @@ void luaV_gettable(lua_State* L, const TValue* t, TValue* key, StkId val)
 
 void luaV_settable(lua_State* L, const TValue* t, TValue* key, StkId val)
 {
-    // printf("settable: %p\n", RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"));
-    // if (nullptr != RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"))
-    //     return reinterpret_cast<RBX::Studio::FunctionTypes::luaV_settable>(RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"))(L, key, t, val);
+    if (nullptr != RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"))
+        return reinterpret_cast<RBX::Studio::FunctionTypes::luaV_settable>(RbxStuOffsets::GetSingleton()->GetOffset("luaV_settable"))(L, t, key, val);
 
     int loop;
     TValue temp;
