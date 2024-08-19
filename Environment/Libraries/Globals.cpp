@@ -37,6 +37,12 @@ namespace RbxStu {
         return 1;
     }
 
+    int newcclosure(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+        lua_pushcclosure(L, lua_tocfunction(L, 1), 0);
+        return 1;
+    }
+
     int getreg(lua_State *L) {
         lua_pushvalue(L, LUA_REGISTRYINDEX);
         return 1;
@@ -267,7 +273,7 @@ namespace RbxStu {
 
 // forgot about this shit
 std::string Globals::GetLibraryName() const { return "rbxstu"; }
-std::int32_t Globals::GetFunctionCount() const { return 0; }
+std::int32_t Globals::GetFunctionCount() const { return 1; }
 luaL_Reg *Globals::GetLibraryFunctions() const {
     auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
                                {"iscclosure", RbxStu::iscclosure},
@@ -289,6 +295,7 @@ luaL_Reg *Globals::GetLibraryFunctions() const {
                                {"cloneref", RbxStu::cloneref},
                                {"getsenv", RbxStu::getsenv},
                                {"isrbxactive", RbxStu::isrbxactive},
+                               {"newcclosure", RbxStu::newcclosure},
                                {nullptr, nullptr}};
     return reg;
 }
