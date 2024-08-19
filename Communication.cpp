@@ -36,7 +36,7 @@ void Communication::HandlePipe(const std::string &szPipeName) {
     while (hPipe != INVALID_HANDLE_VALUE && ReadFile(hPipe, BufferSize, sizeof(BufferSize) - 1, &Read, nullptr)) {
         if (GetLastError() == ERROR_IO_PENDING) {
             logger->PrintError(RbxStu::Communication, "RbxStu does not handle asynchronous IO requests. Pipe "
-                                                        "requests must be synchronous (This should not happen)");
+                                                      "requests must be synchronous (This should not happen)");
             _mm_pause();
             continue;
         }
@@ -44,7 +44,7 @@ void Communication::HandlePipe(const std::string &szPipeName) {
         Script += BufferSize;
 
         logger->PrintInformation(RbxStu::Communication, "Pipe request received! Scheduling...");
-        scheduler->ScheduleJob(Script);
+        scheduler->ScheduleJob(SchedulerJob(Script));
         Script.clear();
     }
 }
