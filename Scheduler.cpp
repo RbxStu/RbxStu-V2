@@ -177,14 +177,18 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
                                          reinterpret_cast<void *>(this->m_lsInitialisedWith.value())));
 
     const auto security = Security::GetSingleton();
-    logger->PrintInformation(RbxStu::Scheduler, "Sandboxing threads to avoid environment issues!");
+
+    logger->PrintInformation(RbxStu::Scheduler, "Sandboxing threads to avoid environment modification issues!");
 
     luaL_sandboxthread(rL);
     luaL_sandboxthread(L);
 
     logger->PrintInformation(RbxStu::Scheduler, "Initializing Environment for the executor thread!");
 
-    logger->PrintInformation(RbxStu::Scheduler, "Elevating rL and L!");
+    const auto envManager = EnvironmentManager::GetSingleton();
+    envManager->PushEnvironment(L);
+
+    logger->PrintInformation(RbxStu::Scheduler, "Elevating!");
 
     security->SetThreadSecurity(rL);
     security->SetThreadSecurity(L);
@@ -231,11 +235,8 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
         throw std::exception("Cannot run Scheduler job!");
     }
 
-    const auto envManager = EnvironmentManager::GetSingleton();
-    envManager->PushEnvironment(L);
-
-    lua_settop(L, 0);
-    lua_settop(rL, 0);
+    lua_pop(L, lua_gettop(L));
+    lua_pop(rL, lua_gettop(rL));
 }
 
 void Scheduler::ResetScheduler() {
