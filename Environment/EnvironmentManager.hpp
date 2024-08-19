@@ -8,14 +8,9 @@
 #include "lstate.h"
 #include "lualib.h"
 
-class Library abstract {
-protected:
-    ~Library() = default;
-
-public:
-    [[nodiscard]] virtual std::string GetLibraryName() const;
-    [[nodiscard]] virtual std::int32_t GetFunctionCount() const;
-    [[nodiscard]] virtual luaL_Reg *GetLibraryFunctions() const;
+__interface Library {
+    virtual std::string GetLibraryName();
+    virtual luaL_Reg *GetLibraryFunctions();
 };
 
 class EnvironmentManager final {

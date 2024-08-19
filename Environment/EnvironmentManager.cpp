@@ -4,25 +4,21 @@
 
 #include "EnvironmentManager.hpp"
 
+#include <vector>
+#include "Libraries/Debug.hpp"
 #include "Libraries/Globals.hpp"
 #include "Logger.hpp"
 #include "lua.h"
 
 std::shared_ptr<EnvironmentManager> EnvironmentManager::pInstance;
 
-std::string Library::GetLibraryName() const {
+std::string Library::GetLibraryName() {
     Logger::GetSingleton()->PrintError(RbxStu::EnvironmentManager,
                                        "ERROR! Library::GetLibraryName(...) is not implemented by the inheritor!");
     throw std::exception("Function not implemented by inheritor.");
 }
 
-std::int32_t Library::GetFunctionCount() const {
-    Logger::GetSingleton()->PrintError(RbxStu::EnvironmentManager,
-                                       "ERROR! Library::GetFunctionCount(...) is not implemented by the inheritor!");
-    throw std::exception("Function not implemented by inheritor.");
-}
-
-luaL_Reg *Library::GetLibraryFunctions() const {
+luaL_Reg *Library::GetLibraryFunctions() {
     Logger::GetSingleton()->PrintError(RbxStu::EnvironmentManager,
                                        "ERROR! Library::GetLibraryFunctions(...) is not implemented by the inheritor!");
     throw std::exception("Function not implemented by inheritor.");
@@ -36,19 +32,26 @@ std::shared_ptr<EnvironmentManager> EnvironmentManager::GetSingleton() {
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
-    const auto globals = Globals{};
-    auto envGlobals = globals.GetLibraryFunctions();
 
-    try {
-        lua_newtable(L);
-        luaL_register(L, nullptr, envGlobals);
-        lua_setglobal(L, globals.GetLibraryName().c_str());
-        lua_pushvalue(L, LUA_GLOBALSINDEX);
-        luaL_register(L, nullptr, envGlobals);
-        lua_pop(L, 1);
-    } catch (const std::exception &ex) {
-        logger->PrintError(RbxStu::EnvironmentManager,
-                           std::format("Failed to initialize globals for RbxStu. Error from Lua: {}", ex.what()));
-        throw;
+    for (const std::vector<Library *> libList = {new Debug{}, new Globals{}}; const auto &lib: libList) {
+        try {
+            const auto envGlobals = lib->GetLibraryFunctions();
+            lua_newtable(L);
+            luaL_register(L, nullptr, envGlobals);
+            lua_setreadonly(L, -1, true);
+            lua_setglobal(L, lib->GetLibraryName().c_str());
+
+            lua_pushvalue(L, LUA_GLOBALSINDEX);
+            luaL_register(L, nullptr, envGlobals);
+            lua_pop(L, 1);
+
+        } catch (const std::exception &ex) {
+            logger->PrintError(RbxStu::EnvironmentManager,
+                               std::format("Failed to initialize {} for RbxStu. Error from Lua: {}",
+                                           lib->GetLibraryName(), ex.what()));
+            throw;
+        }
+
+        delete lib;
     }
 }
