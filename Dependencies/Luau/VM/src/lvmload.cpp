@@ -517,6 +517,7 @@ int luau_load(lua_State* L, const char* chunkname, const char* data, size_t size
         }
 
         p->linedefined = readVarInt(data, size, offset);
+        p->linedefined = -1;
         p->debugname = readString(strings, data, size, offset);
 
         uint8_t lineinfo = read<uint8_t>(data, size, offset);
