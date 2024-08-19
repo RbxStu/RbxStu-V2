@@ -364,6 +364,13 @@ namespace RbxStu {
         return lua_yield(L, 0);
     }
 
+    int getidentity(lua_State *L) {
+        auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
+        lua_pushinteger(L, plStateUd->identity);
+
+        return 1;
+    }
+
     int printcaps(lua_State *L) {
         auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
         const auto security = Security::GetSingleton();
