@@ -14,6 +14,7 @@
 #include "cpr/api.h"
 #include "lgc.h"
 #include "lmem.h"
+#include "ltable.h"
 
 namespace RbxStu {
     int getrawmetatable(lua_State *L) {
@@ -45,16 +46,12 @@ namespace RbxStu {
     }
 
     int getrenv(lua_State *L) {
-        const auto scheduler = Scheduler::GetSingleton();
-        lua_pushvalue(scheduler->GetGlobalRobloxState().value(), LUA_REGISTRYINDEX);
-        lua_xmove(scheduler->GetGlobalRobloxState().value(), L, 1);
+        lua_pushvalue(L, LUA_GLOBALSINDEX);
         return 1;
     }
 
     int getgenv(lua_State *L) {
-        const auto scheduler = Scheduler::GetSingleton();
-        lua_pushvalue(scheduler->GetGlobalExecutorState().value(), LUA_REGISTRYINDEX);
-        lua_xmove(scheduler->GetGlobalExecutorState().value(), L, 1);
+        lua_pushvalue(L, LUA_GLOBALSINDEX);
         return 1;
     }
 
@@ -382,9 +379,8 @@ namespace RbxStu {
 } // namespace RbxStu
 
 
-std::string Globals::GetLibraryName() const { return "rbxstu"; }
-std::int32_t Globals::GetFunctionCount() const { return 0; }
-luaL_Reg *Globals::GetLibraryFunctions() const {
+std::string Globals::GetLibraryName() { return "rbxstu"; }
+luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
     auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
                                {"iscclosure", RbxStu::iscclosure},
