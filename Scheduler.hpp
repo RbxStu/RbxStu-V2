@@ -45,14 +45,13 @@ public:
         this->luaJob.szluaCode = luaCode;
     }
 
-    /// @brief Defines a closure used in the yielding process.
-    /// @return A lua_CFunction that returns the number of results for when resuming
-    typedef void (*ClosureYield)(lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute);
-
     /// @brief The callback that is executed once the yield is completed to push the results into the lua stack for
     /// resumption.
     std::shared_future<std::function<int(lua_State *)>> *callbackFuture = nullptr;
-    explicit SchedulerJob(lua_State *L, ClosureYield function) {
+    explicit SchedulerJob(
+            lua_State *L,
+            std::function<void(lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute)>
+                    function) {
         const auto logger = Logger::GetSingleton();
         this->bIsLuaCode = false;
         this->bIsYieldingJob = true;
