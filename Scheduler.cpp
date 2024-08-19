@@ -53,7 +53,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         auto L = lua_newthread(runOn);
         lua_pop(runOn, 1);
 
-        security->SetThreadSecurity(L);
+        security->SetThreadSecurity(L, 8);
 
         logger->PrintInformation(RbxStu::Scheduler, "Set Thread identity & capabilities");
 
@@ -187,8 +187,8 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     logger->PrintInformation(RbxStu::Scheduler, "Elevating!");
 
-    security->SetThreadSecurity(rL);
-    security->SetThreadSecurity(L);
+    security->SetThreadSecurity(rL, 8);
+    security->SetThreadSecurity(L, 8);
 
     logger->PrintInformation(RbxStu::Scheduler, "Initializing Heartbeat signal...");
 
