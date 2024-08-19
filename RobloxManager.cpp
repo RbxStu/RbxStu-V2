@@ -18,13 +18,6 @@
 
 std::shared_mutex __robloxmanager__singleton__lock;
 
-void rbx__scriptcontext__validatethreadaccess(void *scriptContext, lua_State *L) {
-    Logger::GetSingleton()->PrintWarning(RbxStu::HookedFunction,
-                                         "Thread Accesses are not being validated! Studio may become unstable! This "
-                                         "warning will appear if the validation hook has not been removed yet!");
-}
-
-
 void rbx_rbxcrash(const char *crashType, const char *crashDescription) {
     const auto logger = Logger::GetSingleton();
 
@@ -348,17 +341,9 @@ void RobloxManager::Initialize() {
                   &this->m_mapHookMap["RBX::DataModel::doDataModelClose"]);
     MH_EnableHook(this->m_mapRobloxFunctions["RBX::DataModel::doDataModelClose"]);
 
-    this->m_mapHookMap["RBX::ScriptContext::validateThreadAccess"] = new void *();
-
     this->m_mapHookMap["RBX::RBXCRASH"] = new void *();
     MH_CreateHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"], rbx_rbxcrash, &this->m_mapHookMap["RBX::RBXCRASH"]);
     MH_EnableHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"]);
-
-    this->m_mapHookMap["RBX::ScriptContext::validateThreadAccess"] = new void *();
-
-    MH_CreateHook(this->m_mapRobloxFunctions["RBX::ScriptContext::validateThreadAccess"],
-                  rbx__scriptcontext__validatethreadaccess,
-                  &this->m_mapHookMap["RBX::ScriptContext::validateThreadAccess"]);
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initialization Completed. [3/3]");
     this->m_bInitialized = true;
@@ -564,16 +549,7 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
 
     auto scriptContext = extraSpace->sharedExtraSpace->scriptContext;
 
-    /// HACK: Roblox validates thread accesses when calling resume. This is probably becasue they'd crash otherwise, but
-    /// we don't care, we are already probably dereferencing nullptr somewhere, so we don't care what happens
-    /// truthfully, we just want to not call RBXCRASH when the validation fails, the quickest, and easiest way, is to
-    /// simply kill the function entirely using a hook, allowing us to not put effort; but also not suffer that much.
-
-    logger->PrintWarning(RbxStu::RobloxManager, "Disabling thread access checks!");
-
-    MH_EnableHook(this->m_mapRobloxFunctions["RBX::ScriptContext::validateThreadAccess"]);
-
-    int32_t out[0x2];
+    int32_t out[0x2] = {0, 0};
     logger->PrintInformation(RbxStu::RobloxManager,
                              std::format("Resuming thread {}!", reinterpret_cast<void *>(threadRef->thread)));
 
@@ -582,15 +558,16 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
     /// address), by 0x698. This is done as a "Facet Check", ugly stuff, but if we don't do it, we will cause an access
     /// violation, this offset can be updated by searching for xrefs to "[FLog::ScriptContext] Resuming script: %p"
 
-    resumeFunction(reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(scriptContext) + 0x698), out, &threadRef,
-                   nret, false, nullptr);
+    try {
+        resumeFunction(reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(scriptContext) + 0x698), out,
+                       &threadRef, nret, false, nullptr);
+    } catch (const std::exception &ex) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           std::format("An error occured whilst resuming the thread! Exception: {}", ex.what()));
+    }
 
 
     logger->PrintInformation(RbxStu::RobloxManager, std::format("Received out: [0x0]: {}; [0x1]: {}", out[0], out[1]));
-
-    logger->PrintWarning(RbxStu::RobloxManager, "Enabling roblox thread access checks!");
-
-    MH_DisableHook(this->m_mapRobloxFunctions["RBX::ScriptContext::validateThreadAccess"]);
 }
 
 void *RobloxManager::GetHookOriginal(const std::string &functionName) {
