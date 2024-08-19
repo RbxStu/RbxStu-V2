@@ -250,14 +250,6 @@ namespace RbxStu {
     return 1;
     }
 
-    int getrenv(lua_State *L) { // stupid implement?
-    auto scheduler = Scheduler::GetSingleton();
-    auto globalState = scheduler->GetGlobalRobloxState().value();
-    lua_pushvalue(globalState, LUA_REGISTRYINDEX);
-    lua_xmove(globalState, L, 1);
-    return 1;
-    }
-
 
 } // namespace RbxStu
 
