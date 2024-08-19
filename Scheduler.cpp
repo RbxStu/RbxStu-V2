@@ -51,6 +51,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         // execute the callback, which will trigger it and initialize the RobloxExtraSpace correctly.
         // runOn->global->cb.userthread(runOn, L);
         auto L = lua_newthread(runOn);
+        luaL_sandboxthread(L);
         lua_pop(runOn, 1);
 
         security->SetThreadSecurity(L, 8);
@@ -129,7 +130,10 @@ std::optional<lua_State *> Scheduler::GetGlobalRobloxState() const {
     return this->m_lsRoblox;
 }
 
+std::shared_mutex __scheduler_lock;
+
 void Scheduler::StepScheduler(lua_State *runner) {
+    std::lock_guard lg{__scheduler_lock};
     // Here we will check if the DataModel obtained is correct, as in, our data model is successful!
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto logger = Logger::GetSingleton();
