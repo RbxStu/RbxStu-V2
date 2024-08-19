@@ -265,7 +265,7 @@ namespace RbxStu {
             return 2;
         }
 
-        Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1));
+        Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1), 8);
         lua_setsafeenv(L, LUA_GLOBALSINDEX, false); // env is not safe anymore.
         return 1;
     }

@@ -68,7 +68,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         auto *pClosure = const_cast<Closure *>(static_cast<const Closure *>(lua_topointer(L, -1)));
 
-        security->SetLuaClosureSecurity(pClosure);
+        security->SetLuaClosureSecurity(pClosure, 8);
 
         if (robloxManager->GetRobloxTaskDefer().has_value()) {
             const auto defer = robloxManager->GetRobloxTaskDefer().value();
@@ -216,7 +216,7 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
         return;
     }
 
-    security->SetLuaClosureSecurity(lua_toclosure(L, -1));
+    security->SetLuaClosureSecurity(lua_toclosure(L, -1), 8);
 
     if (robloxManager->GetRobloxTaskDefer().has_value()) {
         const auto defer = robloxManager->GetRobloxTaskDefer().value();
