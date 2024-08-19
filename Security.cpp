@@ -10,6 +10,41 @@
 #include "RobloxManager.hpp"
 #include "Utilities.hpp"
 
+std::unordered_map<std::string, int> allCapabilities = {
+    {"Plugin", 0x1},
+    {"LocalUser", 0x2},
+    {"WritePlayer", 0x4},
+    {"RobloxScript", 0x8},
+    {"RobloxEngine", 0x10},
+    {"NotAccessible", 0x20},
+    {"RunClientScript", 0x8},
+    {"RunServerScript", 0x9},
+    {"AccessOutsideWrite", 0xb},
+    {"Unassigned", 0xf},
+    {"AssetRequire", 0x10},
+    {"LoadString", 0x11},
+    {"ScriptGlobals", 0x12},
+    {"CreateInstances", 0x13},
+    {"Basic", 0x14},
+    {"Audio", 0x15},
+    {"DataStore", 0x16},
+    {"Network", 0x17},
+    {"Physics", 0x18},
+    {"UI", 0x19},
+    {"CSG", 0x1a},
+    {"Chat", 0x1b},
+    {"Animation", 0x1c},
+    {"Avatar", 0x1d},
+    {"Assistant", 0x3e}
+};
+
+std::unordered_map<int, std::list<std::string>> identityCapabilities = {
+    {3, {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite"}},
+    {4, {"Plugin", "LocalUser"}},
+    {6, {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite"}},
+    {8, {"ScriptGlobals", "RunServerScript", "Plugin", "Chat", "CreateInstances", "LocalUser", "RobloxEngine", "WritePlayer", "RobloxScript", "CSG", "NotAccessible", "RunClientScript", "AccessOutsideWrite", "Physics", "Unassigned", "AssetRequire", "Avatar", "LoadString", "Basic", "Audio", "DataStore", "Network", "UI", "Animation", "Assistant"}}
+};
+
 std::shared_ptr<Security> Security::pInstance;
 
 std::shared_ptr<Security> Security::GetSingleton() {
@@ -19,6 +54,33 @@ std::shared_ptr<Security> Security::GetSingleton() {
     return Security::pInstance;
 }
 
+void Security::PrintCapabilities(int capabilities) {
+    const auto logger = Logger::GetSingleton();
+
+    logger->PrintInformation(RbxStu::Security, std::format("0x{:X} got these capabilities:", capabilities));
+    for (auto capability = allCapabilities.begin(); capability != allCapabilities.end(); ++capability) {
+        if ((capability->second & capabilities) == capability->second) {
+            logger->PrintInformation(RbxStu::Security, capability->first);
+        }
+    }
+};
+
+int Security::IdentityToCapabilities(int identity) {
+    int capabilities = 0x3FFFF00 | 0b100000000; // Basic capability | Checkcaller check
+    auto capabilitiesForIdentity = identityCapabilities.find(identity);
+
+    if (capabilitiesForIdentity != identityCapabilities.end()) {
+        for (const auto& capability : capabilitiesForIdentity->second) {
+            auto it = allCapabilities.find(capability);
+            if (it != allCapabilities.end()) {
+                capabilities |= it->second;
+            }
+        }
+    }
+
+    return capabilities;
+}
+
 void Security::SetThreadSecurity(lua_State *L) {
     if (!Utilities::IsPointerValid(static_cast<RBX::Lua::ExtraSpace *>(L->userdata)))
         L->global->cb.userthread(L->global->mainthread,
@@ -26,9 +88,14 @@ void Security::SetThreadSecurity(lua_State *L) {
 
     auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
 
+    const auto security = Security::GetSingleton();
+    auto capabilities = security->IdentityToCapabilities(8);
+
+    const auto logger = Logger::GetSingleton();
+    logger->PrintInformation(RbxStu::Security, std::format("Elevating our thread capabilities to: 0x{:X}", capabilities));
+
     plStateUd->identity = 8;
-    plStateUd->capabilities = 0x3FBF897F | 0b100000000; // Find the Capability To String, and OR them all together.
-    // Magical constant | Custom_Identity (Or Capabilities in some cases)
+    plStateUd->capabilities = capabilities;
 }
 
 static void set_proto(Proto *proto, uintptr_t *proto_identity) {

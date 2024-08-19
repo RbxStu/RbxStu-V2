@@ -10,6 +10,7 @@
 #include "RobloxManager.hpp"
 #include "Scanner.hpp"
 #include "Scheduler.hpp"
+#include "Security.hpp"
 #include "lobject.h"
 #include "lualib.h"
 
@@ -22,6 +23,7 @@ namespace RbxStu {
         using luaH_new = void *(__fastcall *) (void *L, int32_t narray, int32_t nhash);
         using freeblock = void(__fastcall *)(lua_State *L, int32_t sizeClass, void *block);
         using lua_pushvalue = void(__fastcall *)(lua_State *L, int idx);
+        using luaE_newthread = lua_State* (__fastcall *)(lua_State *L);
     } // namespace LuauFunctionDefinitions
 
     namespace LuauSignatures {
@@ -81,6 +83,41 @@ static void luau__freeblock(lua_State *L, uint32_t sizeClass, void *block) {
 
     return (reinterpret_cast<RbxStu::LuauFunctionDefinitions::freeblock>(
             LuauManager::GetSingleton()->GetHookOriginal("freeblock"))(L, sizeClass, block));
+}
+
+static void newThreadAfter(lua_State* newLuaThread) {
+    Sleep(1000);
+    auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(newLuaThread->userdata);
+    if (plStateUd->identity != 2) return;
+
+    const auto logger = Logger::GetSingleton();
+
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::uppercase << reinterpret_cast<uintptr_t>(newLuaThread)
+       << " thread got identity " << std::dec << plStateUd->identity
+       << " and capabilities 0x" << std::hex << std::uppercase << plStateUd->capabilities;
+
+    logger->PrintInformation("RbxStu::luaE_newthread_hook", ss.str());
+    const auto security = Security::GetSingleton();
+    security->PrintCapabilities(plStateUd->capabilities);
+}
+
+static void* luaE__newthread(lua_State* on) {
+    auto originalFunction = reinterpret_cast<RbxStu::LuauFunctionDefinitions::luaE_newthread>(
+            LuauManager::GetSingleton()->GetHookOriginal("luaE_newthread"));
+    auto newLuaThread = originalFunction(on);
+
+    const auto logger = Logger::GetSingleton();
+
+    std::stringstream ss;
+    ss << "New lua thread got opened: 0x" << std::hex << std::uppercase << reinterpret_cast<uintptr_t>(newLuaThread);
+    logger->PrintInformation("RbxStu::luaE_newthread_hook", ss.str());
+
+    std::thread([newLuaThread](){
+        newThreadAfter(newLuaThread);
+    }).detach();
+
+    return newLuaThread;
 }
 
 static std::shared_mutex __luaumanager__singletonmutex;
@@ -232,6 +269,10 @@ void LuauManager::Initialize() {
         logger->PrintError(RbxStu::LuauManager, "Failed to enable freeblock hook!");
         throw std::exception("Enabling freeblock hook failed.");
     }
+
+    //this->m_mapHookMap["luaE_newthread"] = new void *();
+    //MH_CreateHook(this->m_mapLuauFunctions["luaE_newthread"], luaE__newthread, &this->m_mapHookMap["luaE_newthread"]);
+    //MH_EnableHook(this->m_mapLuauFunctions["luaE_newthread"]);
 
     logger->PrintInformation(RbxStu::LuauManager, "Initialization completed [4/4]");
     this->m_bIsInitialized = true;
