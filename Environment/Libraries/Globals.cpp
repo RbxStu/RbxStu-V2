@@ -134,8 +134,13 @@ namespace RbxStu {
         return 1;
     }
 
+    int isrbxactive(lua_State *L) {
+        lua_pushboolean(L, RobloxManager::GetSingleton()->IsActive());
+        return 1;
+    }
+
     int gethui(lua_State *L) {
-        // Equivalent to return cloneref(cloneref(game:GetService("CoreGui")).RobloxGui)
+        // who cares about this func
         lua_getglobal(L, "game");
         lua_getfield(L, 1, "GetService");
         lua_pushvalue(L, 1);
