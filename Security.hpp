@@ -4,6 +4,7 @@
 
 #pragma once
 #include <lapi.h>
+#include <list>
 #include <memory>
 
 typedef int64_t (*Validator)(int64_t testAgainst, struct lua_State *testWith);
@@ -75,6 +76,15 @@ public:
     /// @brief Obtains the shared pointer that points to the global singleton for the current class.
     /// @return Singleton for Security as a std::shared_ptr<Security>.
     static std::shared_ptr<Security> GetSingleton();
+
+    /// @brief Prints the capabilities to the console
+    /// @param capabilities The capabilities
+    void PrintCapabilities(int capabilities);
+
+    /// @brief Converts identity to a capability
+    /// @param identity The identity
+    /// @remarks If identity is not specified in the identityCapabilities it will use the basic capability
+    int IdentityToCapabilities(int identity);
 
     /// @brief Elevates a thread's capabilities.
     /// @param L The lua state to elevate.

@@ -194,7 +194,7 @@ namespace RbxStu {
                                  lua_isvector(L, 1),
                          1, "table or userdata or vector or buffer");
 
-        luaL_checktype(L, 2, lua_Type::LUA_TTABLE);
+        luaL_argexpected(L, lua_istable(L, 2) || lua_isnil(L, 2), 2, "table or nil");
 
         lua_setmetatable(L, 1);
         return 0;
@@ -251,6 +251,35 @@ namespace RbxStu {
         return 1;
     }
 
+    int setidentity(lua_State *L) {
+        luaL_checknumber(L, 1);
+        double newIdentity = lua_tonumber(L, 1);
+
+        auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
+        plStateUd->capabilities = Security::GetSingleton()->IdentityToCapabilities(newIdentity);
+        plStateUd->identity = newIdentity;
+
+        // Capabilities and identity are applied next resumption cycle, we need to yield!
+        const auto scheduler = Scheduler::GetSingleton();
+        scheduler->ScheduleJob(SchedulerJob(
+        L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
+            *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
+                Sleep(1);
+                return [](lua_State *L) { return 0; };
+            });
+        }));
+
+        return lua_yield(L, 0);
+    }
+
+    int printcaps(lua_State *L) {
+        auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
+        const auto security = Security::GetSingleton();
+        security->PrintCapabilities(plStateUd->capabilities);
+
+        return 0;
+    }
+
 } // namespace RbxStu
 
 
@@ -276,6 +305,8 @@ luaL_Reg *Globals::GetLibraryFunctions() const {
                                {"compareinstances", RbxStu::compareinstances},
                                {"fireproximityprompt", RbxStu::fireproximityprompt},
                                {"cloneref", RbxStu::cloneref},
+                               {"setidentity", RbxStu::setidentity},
+                               {"printcaps", RbxStu::printcaps},
                                {nullptr, nullptr}};
     return reg;
 }
