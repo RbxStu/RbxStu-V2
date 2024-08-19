@@ -20,10 +20,7 @@ std::shared_ptr<Scheduler> Scheduler::GetSingleton() {
     return Scheduler::pInstance;
 }
 
-void Scheduler::ScheduleJob(const std::string &source) {
-    SchedulerJob job(source);
-    this->m_qSchedulerJobs.emplace(job);
-}
+void Scheduler::ScheduleJob(SchedulerJob job) { this->m_qSchedulerJobs.emplace(job); }
 
 SchedulerJob Scheduler::DequeueSchedulerJob() {
     if (this->m_qSchedulerJobs.empty())

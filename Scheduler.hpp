@@ -40,22 +40,23 @@ public:
 
     explicit SchedulerJob(const std::string &luaCode) {
         this->bIsLuaCode = true;
+        this->bIsYieldingJob = false;
         this->luaJob = {};
         this->luaJob.szluaCode = luaCode;
     }
 
     /// @brief Defines a closure used in the yielding process.
     /// @return A lua_CFunction that returns the number of results for when resuming
-    typedef void (*ClosureYield)(lua_State *L, std::shared_future<lua_CFunction> *callbackToExecute);
+    typedef void (*ClosureYield)(lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute);
 
     /// @brief The callback that is executed once the yield is completed to push the results into the lua stack for
     /// resumption.
-    std::shared_future<lua_CFunction> *callbackFuture = nullptr;
+    std::shared_future<std::function<int(lua_State *)>> *callbackFuture = nullptr;
     explicit SchedulerJob(lua_State *L, ClosureYield function) {
         const auto logger = Logger::GetSingleton();
         this->bIsLuaCode = false;
         this->bIsYieldingJob = true;
-        this->callbackFuture = new std::shared_future<lua_CFunction>();
+        this->callbackFuture = new std::shared_future<std::function<int(lua_State *)>>();
         this->yieldJob.threadRef.thread = L;
         lua_pushthread(L);
         this->yieldJob.threadRef.thread_ref = lua_ref(L, -1);
@@ -77,18 +78,13 @@ public:
             }
 
             const auto ret = this->callbackFuture->wait_for(std::chrono::milliseconds(10));
-            logger->PrintInformation(
-                    RbxStu::Scheduler,
-                    std::format("Yielding Callback Status: {}", ret == std::future_status::ready      ? "READY"
-                                                                : ret == std::future_status::deferred ? "DEFERRED"
-                                                                                                      : "TIMEDOUT"));
             return (ret == std::future_status::ready || ret == std::future_status::deferred);
         }
 
         return false;
     }
 
-    std::optional<lua_CFunction> GetCallback() const {
+    std::optional<std::function<int(lua_State *)>> GetCallback() const {
         if (this->bIsLuaCode)
             return {};
 
@@ -142,8 +138,8 @@ public:
     void ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job);
 
     /// @brief Schedules a job into the Scheduler given its Luau source code.
-    /// @param source The luau code to push as a scheduler job.
-    void ScheduleJob(const std::string &source);
+    /// @param job An instance of a job to enqueue on the scheduler for execution.
+    void ScheduleJob(SchedulerJob job);
 
     /// @brief Initializes the Scheduler with the given RbxStu lua_State, global Roblox lua_State and RBX::DataModel
     /// pointer.
