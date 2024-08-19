@@ -350,12 +350,12 @@ namespace RbxStu {
         // Capabilities and identity are applied next resumption cycle, we need to yield!
         const auto scheduler = Scheduler::GetSingleton();
         scheduler->ScheduleJob(SchedulerJob(
-            L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
-                 *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
-                    Sleep(1);
-                    return [](lua_State *L) { return 0; };
-                });
-         }));
+                L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
+                    *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
+                        Sleep(1);
+                        return [](lua_State *L) { return 0; };
+                    });
+                }));
 
 
         return lua_yield(L, 0);
@@ -376,6 +376,23 @@ namespace RbxStu {
         return 0;
     }
 
+    int isrbxactive(lua_State *L) {
+        lua_pushboolean(L, GetForegroundWindow() == GetCurrentProcess());
+        return 1;
+    }
+
+
+    int isourclosure(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        if (const auto pClosure = lua_toclosure(L, 1); pClosure->isC) {
+            lua_pushboolean(L, pClosure->c.debugname == nullptr);
+        } else {
+            lua_pushboolean(L, pClosure->l.p->linedefined == -1);
+        }
+
+        return 1;
+    }
 } // namespace RbxStu
 
 
@@ -405,9 +422,23 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"lz4decompress", RbxStu::lz4decompress},
                                {"messagebox", RbxStu::messagebox},
                                {"setidentity", RbxStu::setidentity},
+                               {"setthreadcontext", RbxStu::setidentity},
+                               {"setthreadidentity", RbxStu::setidentity},
+
                                {"getidentity", RbxStu::getidentity},
+                               {"getthreadidentity", RbxStu::getidentity},
+                               {"getthreadcontext", RbxStu::getidentity},
+
                                {"printcaps", RbxStu::printcaps},
                                {"require", RbxStu::require},
+
+                               {"isrbxactive", RbxStu::isrbxactive},
+                               {"isgameactive", RbxStu::isrbxactive},
+
+                               {"isourclosure", RbxStu::isourclosure},
+                               {"checkclosure", RbxStu::isourclosure},
+                               {"isexecutorclosure", RbxStu::isourclosure},
+
                                {nullptr, nullptr}};
     return reg;
 }
