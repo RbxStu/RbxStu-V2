@@ -353,14 +353,14 @@ namespace RbxStu {
         // Capabilities and identity are applied next resumption cycle, we need to yield!
         const auto scheduler = Scheduler::GetSingleton();
         scheduler->ScheduleJob(SchedulerJob(
-                L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
-                    *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
-                        Sleep(1);
-                        return [](lua_State *L) { return 0; };
-                    });
-                }));
+            L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
+                 *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
+                    Sleep(1);
+                    return [](lua_State *L) { return 0; };
+                });
+         }));
 
-        L->ci->flags |= 1;
+
         return lua_yield(L, 0);
     }
 
@@ -409,7 +409,9 @@ luaL_Reg *Globals::GetLibraryFunctions() const {
                                {"lz4decompress", RbxStu::lz4decompress},
                                {"messagebox", RbxStu::messagebox},
                                {"setidentity", RbxStu::setidentity},
+                               {"getidentity", RbxStu::getidentity},
                                {"printcaps", RbxStu::printcaps},
+                               {"require", RbxStu::require},
                                {nullptr, nullptr}};
     return reg;
 }
