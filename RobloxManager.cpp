@@ -549,7 +549,7 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
 
     auto scriptContext = extraSpace->sharedExtraSpace->scriptContext;
 
-    int32_t out[0x2] = {0, 0};
+    const auto out = new int64_t[0x2];
     logger->PrintInformation(RbxStu::RobloxManager,
                              std::format("Resuming thread {}!", reinterpret_cast<void *>(threadRef->thread)));
 
@@ -567,7 +567,11 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
     }
 
 
-    logger->PrintInformation(RbxStu::RobloxManager, std::format("Received out: [0x0]: {}; [0x1]: {}", out[0], out[1]));
+    logger->PrintInformation(
+            RbxStu::RobloxManager,
+            std::format("RBX::ScriptContext::resume : [Status (0x1)]: {}; [Unknown (0x2)]: {}", out[0], out[1]));
+
+    delete[] out;
 }
 
 void *RobloxManager::GetHookOriginal(const std::string &functionName) {

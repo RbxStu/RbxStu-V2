@@ -40,7 +40,7 @@ namespace RbxStu {
         using r_RBX_DataModel_doCloseDataModel = void(__fastcall *)(void *dataModel);
         using r_RBX_ScriptContext_getDataModel = RBX::DataModel *(__fastcall *) (void *scriptContext);
 
-        using r_RBX_ScriptContext_resume = void(__fastcall *)(void *scriptContext, std::int32_t unk[0x2],
+        using r_RBX_ScriptContext_resume = void(__fastcall *)(void *scriptContext, std::int64_t unk[0x2],
                                                               RBX::Lua::WeakThreadRef **ppWeakThreadRef, int32_t nRet,
                                                               bool isError, char const *szErrorMessage);
 
