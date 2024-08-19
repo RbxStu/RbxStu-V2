@@ -265,10 +265,10 @@ namespace RbxStu {
 } // namespace RbxStu
 
 
+// forgot about this shit
 std::string Globals::GetLibraryName() const { return "rbxstu"; }
 std::int32_t Globals::GetFunctionCount() const { return 0; }
 luaL_Reg *Globals::GetLibraryFunctions() const {
-    // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
     auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
                                {"iscclosure", RbxStu::iscclosure},
                                {"islclosure", RbxStu::islclosure},
@@ -287,6 +287,8 @@ luaL_Reg *Globals::GetLibraryFunctions() const {
                                {"compareinstances", RbxStu::compareinstances},
                                {"fireproximityprompt", RbxStu::fireproximityprompt},
                                {"cloneref", RbxStu::cloneref},
+                               {"getsenv", RbxStu::getsenv},
+                               {"isrbxactive", RbxStu::isrbxactive},
                                {nullptr, nullptr}};
     return reg;
 }
