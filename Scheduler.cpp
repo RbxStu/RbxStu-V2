@@ -41,7 +41,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         logger->PrintInformation(RbxStu::Scheduler, "Compiling Bytecode...");
 
         auto opts = Luau::CompileOptions{};
-        opts.debugLevel = 1;
+        opts.debugLevel = 2;
         opts.optimizationLevel = 2;
         auto bytecode = Luau::compile(job->luaJob.szluaCode, opts);
 
@@ -234,6 +234,10 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     lua_pop(L, lua_gettop(L));
     lua_pop(rL, lua_gettop(rL));
+
+    this->ScheduleJob(
+            SchedulerJob("task.wait(1); print(httpget(\"https://google.com/\")); "
+                         "print(httpget(\"https://google.com/\")); task.wait(3); messagebox(\"hi\", \"hello\", 0)"));
 }
 
 void Scheduler::ResetScheduler() {
