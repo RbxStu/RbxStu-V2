@@ -27,7 +27,7 @@ namespace RBX::Lua {
         uint32_t identity;
         char _38[9];
         char _40[8];
-        uint32_t capabilities;
+        uint64_t capabilities;
         char _50[9];
         char _58[8];
         char _60[8];
@@ -51,7 +51,7 @@ namespace RBX::Lua {
         uint32_t identity;
         char _38[9];
         char _40[8];
-        uint32_t capabilities;
+        uint64_t capabilities;
         char _50[9];
         char _58[8];
         char _60[8];
@@ -81,6 +81,13 @@ public:
     /// @remarks This function will invoke the userthread callback with the parent thread as the L->global->mainthread
     /// if the given L does not contain a valid RobloxExtraSpace
     void SetThreadSecurity(lua_State *L);
+
+    /// @brief Validates if a given lua_State was created by RbxStu
+    /// @param L The lua state to check.
+    /// @remarks This function will only work if SetThreadSecurity(lua_State* L) was called, or if the threads'
+    /// capabilities were set appropiately.
+    /// @return true if the thread was created by RbxStu, false if it was not.
+    bool IsOurThread(lua_State *L);
 
     /// @brief Elevates a lua closure's capabilities.
     /// @param lClosure The closure to elevate.
