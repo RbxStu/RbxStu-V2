@@ -63,6 +63,9 @@ namespace RbxStu {
     DefineSectionName(RobloxManager, "RbxStu::RobloxManager");
     DefineSectionName(LuauManager, "RbxStu::LuauManager");
     DefineSectionName(EnvironmentManager, "RbxStu::EnvironmentManager");
+    DefineSectionName(Security, "RbxStu::Security");
+
+    DefineSectionName(Anonymous, "RbxStu::Anonymous");
 
     DefineSectionName(HookedFunction, "RbxStu::HookedFunction<anonymous>");
     DefineSectionName(Hooked_RBXCrash, "RbxStu::HookedFunctions<RBX::RBXCRASH>");
