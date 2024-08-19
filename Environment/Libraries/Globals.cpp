@@ -227,28 +227,27 @@ namespace RbxStu {
         return 0;
     }
 
-    int cloneref(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+    int cloneref(lua_State *L) { // askdjhasbdgaigdsais
+    luaL_checktype(L, 1, LUA_TUSERDATA);
+    auto userdata = *static_cast<void **>(lua_touserdata(L, 1));
+    auto robloxManager = RobloxManager::GetSingleton();
+    auto pushInstanceFunc = robloxManager->GetRobloxFunction("RBX::Instance::pushInstance");
 
-        const auto userdata = lua_touserdata(L, 1);
-        const auto rawUserdata = *static_cast<void **>(userdata);
-        const auto robloxManager = RobloxManager::GetSingleton();
-        lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
-        lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_pushlightuserdata(L, pushInstanceFunc);
+    lua_rawget(L, LUA_REGISTRYINDEX);
 
-        lua_pushlightuserdata(L, rawUserdata);
-        lua_rawget(L, -2);
+    lua_pushlightuserdata(L, userdata);
+    lua_rawget(L, -2);
 
-        lua_pushlightuserdata(L, rawUserdata);
-        lua_pushnil(L);
-        lua_rawset(L, -4);
-
-        reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Instance_pushInstance>(
-                robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"))(L, userdata);
-        lua_pushlightuserdata(L, rawUserdata);
+    if (!lua_isnil(L, -1)) {
+        lua_pushvalue(L, -1);
+    } else {
+        reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Instance_pushInstance>(pushInstanceFunc)(L, userdata);
+        lua_pushlightuserdata(L, userdata);
         lua_pushvalue(L, -3);
-        lua_rawset(L, -5);
-        return 1;
+        lua_rawset(L, -4);
+    }
+    return 1;
     }
 
 } // namespace RbxStu
