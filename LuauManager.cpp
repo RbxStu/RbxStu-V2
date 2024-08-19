@@ -151,7 +151,6 @@ void LuauManager::Initialize() {
 
 #define MapFunction(funcName, mappedName)                                                                              \
     RbxStuOffsets::GetSingleton()->SetOffset(mappedName, this->m_mapLuauFunctions[mappedName])
-
     MapFunction(luau_execute, "luau_execute");
     MapFunction(luaD_throw, "luaD_throw");
     MapFunction(luaE_newthread, "luaE_newthread");
