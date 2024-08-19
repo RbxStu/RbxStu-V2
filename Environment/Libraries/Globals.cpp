@@ -337,12 +337,18 @@ namespace RbxStu {
     }
 
     int setidentity(lua_State *L) {
-        luaL_checknumber(L, 1);
-        double newIdentity = lua_tonumber(L, 1);
+        luaL_checkinteger(L, 1);
+        auto newIdentity = lua_tointeger(L, 1);
+        const auto security = Security::GetSingleton();
+        security->SetThreadSecurity(L, newIdentity);
 
-        auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
-        plStateUd->capabilities = Security::GetSingleton()->IdentityToCapabilities(newIdentity);
-        plStateUd->identity = newIdentity;
+        // If calling closure is LClosure and is not base CI, set its capabilities too
+        if (L->base_ci != L->ci) {
+            auto callingClosure = (L->ci - 1)->func->value.gc->cl;
+            if (callingClosure.isC == 0) {
+                security->SetLuaClosureSecurity(&callingClosure, newIdentity);
+            }
+        }
 
         // Capabilities and identity are applied next resumption cycle, we need to yield!
         const auto scheduler = Scheduler::GetSingleton();
