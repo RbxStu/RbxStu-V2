@@ -101,9 +101,10 @@ public:
 
     /// @brief Elevates a lua closure's capabilities.
     /// @param lClosure The closure to elevate.
+    /// @param identity
     /// @remarks This function ONLY accepts lua closures. If the lua closure proto has no userdata, one will be created
     /// to store the required information.
-    bool SetLuaClosureSecurity(Closure *lClosure);
+    bool SetLuaClosureSecurity(Closure *lClosure, int identity);
 
     /// @brief Removes key information from a lua closure prototype.
     /// @param lClosure The closure to wipe information from
