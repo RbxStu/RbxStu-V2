@@ -49,7 +49,7 @@ namespace RbxStu {
         return 1;
     }
 
-    int getsenv(lua_State *L) {
+    int getsenv(lua_State *L) { // nigger implement err
         lua_pushvalue(Scheduler::GetSingleton()->GetGlobalExecutorState().value(), LUA_REGISTRYINDEX);
         lua_xmove(L, L, 1);
         return 1;
