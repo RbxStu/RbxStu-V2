@@ -35,13 +35,20 @@ std::shared_ptr<EnvironmentManager> EnvironmentManager::GetSingleton() {
 }
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
+    const auto logger = Logger::GetSingleton();
     const auto globals = Globals{};
     auto envGlobals = globals.GetLibraryFunctions();
 
-    lua_newtable(L);
-    luaL_register(L, nullptr, envGlobals);
-    lua_setglobal(L, globals.GetLibraryName().c_str());
-    lua_pushvalue(L, LUA_GLOBALSINDEX);
-    luaL_register(L, nullptr, envGlobals);
-    lua_pop(L, 1);
+    try {
+        lua_newtable(L);
+        luaL_register(L, nullptr, envGlobals);
+        lua_setglobal(L, globals.GetLibraryName().c_str());
+        lua_pushvalue(L, LUA_GLOBALSINDEX);
+        luaL_register(L, nullptr, envGlobals);
+        lua_pop(L, 1);
+    } catch (const std::exception &ex) {
+        logger->PrintError(RbxStu::EnvironmentManager,
+                           std::format("Failed to initialize globals for RbxStu. Error from Lua: {}", ex.what()));
+        throw;
+    }
 }
