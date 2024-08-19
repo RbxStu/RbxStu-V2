@@ -6,6 +6,7 @@
 
 #include <HttpStatus.hpp>
 #include "Scheduler.hpp"
+#include "Security.hpp"
 #include "cpr/api.h"
 #include "lgc.h"
 #include "lmem.h"
@@ -169,6 +170,14 @@ namespace RbxStu {
         return lua_yield(L, 1);
     }
 
+    int checkcaller(lua_State *L) {
+        // Our check caller implementation, is, in fact, quite simple!
+        // We leave the 63d bit on the capabilities set. Then we retrieve it AND it, receiving the expected, if it
+        // doesn't match, then, we are 100% not in our thread.
+        lua_pushboolean(L, Security::GetSingleton()->IsOurThread(L));
+        return 1;
+    }
+
 } // namespace RbxStu
 
 
@@ -188,6 +197,7 @@ luaL_Reg *Globals::GetLibraryFunctions() const {
                                {"isreadonly", RbxStu::isreadonly},
                                {"isluau", RbxStu::isluau},
                                {"httpget", RbxStu::httpget},
+                               {"checkcaller", RbxStu::checkcaller},
                                {nullptr, nullptr}};
     return reg;
 }
