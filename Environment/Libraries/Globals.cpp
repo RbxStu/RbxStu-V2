@@ -55,13 +55,13 @@ namespace RbxStu {
 std::string Globals::GetLibraryName() const { return "rbxstu"; }
 std::int32_t Globals::GetFunctionCount() const { return 0; }
 luaL_Reg *Globals::GetLibraryFunctions() const {
-    auto *reg = new luaL_Reg[]{
-            {"getrawmetatable", RbxStu::getrawmetatable},
-            {"iscclosure", RbxStu::iscclosure},
-            {"islclosure", RbxStu::islclosure},
-            {"getreg", RbxStu::getreg},
-            {"getgenv", RbxStu::getgenv},
-            {"getrenv", RbxStu::getrenv},
-    };
+    // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
+    auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
+                               {"iscclosure", RbxStu::iscclosure},
+                               {"islclosure", RbxStu::islclosure},
+                               {"getreg", RbxStu::getreg},
+                               {"getgenv", RbxStu::getgenv},
+                               {"getrenv", RbxStu::getrenv},
+                               {nullptr, nullptr}};
     return reg;
 }
