@@ -298,6 +298,7 @@ luaL_Reg *Globals::GetLibraryFunctions() const {
                                {"setreadonly", RbxStu::setreadonly},
                                {"isreadonly", RbxStu::isreadonly},
                                {"isluau", RbxStu::isluau},
+                               {"hookmetamethod", RbxStu::hookmetamethod},
                                {"httpget", RbxStu::httpget},
                                {"gethui", RbxStu::gethui},
                                {"checkcaller", RbxStu::checkcaller},
