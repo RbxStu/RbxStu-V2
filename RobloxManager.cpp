@@ -125,8 +125,8 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             lua_pop(robloxL, 1);
             lua_State *L = lua_newthread(robloxL);
             lua_pop(robloxL, 1);
-            security->SetThreadSecurity(rL);
-            security->SetThreadSecurity(L);
+            security->SetThreadSecurity(rL, 8);
+            security->SetThreadSecurity(L, 8);
             lua_pop(L, lua_gettop(L));
 
             scheduler->InitializeWith(L, rL, getDataModel(scriptContext));
