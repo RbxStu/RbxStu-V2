@@ -49,6 +49,12 @@ namespace RbxStu {
         return 1;
     }
 
+    int getsenv(lua_State *L) {
+        lua_pushvalue(Scheduler::GetSingleton()->GetGlobalExecutorState().value(), LUA_REGISTRYINDEX);
+        lua_xmove(L, L, 1);
+        return 1;
+    }
+
     int getgenv(lua_State *L) {
         const auto scheduler = Scheduler::GetSingleton();
         lua_pushvalue(scheduler->GetGlobalExecutorState().value(), LUA_REGISTRYINDEX);
