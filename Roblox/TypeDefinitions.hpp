@@ -107,4 +107,17 @@ namespace RBX {
         bool m_bIsClosed;
     };
 
+    struct ModuleScript {
+        char _0[8];
+        char _8[0x38];
+        char _40[0x40];
+        char _80[0x40];
+        char _c0[0x40];
+        char _100[0x40];
+        char _140[0x40];
+        char _180[0x18];
+        bool m_bIsRobloxScriptModule;
+    };
+
+
 } // namespace RBX
