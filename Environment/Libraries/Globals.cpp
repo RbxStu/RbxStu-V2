@@ -178,6 +178,7 @@ namespace RbxStu {
                     });
                 }));
 
+        L->ci->flags |= 1;
         return lua_yield(L, 1);
     }
 
