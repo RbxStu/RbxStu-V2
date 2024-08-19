@@ -318,6 +318,24 @@ namespace RbxStu {
         return lua_yield(L, 1);
     }
 
+    int require(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+
+        auto moduleScript = *static_cast<RBX::ModuleScript **>(lua_touserdata(L, 1));
+        moduleScript->m_bIsRobloxScriptModule = true;
+        auto robloxState = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
+        lua_getglobal(robloxState, "require");
+        lua_xmove(robloxState, L, 1);
+        lua_pushvalue(L, 1);
+        auto status = lua_pcall(L, 1, 1, 0);
+        moduleScript->m_bIsRobloxScriptModule = false;
+
+        if (status != lua_Status::LUA_OK)
+            lua_error(L);
+
+        return 1;
+    }
+
     int setidentity(lua_State *L) {
         luaL_checknumber(L, 1);
         double newIdentity = lua_tonumber(L, 1);
