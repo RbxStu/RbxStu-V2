@@ -128,24 +128,15 @@ void *rbx__scriptcontext__resumeWaitingThreads(
 
         if (optionalrL.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
             const auto robloxL = optionalrL.value();
-            logger->PrintInformation(RbxStu::HookedFunction,
-                                     std::format("getglobalstate: {}; getglobalstate->global->mainthread: {}",
-                                                 reinterpret_cast<void *>(robloxL),
-                                                 reinterpret_cast<void *>(robloxL->global->mainthread)));
             lua_State *rL = lua_newthread(robloxL);
             lua_pop(robloxL, 1);
-            lua_State *L = lua_newthread(robloxL->global->mainthread);
-            lua_pop(robloxL->global->mainthread, 1);
+            lua_State *L = lua_newthread(robloxL);
+            lua_pop(robloxL, 1);
+            security->SetThreadSecurity(rL);
             security->SetThreadSecurity(L);
+            lua_pop(L, lua_gettop(L));
 
-            const auto dataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
-
-            if (!dataModel.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-                logger->PrintError(RbxStu::HookedFunction, "DataModel has become invalid on scheduler initialization!"
-                                                           "Assuming the play test has stopped!");
-                goto __scriptContext_resumeWaitingThreads__cleanup;
-            }
-            scheduler->InitializeWith(L, rL, dataModel.value());
+            scheduler->InitializeWith(L, rL, getDataModel(scriptContext));
         }
     } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
