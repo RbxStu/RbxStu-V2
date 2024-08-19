@@ -86,11 +86,12 @@ public:
     /// @remarks If identity is not specified in the identityCapabilities it will use the basic capability
     int IdentityToCapabilities(int identity);
 
-    /// @brief Elevates a thread's capabilities.
+    /// @brief Elevates a thread's identity and capability.
     /// @param L The lua state to elevate.
+    /// @param identity
     /// @remarks This function will invoke the userthread callback with the parent thread as the L->global->mainthread
     /// if the given L does not contain a valid RobloxExtraSpace
-    void SetThreadSecurity(lua_State *L);
+    void SetThreadSecurity(lua_State *L, int identity);
 
     /// @brief Validates if a given lua_State was created by RbxStu
     /// @param L The lua state to check.
@@ -99,7 +100,7 @@ public:
     /// @return true if the thread was created by RbxStu, false if it was not.
     bool IsOurThread(lua_State *L);
 
-    /// @brief Elevates a lua closure's capabilities.
+    /// @brief Elevates a lua closure's identity and capability.
     /// @param lClosure The closure to elevate.
     /// @param identity
     /// @remarks This function ONLY accepts lua closures. If the lua closure proto has no userdata, one will be created

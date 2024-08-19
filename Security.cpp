@@ -95,20 +95,17 @@ int Security::IdentityToCapabilities(int identity) {
     return capabilities;
 }
 
-void Security::SetThreadSecurity(lua_State *L) {
+void Security::SetThreadSecurity(lua_State *L, int identity) {
     if (!Utilities::IsPointerValid(static_cast<RBX::Lua::ExtraSpace *>(L->userdata)))
         L->global->cb.userthread(L->global->mainthread,
                                  L); // If unallocated, then we must run the callback to create a valid RobloxExtraSpace
 
     auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
+    auto capabilities = Security::GetSingleton()->IdentityToCapabilities(identity);
 
-    const auto security = Security::GetSingleton();
-    auto capabilities = security->IdentityToCapabilities(8);
+    Logger::GetSingleton()->PrintInformation(RbxStu::Security, std::format("Elevating our thread capabilities to: 0x{:X}", capabilities));
 
-    const auto logger = Logger::GetSingleton();
-    logger->PrintInformation(RbxStu::Security, std::format("Elevating our thread capabilities to: 0x{:X}", capabilities));
-
-    plStateUd->identity = 8;
+    plStateUd->identity = identity;
     plStateUd->capabilities = capabilities;
 }
 
@@ -139,7 +136,7 @@ bool Security::SetLuaClosureSecurity(Closure *lClosure, int identity) {
     const auto pProto = lClosure->l.p;
     auto *pMem = pProto->userdata != nullptr ? static_cast<std::uintptr_t *>(pProto->userdata)
                                              : static_cast<std::uintptr_t *>(malloc(sizeof(std::uintptr_t)));
-    
+
     *pMem = Security::GetSingleton()->IdentityToCapabilities(identity);
     set_proto(pProto, pMem);
     return true;
