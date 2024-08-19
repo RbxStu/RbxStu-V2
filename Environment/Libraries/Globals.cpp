@@ -23,6 +23,18 @@ namespace RbxStu {
         return 1;
     }
 
+    int hookmetamethod(lua_State *L) { // super bad implement?
+        luaL_checktype(L, 1, lua_Type::LUA_TTABLE);
+        luaL_checktype(L, 2, lua_Type::LUA_TSTRING);
+        luaL_checktype(L, 3, lua_Type::LUA_TFUNCTION);
+        lua_getmetatable(L, 1);
+        lua_pushvalue(L, 2);
+        lua_pushvalue(L, 3);
+        lua_settable(L, -3);
+        lua_pushvalue(L, 3);
+        return 1;
+    }
+
     int islclosure(lua_State *L) {
         luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
 
