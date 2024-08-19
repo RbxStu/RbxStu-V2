@@ -5,7 +5,9 @@
 #include "Globals.hpp"
 
 #include <HttpStatus.hpp>
+#include <lz4.h>
 
+#include "Luau/Compiler.h"
 #include "RobloxManager.hpp"
 #include "Scheduler.hpp"
 #include "Security.hpp"
@@ -155,28 +157,27 @@ namespace RbxStu {
         const auto scheduler = Scheduler::GetSingleton();
 
         scheduler->ScheduleJob(SchedulerJob(
-                L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
-                    *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
-                        const auto response =
-                                cpr::Get(cpr::Url{lua_tostring(L, 1)}, cpr::Header{{"User-Agent", "Roblox/WinInet"}});
+                L, [url](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
+                    const auto response = cpr::Get(cpr::Url{url}, cpr::Header{{"User-Agent", "Roblox/WinInet"}});
 
-                        auto output = std::string("");
+                    auto output = std::string("");
 
-                        if (HttpStatus::IsError(response.status_code)) {
-                            output = std::format("HttpGet failed\nResponse {} - {}. {}",
-                                                 std::to_string(response.status_code),
-                                                 HttpStatus::ReasonPhrase(response.status_code),
-                                                 std::string(response.error.message));
-                        } else {
-                            output = response.text;
-                        }
+                    if (HttpStatus::IsError(response.status_code)) {
+                        output = std::format(
+                                "HttpGet failed\nResponse {} - {}. {}", std::to_string(response.status_code),
+                                HttpStatus::ReasonPhrase(response.status_code), std::string(response.error.message));
+                    } else {
+                        output = response.text;
+                    }
 
+                    *callbackToExecute = std::async(std::launch::async, [output]() -> std::function<int(lua_State *)> {
                         return [output](lua_State *L) -> int {
                             lua_pushlstring(L, output.c_str(), output.size());
                             return 1;
                         };
                     });
                 }));
+
         return lua_yield(L, 1);
     }
 
@@ -251,6 +252,71 @@ namespace RbxStu {
         return 1;
     }
 
+    int loadstring(lua_State *L) {
+        const auto luauCode = luaL_checkstring(L, 1);
+        const auto chunkName = luaL_optstring(L, 2, "RbxStuV2_LoadString");
+        constexpr auto compileOpts = Luau::CompileOptions{2, 2};
+        const auto bytecode = Luau::compile(luauCode, compileOpts);
+
+        if (luau_load(L, chunkName, bytecode.c_str(), bytecode.size(), 0) != lua_Status::LUA_OK) {
+            lua_pushnil(L);
+            lua_pushvalue(L, -2);
+            return 2;
+        }
+
+        Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1));
+        lua_setsafeenv(L, LUA_GLOBALSINDEX, false); // env is not safe anymore.
+        return 1;
+    }
+
+    int lz4compress(lua_State *L) {
+        luaL_checktype(L, 1, LUA_TSTRING);
+        const char *data = lua_tostring(L, 1);
+        int iMaxCompressedSize = LZ4_compressBound(strlen(data));
+        const auto pszCompressedBuffer = new char[iMaxCompressedSize];
+        memset(pszCompressedBuffer, 0, iMaxCompressedSize);
+
+        LZ4_compress(data, pszCompressedBuffer, strlen(data));
+        lua_pushlstring(L, pszCompressedBuffer, iMaxCompressedSize);
+        return 1;
+    }
+
+    int lz4decompress(lua_State *L) {
+        luaL_checktype(L, 1, LUA_TSTRING);
+        luaL_checktype(L, 2, LUA_TNUMBER);
+
+        const char *data = lua_tostring(L, 1);
+        const int data_size = lua_tointeger(L, 2);
+
+        auto *pszUncompressedBuffer = new char[data_size];
+
+        memset(pszUncompressedBuffer, 0, data_size);
+
+        LZ4_uncompress(data, pszUncompressedBuffer, data_size);
+        lua_pushlstring(L, pszUncompressedBuffer, data_size);
+        return 1;
+    }
+
+    int messagebox(lua_State *L) {
+        const auto text = luaL_checkstring(L, 1);
+        const auto caption = luaL_checkstring(L, 2);
+        const auto type = luaL_checkinteger(L, 3);
+        Scheduler::GetSingleton()->ScheduleJob(SchedulerJob(
+                L, [text, caption, type](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *future) {
+                    const int lMessageboxReturn = MessageBoxA(nullptr, text, caption, type);
+
+                    *future = std::async(std::launch::async, [lMessageboxReturn]() -> std::function<int(lua_State *)> {
+                        return [lMessageboxReturn](lua_State *L) -> int {
+                            lua_pushinteger(L, lMessageboxReturn);
+                            return 1;
+                        };
+                    });
+                }));
+
+        L->ci->flags |= 1;
+        return lua_yield(L, 1);
+    }
+
     int setidentity(lua_State *L) {
         luaL_checknumber(L, 1);
         double newIdentity = lua_tonumber(L, 1);
@@ -262,13 +328,14 @@ namespace RbxStu {
         // Capabilities and identity are applied next resumption cycle, we need to yield!
         const auto scheduler = Scheduler::GetSingleton();
         scheduler->ScheduleJob(SchedulerJob(
-        L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
-            *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
-                Sleep(1);
-                return [](lua_State *L) { return 0; };
-            });
-        }));
+                L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
+                    *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
+                        Sleep(1);
+                        return [](lua_State *L) { return 0; };
+                    });
+                }));
 
+        L->ci->flags |= 1;
         return lua_yield(L, 0);
     }
 
@@ -305,6 +372,10 @@ luaL_Reg *Globals::GetLibraryFunctions() const {
                                {"compareinstances", RbxStu::compareinstances},
                                {"fireproximityprompt", RbxStu::fireproximityprompt},
                                {"cloneref", RbxStu::cloneref},
+                               {"loadstring", RbxStu::loadstring},
+                               {"lz4compress", RbxStu::lz4compress},
+                               {"lz4decompress", RbxStu::lz4decompress},
+                               {"messagebox", RbxStu::messagebox},
                                {"setidentity", RbxStu::setidentity},
                                {"printcaps", RbxStu::printcaps},
                                {nullptr, nullptr}};
