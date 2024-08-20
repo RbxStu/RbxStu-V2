@@ -106,7 +106,6 @@ static void* luaE__newthread(lua_State* on) {
     auto originalFunction = reinterpret_cast<RbxStu::LuauFunctionDefinitions::luaE_newthread>(
             LuauManager::GetSingleton()->GetHookOriginal("luaE_newthread"));
     auto newLuaThread = originalFunction(on);
-
     const auto logger = Logger::GetSingleton();
 
     std::stringstream ss;
