@@ -407,6 +407,36 @@ namespace RbxStu {
 
         return 1;
     }
+
+    int setclipboard(lua_State *L) {
+        luaL_checkstring(L, 1);
+
+        if (!OpenClipboard(nullptr)) {
+            luaG_runerror(L, "Failed to open clipboard!");
+        }
+
+        EmptyClipboard();
+        auto newText = std::string(lua_tostring(L, 1));
+        auto globalMemory = GlobalAlloc(GMEM_MOVEABLE, newText.size() + 1);
+        if (!globalMemory) {
+            CloseClipboard();
+            luaG_runerror(L, "Failed to allocate memory in global space!");
+        }
+
+        memcpy(GlobalLock(globalMemory), newText.c_str(), newText.size() + 1);
+        GlobalUnlock(globalMemory);
+
+        if (!SetClipboardData(CF_TEXT, globalMemory)) {
+            GlobalFree(globalMemory);
+            CloseClipboard();
+            luaG_runerror(L, "Failed to set clipboard!");
+        }
+
+        CloseClipboard();
+        GlobalFree(globalMemory);
+
+        return 0;
+    }
 } // namespace RbxStu
 
 
@@ -438,6 +468,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"setidentity", RbxStu::setidentity},
                                {"setthreadcontext", RbxStu::setidentity},
                                {"setthreadidentity", RbxStu::setidentity},
+                               {"setclipboard", RbxStu::setclipboard},
 
                                {"getidentity", RbxStu::getidentity},
                                {"getthreadidentity", RbxStu::getidentity},
