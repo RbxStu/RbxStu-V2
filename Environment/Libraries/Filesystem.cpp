@@ -330,7 +330,7 @@ luaL_Reg *Filesystem::GetLibraryFunctions() {
     auto currentDirectory = fs::path(GetDllDir());
     if (!currentDirectory.empty()) {
         logger->PrintInformation(RbxStu::Env_Filesystem, std::format("Current path: {}", currentDirectory.string()));
-        //canBeUsed = true;
+        canBeUsed = true;
 
         workspaceDir = currentDirectory / "workspace";
         if (!fs::exists(workspaceDir)) {
