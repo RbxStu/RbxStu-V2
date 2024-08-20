@@ -106,7 +106,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
         // first resumptions of waiting threads. This will cause
         // us to access invalid memory, as the global state is not truly set up yet apparently,
         // race conditions at their finest! This had to be increased, because Roblox.
-        if (calledBeforeCount <= 256) {
+        if (calledBeforeCount <= 16) {
             calledBeforeCount += 1;
             goto __scriptContext_resumeWaitingThreads__cleanup;
         }
