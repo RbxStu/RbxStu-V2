@@ -7,8 +7,9 @@
 #include <string>
 #include <vector>
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
+#include <cmath>
 
 struct lua_State;
 
@@ -353,14 +354,14 @@ struct FunctionStats
 
 struct LoweringStats
 {
-    unsigned totalFunctions = 0;
-    unsigned skippedFunctions = 0;
+    unsigned int totalFunctions = 0;
+    unsigned int skippedFunctions = 0;
     int spillsToSlot = 0;
     int spillsToRestore = 0;
-    unsigned maxSpillSlotsUsed = 0;
-    unsigned blocksPreOpt = 0;
-    unsigned blocksPostOpt = 0;
-    unsigned maxBlockInstructions = 0;
+    unsigned int maxSpillSlotsUsed = 0;
+    unsigned int blocksPreOpt = 0;
+    unsigned int blocksPostOpt = 0;
+    unsigned int maxBlockInstructions = 0;
 
     int regAllocErrors = 0;
     int loweringErrors = 0;
@@ -383,10 +384,10 @@ struct LoweringStats
         this->skippedFunctions += that.skippedFunctions;
         this->spillsToSlot += that.spillsToSlot;
         this->spillsToRestore += that.spillsToRestore;
-        this->maxSpillSlotsUsed = std::max(this->maxSpillSlotsUsed, that.maxSpillSlotsUsed);
+        this->maxSpillSlotsUsed = this->maxSpillSlotsUsed < that.maxSpillSlotsUsed ? that.maxSpillSlotsUsed : this->maxSpillSlotsUsed;
         this->blocksPreOpt += that.blocksPreOpt;
         this->blocksPostOpt += that.blocksPostOpt;
-        this->maxBlockInstructions = std::max(this->maxBlockInstructions, that.maxBlockInstructions);
+        this->maxBlockInstructions = this->maxBlockInstructions < that.maxBlockInstructions ? that.maxBlockInstructions : this->maxBlockInstructions;
         this->regAllocErrors += that.regAllocErrors;
         this->loweringErrors += that.loweringErrors;
         this->blockLinearizationStats += that.blockLinearizationStats;

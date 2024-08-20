@@ -2,7 +2,9 @@
 #include <iostream>
 #include <shared_mutex>
 
+#include "Communication.hpp"
 #include "Environment/EnvironmentManager.hpp"
+#include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
 #include "Luau/Compiler/src/Builtins.h"
 #include "LuauManager.hpp"
@@ -71,6 +73,13 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         auto *pClosure = const_cast<Closure *>(static_cast<const Closure *>(lua_topointer(L, -1)));
 
         security->SetLuaClosureSecurity(pClosure, 8);
+
+        if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
+            const Luau::CodeGen::CompilationOptions opts{0};
+            logger->PrintInformation(RbxStu::Scheduler,
+                                     "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
+            Luau::CodeGen::compile(L, -1, opts);
+        }
 
         if (robloxManager->GetRobloxTaskDefer().has_value()) {
             const auto defer = robloxManager->GetRobloxTaskDefer().value();
@@ -222,6 +231,13 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     }
 
     security->SetLuaClosureSecurity(lua_toclosure(L, -1), 8);
+
+    if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
+        Luau::CodeGen::CompilationOptions nativeOptions;
+        logger->PrintInformation(RbxStu::Scheduler,
+                                 "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
+        Luau::CodeGen::compile(L, -1, nativeOptions);
+    }
 
     if (robloxManager->GetRobloxTaskDefer().has_value()) {
         const auto defer = robloxManager->GetRobloxTaskDefer().value();

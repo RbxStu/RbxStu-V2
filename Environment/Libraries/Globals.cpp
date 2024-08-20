@@ -7,6 +7,8 @@
 #include <HttpStatus.hpp>
 #include <lz4.h>
 
+#include "Communication.hpp"
+#include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
 #include "RobloxManager.hpp"
 #include "Scheduler.hpp"
@@ -127,18 +129,25 @@ namespace RbxStu {
         return 1;
     }
 
-    int gethui(lua_State *L) { // This won't work with security hooks enabled!! Dottik fix your stupid hook
-        // Equivalent to cloneref(game:GetService("CoreGui"))
-        lua_getglobal(L, "game"); // get game
-        lua_getfield(L, -1, "GetService"); // get getservice namecall
-        lua_pushvalue(L, -2); // push game (self) to the top
-        lua_remove(L, -3); // pop game
-        lua_pushstring(L, "CoreGui"); // push coregui
-        lua_call(L, 2, 1); // call namecall, coregui should be left at top
-        lua_getglobal(L, "cloneref"); // push cloneref to the top
-        lua_pushvalue(L, -2); // push coregui
-        lua_call(L, 1, 1); // call cloneref(coregui)
-
+    int gethui(lua_State *L) {
+        // Equivalent to cloneref(cloneref(cloneref(game):GetService("CoreGui")).RobloxGui)
+        // Excessive clonereffing, I made the cloneref, i will use all of it!
+        // - Dottik
+        lua_getglobal(L, "cloneref");
+        lua_getglobal(L, "game");
+        lua_call(L, 1, 1);
+        lua_getfield(L, -1, "GetService");
+        lua_pushvalue(L, -2);
+        lua_pushstring(L, "CoreGui");
+        lua_call(L, 2, 1);
+        lua_remove(L, 1); // CoreGui is alone on the stack.
+        lua_getglobal(L, "cloneref");
+        lua_pushvalue(L, 1);
+        lua_call(L, 1, 1);
+        lua_getfield(L, -1, "RobloxGui");
+        lua_getglobal(L, "cloneref");
+        lua_pushvalue(L, -2);
+        lua_call(L, 1, 1);
         return 1;
     }
 
@@ -224,9 +233,9 @@ namespace RbxStu {
     }
 
     int cloneref(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+        luaL_checktype(L, -1, lua_Type::LUA_TUSERDATA);
 
-        const auto userdata = lua_touserdata(L, 1);
+        const auto userdata = lua_touserdata(L, -1);
         const auto rawUserdata = *static_cast<void **>(userdata);
         const auto robloxManager = RobloxManager::GetSingleton();
         lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
@@ -258,6 +267,14 @@ namespace RbxStu {
             lua_pushvalue(L, -2);
             return 2;
         }
+
+        if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
+            const Luau::CodeGen::CompilationOptions opts{0};
+            Logger::GetSingleton()->PrintInformation(RbxStu::Scheduler,
+                                     "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
+            Luau::CodeGen::compile(L, -1, opts);
+        }
+
 
         Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1), 8);
         lua_setsafeenv(L, LUA_GLOBALSINDEX, false); // env is not safe anymore.

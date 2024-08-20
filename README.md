@@ -41,5 +41,6 @@ because we are on a high security context we were never meant to truly use.
 
 - [Dottik (SecondNewtonLaw/NaN)](https://github.com/SecondNewtonLaw): Lead Developer/Owner, Maintainer
 - [nHisoka (Yoru)](https://github.com/nhisoka): Contributor
+- [Pixeluted](https://github.com/Pixeluted): Contributor
 - [MakeSureDudeDies](https://github.com/MakeSureDudeDies): Contributor
 - [Shadow](https://github.com/ShadowIsReal): Contributor

@@ -144,6 +144,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 lua_pushcclosure(
                         L,
                         [](lua_State *L) -> int {
+                            luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
                             auto serviceName = luaL_checkstring(L, 2);
                             const auto svcName = Utilities::ToLower(serviceName);
                             for (const auto &func: blockedServices) {
@@ -161,13 +162,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                             }
                             lua_pushvalue(L, 1);
                             lua_pushstring(L, L->ci->func->value.gc->cl.c.upvals[0].value.gc->ts.data);
-                            __index_game_original(L);
-                            lua_pushvalue(L, 1);
-                            lua_pushvalue(L, 2);
-                            if (const auto err = lua_pcall(L, 2, 1, 0);
-                                err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
-                                lua_error(L);
-                            return 1;
+                            return __index_game_original(L);
                         },
                         nullptr, 1);
                 const auto cl = lua_toclosure(L, -1);

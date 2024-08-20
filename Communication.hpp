@@ -8,6 +8,7 @@
 class Communication final {
     static std::shared_ptr<Communication> pInstance;
     bool m_bIsUnsafe = false;
+    bool m_bEnableCodeGen = true;
 
 public:
     static std::shared_ptr<Communication> GetSingleton();
@@ -23,6 +24,9 @@ public:
     /// @param isUnsafe If true, security will be disabled, if false, security will be enabled back.
     /// @remarks THIS IS A DANGEROUS FUNCTIOn, AND MAY EXPOSE THE USER TO TERRIBLE THINGS! CALL AT YOUR OWN RISK!
     void SetUnsafeMode(bool isUnsafe);
+
+    bool IsCodeGenerationEnabled() const;
+    void SetCodeGenerationEnabled(bool enableCodeGen);
 
     /// @brief Swiftly handles the pipe used for executing Luau code.
     /// @param szPipeName The name of the pipe as a constant std::string.
