@@ -9,6 +9,14 @@
 
 class Utilities final {
 public:
+    __forceinline static std::string ToLower(std::string target) {
+        for (auto &x: target) {
+            x = std::tolower(x); // NOLINT(*-narrowing-conversions)
+        }
+
+        return target;
+    }
+
     /// @brief Splits the given std::string into a std::vector<std::string> using the given character as a separator.
     __forceinline static std::vector<std::string> SplitBy(const std::string &target, const char split) {
         std::vector<std::string> splitted;
