@@ -437,6 +437,12 @@ namespace RbxStu {
 
         return 0;
     }
+
+    int identifyexecutor(lua_State* L) {
+        lua_pushstring(L, "RbxStu");
+        lua_pushstring(L, "V2");
+        return 2;
+    }
 } // namespace RbxStu
 
 
@@ -483,6 +489,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"isourclosure", RbxStu::isourclosure},
                                {"checkclosure", RbxStu::isourclosure},
                                {"isexecutorclosure", RbxStu::isourclosure},
+                               {"identifyexecutor", RbxStu::identifyexecutor},
 
                                {nullptr, nullptr}};
     return reg;
