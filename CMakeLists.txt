@@ -32,6 +32,8 @@ add_library(Module SHARED
         Environment/Libraries/Globals.hpp
         Environment/Libraries/Debug.cpp
         Environment/Libraries/Debug.hpp
+        Environment/Libraries/Filesystem.cpp
+        Environment/Libraries/Filesystem.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")

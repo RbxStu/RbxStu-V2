@@ -72,6 +72,7 @@ namespace RbxStu {
 
     DefineSectionName(Scheduler, "RbxStu::Scheduler");
     DefineSectionName(Communication, "RbxStu::Communication");
+    DefineSectionName(Env_Filesystem, "Env::Filesystem");
 
 #undef DefineSectionName
 }; // namespace RbxStu
