@@ -125,7 +125,6 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 return __index_game_original(L);
 
             const auto loweredIndex = Utilities::ToLower(index);
-            printf("%s", loweredIndex);
             for (const auto &func: blockedFunctions) {
                 if (loweredIndex.find(func) != std::string::npos) {
                     goto banned__index;
