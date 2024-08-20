@@ -33,6 +33,13 @@ std::shared_ptr<EnvironmentManager> EnvironmentManager::GetSingleton() {
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
 
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
+    lua_setglobal(L, "_G");
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
+    lua_setglobal(L, "_ENV");
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
+    lua_setglobal(L, "shared");
+
     for (const std::vector<Library *> libList = {new Debug{}, new Globals{}}; const auto &lib: libList) {
         try {
             const auto envGlobals = lib->GetLibraryFunctions();
