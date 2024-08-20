@@ -215,7 +215,7 @@ namespace RbxStu {
 
         const auto proximityPrompt = *static_cast<std::uintptr_t **>(lua_touserdata(L, 1));
         reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ProximityPrompt_onTriggered>(
-                RobloxManager::GetSingleton()->GetRobloxFunction("RBX::ProximityPrompt::onTriggerd"))(proximityPrompt);
+                RobloxManager::GetSingleton()->GetRobloxFunction("RBX::ProximityPrompt::onTriggered"))(proximityPrompt);
         return 0;
     }
 
