@@ -127,13 +127,17 @@ namespace RbxStu {
         return 1;
     }
 
-    int gethui(lua_State *L) {
-        // Equivalent to cloneref(game.CoreGui)
-        lua_getglobal(L, "game");
-        lua_getfield(L, 1, "CoreGui");
-        lua_getglobal(L, "cloneref");
-        lua_pushvalue(L, -2);
-        lua_call(L, 1, 1);
+    int gethui(lua_State *L) { // This won't work with security hooks enabled!! Dottik fix your stupid hook
+        // Equivalent to cloneref(game:GetService("CoreGui"))
+        lua_getglobal(L, "game"); // get game
+        lua_getfield(L, -1, "GetService"); // get getservice namecall
+        lua_pushvalue(L, -2); // push game (self) to the top
+        lua_remove(L, -3); // pop game
+        lua_pushstring(L, "CoreGui"); // push coregui
+        lua_call(L, 2, 1); // call namecall, coregui should be left at top
+        lua_getglobal(L, "cloneref"); // push cloneref to the top
+        lua_pushvalue(L, -2); // push coregui
+        lua_call(L, 1, 1); // call cloneref(coregui)
 
         return 1;
     }
