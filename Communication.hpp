@@ -8,7 +8,7 @@
 class Communication final {
     static std::shared_ptr<Communication> pInstance;
     bool m_bIsUnsafe = false;
-    bool m_bEnableCodeGen = true;
+    bool m_bEnableCodeGen = false;
 
 public:
     static std::shared_ptr<Communication> GetSingleton();
