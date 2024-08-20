@@ -570,8 +570,6 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
     logger->PrintInformation(
             RbxStu::RobloxManager,
             std::format("RBX::ScriptContext::resume : [Status (0x1)]: {}; [Unknown (0x2)]: {}", out[0], out[1]));
-
-    delete[] out;
 }
 
 void *RobloxManager::GetHookOriginal(const std::string &functionName) {
