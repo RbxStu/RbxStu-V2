@@ -7,15 +7,24 @@
 #include "Logger.hpp"
 #include "Scheduler.hpp"
 
-// Until the Communication class has more complex requirements, it shall be simple pimple.
-// std::shared_ptr<Communication> Communication::pInstance;
-//
-// std::shared_ptr<Communication> Communication::GetSingleton() {
-//     if (Communication::pInstance == nullptr)
-//         Communication::pInstance = std::make_shared<Communication>();
-//
-//     return Communication::pInstance;
-// }
+std::shared_ptr<Communication> Communication::pInstance;
+
+std::shared_ptr<Communication> Communication::GetSingleton() {
+    if (Communication::pInstance == nullptr)
+        Communication::pInstance = std::make_shared<Communication>();
+
+    return Communication::pInstance;
+}
+
+bool Communication::IsUnsafeMode() const { return this->m_bIsUnsafe; }
+
+void Communication::SetUnsafeMode(bool isUnsafe) {
+    this->m_bIsUnsafe = isUnsafe;
+    Logger::GetSingleton()->PrintWarning(
+            RbxStu::Communication, "WARNING! UNSAFE MODE IS ENABLED! THIS CAN HAVE CONSEQUENCES THAT GO HIGHER THAN "
+                                   "YOU THINK! IF YOU DO NOT KNOW WHAT YOU'RE DOING, TURN SAFE MODE BACK ON!");
+}
+
 
 void Communication::HandlePipe(const std::string &szPipeName) {
     const auto logger = Logger::GetSingleton();
