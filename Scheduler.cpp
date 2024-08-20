@@ -43,7 +43,9 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         auto opts = Luau::CompileOptions{};
         opts.debugLevel = 2;
         opts.optimizationLevel = 2;
-        auto bytecode = Luau::compile(job->luaJob.szluaCode, opts);
+        const char *mutableGlobals[] = {"_G", "_ENV", "shared", nullptr};
+        opts.mutableGlobals = mutableGlobals;
+        const auto bytecode = Luau::compile(job->luaJob.szluaCode, opts);
 
         logger->PrintInformation(RbxStu::Scheduler, "Compiled Bytecode!");
 
@@ -51,7 +53,6 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         // execute the callback, which will trigger it and initialize the RobloxExtraSpace correctly.
         // runOn->global->cb.userthread(runOn, L);
         auto L = lua_newthread(runOn);
-        luaL_sandboxthread(L);
         lua_pop(runOn, 1);
 
         security->SetThreadSecurity(L, 8);
