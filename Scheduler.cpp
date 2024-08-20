@@ -237,6 +237,9 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
         throw std::exception("Cannot run Scheduler job!");
     }
 
+    logger->PrintInformation(RbxStu::Scheduler, "Initialized!");
+
+    logger->PrintInformation(RbxStu::Scheduler, "Stack popped. Now awaiting execution jobs from the Named Pipe!");
     lua_pop(L, lua_gettop(L));
     lua_pop(rL, lua_gettop(rL));
 }
