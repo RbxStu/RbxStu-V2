@@ -7,6 +7,8 @@
 #include <HttpStatus.hpp>
 #include <lz4.h>
 
+#include "Communication.hpp"
+#include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
 #include "RobloxManager.hpp"
 #include "Scheduler.hpp"
@@ -265,6 +267,14 @@ namespace RbxStu {
             lua_pushvalue(L, -2);
             return 2;
         }
+
+        if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
+            const Luau::CodeGen::CompilationOptions opts{0};
+            Logger::GetSingleton()->PrintInformation(RbxStu::Scheduler,
+                                     "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
+            Luau::CodeGen::compile(L, -1, opts);
+        }
+
 
         Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1), 8);
         lua_setsafeenv(L, LUA_GLOBALSINDEX, false); // env is not safe anymore.

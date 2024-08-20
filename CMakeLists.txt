@@ -86,6 +86,7 @@ target_link_libraries(${PROJECT_NAME}
         Luau.VM
         Luau.VM.Internals
         Luau.EqSat
+        Luau.CodeGen
 
         # Imgui
         Imgui

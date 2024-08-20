@@ -24,6 +24,8 @@ void Communication::SetUnsafeMode(bool isUnsafe) {
             RbxStu::Communication, "WARNING! UNSAFE MODE IS ENABLED! THIS CAN HAVE CONSEQUENCES THAT GO HIGHER THAN "
                                    "YOU THINK! IF YOU DO NOT KNOW WHAT YOU'RE DOING, TURN SAFE MODE BACK ON!");
 }
+bool Communication::IsCodeGenerationEnabled() const { return this->m_bEnableCodeGen; }
+void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnableCodeGen = enableCodeGen; }
 
 
 void Communication::HandlePipe(const std::string &szPipeName) {
