@@ -128,16 +128,9 @@ namespace RbxStu {
     }
 
     int gethui(lua_State *L) {
-        // Equivalent to return cloneref(cloneref(game:GetService("CoreGui")).RobloxGui)
+        // Equivalent to cloneref(game.CoreGui)
         lua_getglobal(L, "game");
-        lua_getfield(L, 1, "GetService");
-        lua_pushvalue(L, 1);
-        lua_pushstring(L, "CoreGui");
-        lua_call(L, 2, 1);
-        lua_getglobal(L, "cloneref");
-        lua_pushvalue(L, -2);
-        lua_call(L, 1, 1);
-        lua_getfield(L, -1, "RobloxGui");
+        lua_getfield(L, 1, "CoreGui");
         lua_getglobal(L, "cloneref");
         lua_pushvalue(L, -2);
         lua_call(L, 1, 1);
