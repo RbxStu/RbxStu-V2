@@ -228,7 +228,7 @@ namespace RbxStu {
     }
 
     int fireproximityprompt(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+        Utilities::checkInstance(L, 1, "ProximityPrompt");
 
         const auto proximityPrompt = *static_cast<std::uintptr_t **>(lua_touserdata(L, 1));
         reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ProximityPrompt_onTriggered>(
@@ -237,7 +237,7 @@ namespace RbxStu {
     }
 
     int cloneref(lua_State *L) {
-        luaL_checktype(L, -1, lua_Type::LUA_TUSERDATA);
+        Utilities::checkInstance(L, 1, "ANY");
 
         const auto userdata = lua_touserdata(L, -1);
         const auto rawUserdata = *static_cast<void **>(userdata);
