@@ -16,56 +16,83 @@ class Utilities final {
         HANDLE hThread;
     };
 
+    enum ThreadSuspensionState {
+        SUSPENDED,
+        RESUMED,
+    };
+
 public:
-    __forceinline static std::vector<ThreadInformation> SuspendRobloxThreads() {
-        const auto logger = Logger::GetSingleton();
-        logger->PrintInformation(RbxStu::ThreadManagement, "Pausing roblox threads!");
-        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    class RobloxThreadSuspension {
+    private:
+        std::vector<ThreadInformation> threadInformation;
+        ThreadSuspensionState state;
 
-        if (hSnapshot == INVALID_HANDLE_VALUE || hSnapshot == nullptr) {
-            throw std::exception("PauseTheWorld failed: Snapshot creation failed!");
+    public:
+        explicit RobloxThreadSuspension(const bool suspendOnCreate) {
+            this->state = RESUMED;
+            if (suspendOnCreate) this->SuspendThreads();
         }
-
-        THREADENTRY32 te{0};
-        te.dwSize = sizeof(THREADENTRY32);
-
-        if (!Thread32First(hSnapshot, &te)) {
-            CloseHandle(hSnapshot);
-            throw std::exception("PauseTheWorld failed: Thread32First failed!");
-        }
-        auto currentPid = GetCurrentProcessId();
-        std::vector<ThreadInformation> thInfo;
-        do {
-            if (te.th32ThreadID != GetCurrentThreadId() && te.th32OwnerProcessID == currentPid) {
-                auto hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
-
-                auto th = ThreadInformation{false, nullptr};
-                if (SuspendThread(hThread) > 1)
-                    th.bWasSuspended = true;
-                th.hThread = hThread;
-                thInfo.push_back(th);
+        ~RobloxThreadSuspension() {
+            const auto logger = Logger::GetSingleton();
+            logger->PrintInformation(RbxStu::ThreadManagement, "Cleaning up thread handles!");
+            for (auto &[_, hThread]: this->threadInformation) {
+                CloseHandle(hThread);
             }
-        } while (Thread32Next(hSnapshot, &te));
-
-        return thInfo;
-    }
-
-    __forceinline static void ResumeRobloxThreads(const std::vector<ThreadInformation> &worldInfo) {
-        const auto logger = Logger::GetSingleton();
-        logger->PrintInformation(RbxStu::ThreadManagement, "Resuming roblox threads!");
-        for (auto &[bWasSuspended, hThread]: worldInfo) {
-            ResumeThread(hThread);
         }
-    }
 
-    __forceinline static void CleanUpThreadHandles(const std::vector<ThreadInformation> &worldInfo) {
-        const auto logger = Logger::GetSingleton();
-        logger->PrintInformation(RbxStu::ThreadManagement, "Cleaning up thread handles");
-        for (auto &[_, hThread]: worldInfo) {
-            CloseHandle(hThread);
+        void SuspendThreads() {
+            const auto logger = Logger::GetSingleton();
+            if (this->state != RESUMED) {
+                logger->PrintWarning(RbxStu::ThreadManagement, "Trying to suspend threads while they are already suspended!");
+                return;
+            }
+            logger->PrintInformation(RbxStu::ThreadManagement, "Pausing roblox threads!");
+            HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+
+            if (hSnapshot == INVALID_HANDLE_VALUE || hSnapshot == nullptr) {
+                throw std::exception("PauseRobloxThreads failed: Snapshot creation failed!");
+            }
+
+            THREADENTRY32 te{0};
+            te.dwSize = sizeof(THREADENTRY32);
+
+            if (!Thread32First(hSnapshot, &te)) {
+                CloseHandle(hSnapshot);
+                throw std::exception("PauseRobloxThreads failed: Thread32First failed!");
+            }
+            auto currentPid = GetCurrentProcessId();
+            std::vector<ThreadInformation> thInfo;
+            do {
+                if (te.th32ThreadID != GetCurrentThreadId() && te.th32OwnerProcessID == currentPid) {
+                    auto hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+
+                    auto th = ThreadInformation{false, nullptr};
+                    if (SuspendThread(hThread) > 1)
+                        th.bWasSuspended = true;
+                    th.hThread = hThread;
+                    thInfo.push_back(th);
+                }
+            } while (Thread32Next(hSnapshot, &te));
+
+            this->threadInformation = thInfo;
+            this->state = SUSPENDED;
         }
-    }
 
+        void ResumeThreads() {
+            const auto logger = Logger::GetSingleton();
+            if (this->state != SUSPENDED) {
+                logger->PrintWarning(RbxStu::ThreadManagement, "Attempting to resume threads while they are already resumed!");
+                return;
+            }
+            logger->PrintInformation(RbxStu::ThreadManagement, "Resuming roblox threads!");
+            for (auto &[bWasSuspended, hThread]: this->threadInformation) {
+                ResumeThread(hThread);
+            }
+            this->state = RESUMED;
+        }
+    };
+
+public:
     __forceinline static std::string ToLower(std::string target) {
         for (auto &x: target) {
             x = std::tolower(x); // NOLINT(*-narrowing-conversions)
