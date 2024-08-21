@@ -441,6 +441,25 @@ namespace RbxStu {
         return 0;
     }
 
+    // I couldn't care less to add error checking, someone else do that - MakeSureDudeDies
+
+    int getclipboard(lua_State* L) {
+	    OpenClipboard(nullptr);
+	    HANDLE Data = GetClipboardData(CF_TEXT);
+	    const char* pszText = static_cast<char*>(GlobalLock(Data));
+	    lua_pushstring(L, pszText);
+	    GlobalUnlock(Data);
+	    CloseClipboard();
+	    return 1;
+    }
+
+    int emptyclipboard(lua_State* L) {
+	    OpenClipboard(nullptr);
+	    EmptyClipboard();
+	    CloseClipboard();
+	    return 0;
+    }
+
     int identifyexecutor(lua_State* L) {
         lua_pushstring(L, "RbxStu");
         lua_pushstring(L, "V2");
@@ -477,7 +496,9 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"setidentity", RbxStu::setidentity},
                                {"setthreadcontext", RbxStu::setidentity},
                                {"setthreadidentity", RbxStu::setidentity},
-                               {"setclipboard", RbxStu::setclipboard},
+                               {"setclipboard", RbxStu::setclipboard}, 
+                               {"getclipboard", RbxStu::getclipboard}, 
+                               {"emptyclipboard", RbxStu::emptyclipboard}, 
 
                                {"getidentity", RbxStu::getidentity},
                                {"getthreadidentity", RbxStu::getidentity},
