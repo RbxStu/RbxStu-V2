@@ -136,12 +136,11 @@ void *rbx__scriptcontext__resumeWaitingThreads(
         //Utilities::ResumeRobloxThreads(threadInformation);
         //Utilities::CleanUpThreadHandles(threadInformation);
     } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-        const auto threadInformation = Utilities::SuspendRobloxThreads();
+        Utilities::RobloxThreadSuspension threadSuspension(true);
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
                                                      "initialized, resetting scheduler!");
         scheduler->ResetScheduler();
-        Utilities::ResumeRobloxThreads(threadInformation);
-        Utilities::CleanUpThreadHandles(threadInformation);
+        threadSuspension.ResumeThreads();
     }
 
     calledBeforeCount = 0;

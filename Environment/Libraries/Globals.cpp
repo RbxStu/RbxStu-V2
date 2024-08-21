@@ -48,10 +48,12 @@ namespace RbxStu {
     }
 
     int getrenv(lua_State *L) {
+        Utilities::RobloxThreadSuspension threadSuspension(true);
         auto rL = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
         L->top->tt = lua_Type::LUA_TTABLE;
         L->top->value.gc->h = *rL->gt;
         L->top++;
+        threadSuspension.ResumeThreads();
         return 1;
     }
 
