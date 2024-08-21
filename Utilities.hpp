@@ -94,30 +94,32 @@ public:
     };
 
 public:
-    __forceinline static void checkInstance(lua_State* L, int index, const char* expectedClassname) {
-        luaL_checktype(L, index, lua_Type::LUA_TUSERDATA); // Check if it userdata
-        lua_getglobal(L, "typeof"); // Get typeof
-        lua_pushvalue(L, -2); // Push argument to the top of stack
-        lua_call(L, 1, 1); // Call typeof(arg)
-        if (strcmp(lua_tostring(L, -1), "Instance") != 0) {
-            if (strcmp("ANY", expectedClassname) != 0) {
-                luaL_argerrorL(L, index, std::format("Expected to be {}", expectedClassname).c_str());
-            }
-            luaL_argerrorL(L, index, "Expected to be Instance");
-        }
-        lua_pop(L, 1); // Pop result of typeof
+    static void checkInstance(lua_State* L, int index, const char* expectedClassname) {
+        luaL_checktype(L, index, LUA_TUSERDATA);
 
-        // Allow for ANY so we don't care about classname, just if it is roblox instance
-        if (strcmp("ANY", expectedClassname) != 0) {
-            lua_pushvalue(L, 1); // Push the arg to the top of stack
-            lua_getfield(L, -1, "IsA"); // Get IsA namecall
-            lua_pushvalue(L, -2); // Push the arg to the top of stack
-            lua_pushstring(L, expectedClassname); // Push expected classname
-            lua_call(L, 2, 1); // Call arg:IsA(expectedClassname)
-            if (lua_toboolean(L, -1) == false) {
-                luaL_argerrorL(L, index, std::format("Expected to be {}", expectedClassname).c_str());
-            }
-            lua_pop(L, 2); // Pop off result and very top of our arg
+        lua_getglobal(L, "typeof");
+        lua_pushvalue(L, index);
+        lua_call(L, 1, 1);
+        bool isInstance = (strcmp(lua_tostring(L, -1), "Instance") == 0);
+        lua_pop(L, 1);
+
+        if (!isInstance) {
+            luaL_argerror(L, index, "Expected to be Instance");
+        }
+
+        if (strcmp(expectedClassname, "ANY") == 0) {
+            return;
+        }
+
+        lua_getfield(L, index, "IsA");
+        lua_pushvalue(L, index);
+        lua_pushstring(L, expectedClassname);
+        lua_call(L, 2, 1);
+        bool isExpectedClass = lua_toboolean(L, -1);
+        lua_pop(L, 1);
+
+        if (!isExpectedClass) {
+            luaL_argerror(L, index, ("Expected to be " + std::string(expectedClassname)).c_str());
         }
     }
 
