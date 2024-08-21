@@ -14,6 +14,7 @@
 #include "Scheduler.hpp"
 #include "Security.hpp"
 #include "cpr/api.h"
+#include "lfunc.h"
 #include "lgc.h"
 #include "lmem.h"
 #include "ltable.h"
@@ -39,6 +40,58 @@ namespace RbxStu {
         luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
 
         lua_pushboolean(L, lua_iscfunction(L, 1));
+        return 1;
+    }
+
+    int newcclosure(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        const Closure* TargetClosure = reinterpret_cast<const Closure*>(lua_topointer(L, 1));
+
+        if (TargetClosure->isC) { // check if it's a C closure other crash :(
+            lua_pushcfunction(L, TargetClosure->c.f, TargetClosure->c.debugname);
+        } else {
+            Closure* NewClosure = luaF_newCclosure(L, TargetClosure->nupvalues, TargetClosure->env);
+
+            for (int i = 0; i < TargetClosure->nupvalues; i++) {
+                NewClosure->c.upvals[i].value = TargetClosure->c.upvals[i].value;
+                NewClosure->c.upvals[i].tt = TargetClosure->c.upvals[i].tt;
+            }
+
+            NewClosure->c.f = TargetClosure->c.f;
+
+            lua_pushnil(L);
+        }
+
+        return 1;
+    }
+
+    int clonefunction(lua_State* L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        const Closure* TargetClosure = reinterpret_cast<const Closure*>(lua_topointer(L, 1));
+
+        if (TargetClosure->isC) {
+            Closure* NewClosure = luaF_newCclosure(L, TargetClosure->nupvalues, TargetClosure->env);
+
+            for (int i = 0; i < TargetClosure->nupvalues; i++) {
+                NewClosure->c.upvals[i].value = TargetClosure->c.upvals[i].value;
+                NewClosure->c.upvals[i].tt = TargetClosure->c.upvals[i].tt;
+            }
+
+            NewClosure->c.f = TargetClosure->c.f;
+            NewClosure->c.cont = TargetClosure->c.cont;
+        } else {
+            Closure* NewClosure = luaF_newLclosure(L, TargetClosure->nupvalues, L->gt, TargetClosure->l.p);
+
+            for (int i = 0; i < TargetClosure->nupvalues; i++) {
+                setobj2n(L, &NewClosure->l.uprefs[i], &TargetClosure->l.uprefs[i]);
+            }
+
+            setclvalue(L, L->top, NewClosure);
+            L->top++;
+        }
+
         return 1;
     }
 
@@ -474,6 +527,9 @@ luaL_Reg *Globals::GetLibraryFunctions() {
     auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
                                {"iscclosure", RbxStu::iscclosure},
                                {"islclosure", RbxStu::islclosure},
+                               {"newcclosure", RbxStu::newcclosure},
+                               {"clonefunction", RbxStu::clonefunction},
+                               {"hookfunction", RbxStu::hookfunction},
                                {"getreg", RbxStu::getreg},
                                {"getgenv", RbxStu::getgenv},
                                {"getrenv", RbxStu::getrenv},
@@ -514,6 +570,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"checkclosure", RbxStu::isourclosure},
                                {"isexecutorclosure", RbxStu::isourclosure},
                                {"identifyexecutor", RbxStu::identifyexecutor},
+                               {"getexecutorname", RbxStu::identifyexecutor},
 
                                {nullptr, nullptr}};
     return reg;
