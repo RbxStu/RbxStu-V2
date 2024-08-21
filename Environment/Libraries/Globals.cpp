@@ -16,7 +16,6 @@
 #include "cpr/api.h"
 #include "lgc.h"
 #include "lmem.h"
-#include "ltable.h"
 
 namespace RbxStu {
     int getrawmetatable(lua_State *L) {
@@ -448,6 +447,32 @@ namespace RbxStu {
         lua_pushstring(L, "V2");
         return 2;
     }
+
+    int decompile(lua_State* L) {
+        // Since we can access original source, we will just return that
+        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+        lua_getglobal(L, "typeof");
+        lua_pushvalue(L, 1);
+        lua_call(L, 1, 1);
+        if (strcmp(lua_tostring(L, -1), "Instance") != 0) {
+            luaL_argerrorL(L, 1, "You must provide a valid LuaSourceContainer");
+        }
+        lua_pop(L, 1);
+
+        lua_pushvalue(L, 1);
+        lua_getfield(L, -1, "IsA");
+        lua_pushvalue(L, 1);
+        lua_pushstring(L, "LuaSourceContainer");
+        lua_call(L, 2, 1);
+        if (lua_toboolean(L, -1) == false) {
+            luaL_argerrorL(L, 1, "You must provide a valid LuaSourceContainer");
+        }
+        lua_pop(L, 2);
+
+        lua_pushvalue(L, 1);
+        lua_getfield(L, -1, "Source");
+        return 1;
+    }
 } // namespace RbxStu
 
 
@@ -495,6 +520,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"checkclosure", RbxStu::isourclosure},
                                {"isexecutorclosure", RbxStu::isourclosure},
                                {"identifyexecutor", RbxStu::identifyexecutor},
+                               {"decompile", RbxStu::decompile},
 
                                {nullptr, nullptr}};
     return reg;
