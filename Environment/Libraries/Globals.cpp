@@ -531,10 +531,20 @@ namespace RbxStu {
     }
 
     int emptyclipboard(lua_State* L) {
-	    OpenClipboard(nullptr);
-	    EmptyClipboard();
-	    CloseClipboard();
-	    return 0;
+        if (!OpenClipboard(nullptr)) {
+            luaG_runerror(L, "Failed to open clipboard");
+        }
+
+        if (!EmptyClipboard()) {
+            CloseClipboard();
+            luaG_runerror(L, "Failed to empty clipboard");
+        }
+
+        if (!CloseClipboard()) {
+            luaG_runerror(L, "Failed to close clipboard");
+        }
+
+        return 0;
     }
 
     int identifyexecutor(lua_State* L) {
