@@ -108,15 +108,15 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
             // else never end!
 
             if (const auto callback = job->GetCallback(); callback.has_value()) {
-                const auto worldInformation = Utilities::PauseTheWorld();
+                const auto threadInformation = Utilities::SuspendRobloxThreads();
                 const auto nargs = callback.value()(runOn);
                 lua_xmove(runOn, job->yieldJob.threadRef.thread, lua_gettop(runOn));
                 logger->PrintWarning(RbxStu::Scheduler, "Starting resumption!");
                 robloxManager->ResumeScript(&job->yieldJob.threadRef, nargs);
 
                 job->FreeResources();
-                Utilities::ResumeWorld(worldInformation);
-                Utilities::CleanUpWorldInformation(worldInformation);
+                Utilities::ResumeRobloxThreads(threadInformation);
+                Utilities::CleanUpThreadHandles(threadInformation);
             } else {
                 logger->PrintError(RbxStu::Scheduler,
                                    "Callback has no value despite the job being marked as completed!");

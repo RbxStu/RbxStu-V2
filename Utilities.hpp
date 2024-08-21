@@ -17,7 +17,7 @@ class Utilities final {
     };
 
 public:
-    __forceinline static std::vector<ThreadInformation> PauseTheWorld() {
+    __forceinline static std::vector<ThreadInformation> SuspendRobloxThreads() {
         const auto logger = Logger::GetSingleton();
         logger->PrintInformation(RbxStu::ThreadManagement, "Pausing the world!");
         HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
@@ -50,7 +50,7 @@ public:
         return thInfo;
     }
 
-    __forceinline static void ResumeWorld(const std::vector<ThreadInformation> &worldInfo) {
+    __forceinline static void ResumeRobloxThreads(const std::vector<ThreadInformation> &worldInfo) {
         const auto logger = Logger::GetSingleton();
         logger->PrintInformation(RbxStu::ThreadManagement, "Resuming the world!");
         for (auto &[bWasSuspended, hThread]: worldInfo) {
@@ -58,7 +58,7 @@ public:
         }
     }
 
-    __forceinline static void CleanUpWorldInformation(const std::vector<ThreadInformation> &worldInfo) {
+    __forceinline static void CleanUpThreadHandles(const std::vector<ThreadInformation> &worldInfo) {
         const auto logger = Logger::GetSingleton();
         logger->PrintInformation(RbxStu::ThreadManagement, "Closing thread handles");
         for (auto &[_, hThread]: worldInfo) {
