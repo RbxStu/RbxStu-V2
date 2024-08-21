@@ -492,7 +492,9 @@ namespace RbxStu {
 
     int getclipboard(lua_State* L) {
         if (!Communication::GetSingleton()->IsUnsafeMode()) {
-            luaG_runerror(L, "getclipboard is only enabled in unsafe mode");
+            Logger::GetSingleton()->PrintWarning("Globals::getclipboard", "Script tried to access clipboard data while unsafe mode is off!");
+            lua_pushstring(L, "why u trying to steal data?");
+            return 1;
         }
 
         if (!OpenClipboard(nullptr)) {
