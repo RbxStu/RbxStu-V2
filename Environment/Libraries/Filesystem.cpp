@@ -196,7 +196,8 @@ namespace RbxStu {
             auto absolutePath = CheckPath(L);
 
             if (fs::is_directory(absolutePath)) {
-                luaG_runerror(L, "There is already a folder on this path!");
+                //luaG_runerror(L, "There is already a folder on this path!"); Most scripts do not think, that this will ever error, so I have to suppress this
+                return 0;
             }
 
             if (fs::is_regular_file(absolutePath)) {
