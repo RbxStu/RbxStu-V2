@@ -467,30 +467,48 @@ namespace RbxStu {
 
     int setclipboard(lua_State *L) {
         luaL_checkstring(L, 1);
+        const char* text = lua_tostring(L, 1);
 
         if (!OpenClipboard(nullptr)) {
-            luaG_runerror(L, "Failed to open clipboard!");
+            luaG_runerror(L, "Failed to open clipboard");
         }
 
-        EmptyClipboard();
-        auto newText = std::string(lua_tostring(L, 1));
-        auto globalMemory = GlobalAlloc(GMEM_MOVEABLE, newText.size() + 1);
-        if (!globalMemory) {
+        if (!EmptyClipboard()) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to allocate memory in global space!");
+            luaG_runerror(L, "Failed to empty clipboard");
         }
 
-        memcpy(GlobalLock(globalMemory), newText.c_str(), newText.size() + 1);
-        GlobalUnlock(globalMemory);
-
-        if (!SetClipboardData(CF_TEXT, globalMemory)) {
-            GlobalFree(globalMemory);
+        size_t textLength = strlen(text) + 1;
+        HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, textLength);
+        if (!hMem) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to set clipboard!");
+            luaG_runerror(L, "Failed to allocate memory in global space");
         }
 
-        CloseClipboard();
-        GlobalFree(globalMemory);
+        char* pMem = static_cast<char*>(GlobalLock(hMem));
+        if (!pMem) {
+            GlobalFree(hMem);
+            CloseClipboard();
+            luaG_runerror(L, "Failed to lock global memory");
+        }
+
+        memcpy(pMem, text, textLength);
+
+        if (GlobalUnlock(hMem) != 0 && GetLastError() != NO_ERROR) {
+            GlobalFree(hMem);
+            CloseClipboard();
+            luaG_runerror(L, "Failed to unlock global memory");
+        }
+
+        if (!SetClipboardData(CF_TEXT, hMem)) {
+            GlobalFree(hMem);
+            CloseClipboard();
+            luaG_runerror(L, "Failed to set clipboard data");
+        }
+
+        if (!CloseClipboard()) {
+            luaG_runerror(L, "Failed to close clipboard");
+        }
 
         return 0;
     }
