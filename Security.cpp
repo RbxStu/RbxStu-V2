@@ -78,7 +78,7 @@ std::shared_ptr<Security> Security::GetSingleton() {
     return Security::pInstance;
 }
 
-void Security::PrintCapabilities(int capabilities) {
+void Security::PrintCapabilities(std::uint32_t capabilities) {
     const auto logger = Logger::GetSingleton();
 
     logger->PrintInformation(RbxStu::Security, std::format("0x{:X} got these capabilities:", capabilities));
@@ -95,7 +95,7 @@ void Security::PrintCapabilities(int capabilities) {
     }
 };
 
-int Security::IdentityToCapabilities(int identity) {
+int Security::IdentityToCapabilities(std::uint32_t identity) {
     int capabilities = 0x3FFFF00 | (63 << 1); // Basic capability | Checkcaller check
     auto capabilitiesForIdentity = identityCapabilities.find(identity);
 
@@ -152,7 +152,7 @@ bool Security::IsOurThread(lua_State *L) {
     return passed;
 }
 
-bool Security::SetLuaClosureSecurity(Closure *lClosure, int identity) {
+bool Security::SetLuaClosureSecurity(Closure *lClosure, std::uint32_t identity) {
     if (lClosure->isC)
         return false;
     const auto pProto = lClosure->l.p;
