@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Logger.hpp"
+#include "lualib.h"
 
 class Utilities final {
     struct ThreadInformation {
@@ -93,6 +94,27 @@ public:
     };
 
 public:
+    __forceinline static void checkInstance(lua_State* L, int index, const char* expectedClassname) {
+        luaL_checktype(L, index, lua_Type::LUA_TUSERDATA);
+        lua_getglobal(L, "typeof");
+        lua_pushvalue(L, -2);
+        lua_call(L, 1, 1);
+        if (strcmp(lua_tostring(L, -1), "Instance") != 0) {
+            luaL_argerrorL(L, index, std::format("Expected to be {}", expectedClassname).c_str());
+        }
+        lua_pop(L, 1);
+
+        lua_pushvalue(L, 1);
+        lua_getfield(L, -1, "IsA");
+        lua_pushvalue(L, -2);
+        lua_pushstring(L, expectedClassname);
+        lua_call(L, 2, 1);
+        if (lua_toboolean(L, -1) == false) {
+            luaL_argerrorL(L, index, std::format("Expected to be {}", expectedClassname).c_str());
+        }
+        lua_pop(L, 2);
+    }
+
     __forceinline static std::string ToLower(std::string target) {
         for (auto &x: target) {
             x = std::tolower(x); // NOLINT(*-narrowing-conversions)
