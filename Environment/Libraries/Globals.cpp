@@ -17,7 +17,6 @@
 #include "lfunc.h"
 #include "lgc.h"
 #include "lmem.h"
-#include "ltable.h"
 
 namespace RbxStu {
     int getrawmetatable(lua_State *L) {
@@ -101,10 +100,12 @@ namespace RbxStu {
     }
 
     int getrenv(lua_State *L) {
+        Utilities::RobloxThreadSuspension threadSuspension(true);
         auto rL = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
         L->top->tt = lua_Type::LUA_TTABLE;
         L->top->value.gc->h = *rL->gt;
         L->top++;
+        threadSuspension.ResumeThreads();
         return 1;
     }
 
@@ -280,7 +281,7 @@ namespace RbxStu {
     }
 
     int fireproximityprompt(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+        Utilities::checkInstance(L, 1, "ProximityPrompt");
 
         const auto proximityPrompt = *static_cast<std::uintptr_t **>(lua_touserdata(L, 1));
         reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ProximityPrompt_onTriggered>(
@@ -289,7 +290,7 @@ namespace RbxStu {
     }
 
     int cloneref(lua_State *L) {
-        luaL_checktype(L, -1, lua_Type::LUA_TUSERDATA);
+        Utilities::checkInstance(L, 1, "ANY");
 
         const auto userdata = lua_touserdata(L, -1);
         const auto rawUserdata = *static_cast<void **>(userdata);
@@ -518,6 +519,15 @@ namespace RbxStu {
         lua_pushstring(L, "V2");
         return 2;
     }
+
+    int decompile(lua_State* L) {
+        // Since we can access original source, we will just return that
+        Utilities::checkInstance(L, 1, "LuaSourceContainer");
+
+        lua_pushvalue(L, 1);
+        lua_getfield(L, -1, "Source");
+        return 1;
+    }
 } // namespace RbxStu
 
 
@@ -570,7 +580,9 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"checkclosure", RbxStu::isourclosure},
                                {"isexecutorclosure", RbxStu::isourclosure},
                                {"identifyexecutor", RbxStu::identifyexecutor},
+
                                {"getexecutorname", RbxStu::identifyexecutor},
+                               {"decompile", RbxStu::decompile},
 
                                {nullptr, nullptr}};
     return reg;

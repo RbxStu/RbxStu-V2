@@ -111,7 +111,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             goto __scriptContext_resumeWaitingThreads__cleanup;
         }
 
-        const auto worldInformation = Utilities::PauseTheWorld();
+        //const auto threadInformation = Utilities::SuspendRobloxThreads();
         const auto optionalrL = robloxManager->GetGlobalState(scriptContext);
         logger->PrintWarning(RbxStu::HookedFunction,
                              std::format("WaitingHybridScriptsJob: {}", waitingHybridScriptsJob));
@@ -133,15 +133,14 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             scheduler->InitializeWith(L, rL, getDataModel(scriptContext));
         }
 
-        Utilities::ResumeWorld(worldInformation);
-        Utilities::CleanUpWorldInformation(worldInformation);
+        //Utilities::ResumeRobloxThreads(threadInformation);
+        //Utilities::CleanUpThreadHandles(threadInformation);
     } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-        const auto worldInformation = Utilities::PauseTheWorld();
+        Utilities::RobloxThreadSuspension threadSuspension(true);
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
                                                      "initialized, resetting scheduler!");
         scheduler->ResetScheduler();
-        Utilities::ResumeWorld(worldInformation);
-        Utilities::CleanUpWorldInformation(worldInformation);
+        threadSuspension.ResumeThreads();
     }
 
     calledBeforeCount = 0;
