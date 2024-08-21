@@ -1015,7 +1015,8 @@ static size_t getheaptrigger(global_State* g, size_t heapgoal)
 
 size_t luaC_step(lua_State* L, bool assist)
 {
-    return reinterpret_cast<RBX::Studio::FunctionTypes::luaC_Step>(RbxStuOffsets::GetSingleton()->GetOffset("luaC_Step"))(L, assist);
+    return 0;
+    //return reinterpret_cast<RBX::Studio::FunctionTypes::luaC_Step>(RbxStuOffsets::GetSingleton()->GetOffset("luaC_Step"))(L, assist);
 
     global_State* g = L->global;
 
