@@ -164,7 +164,7 @@ int ClosureManager::hookfunction(lua_State *L) {
             setobj2n(L, &hookWhat->l.uprefs[i], &hookWith->l.uprefs[i]);
 
         hookWhat->nupvalues = hookWith->nupvalues;
-        hookWhat->l.p = hookWhat->l.p;
+        hookWhat->l.p = hookWith->l.p;
 
         return 1;
     }
