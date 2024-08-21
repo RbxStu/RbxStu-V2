@@ -5,10 +5,67 @@
 #include <Windows.h>
 #include <sstream>
 #include <string>
+#include <tlhelp32.h>
 #include <vector>
 
+#include "Logger.hpp"
+
 class Utilities final {
+    struct ThreadInformation {
+        bool bWasSuspended;
+        HANDLE hThread;
+    };
+
 public:
+    __forceinline static std::vector<ThreadInformation> PauseTheWorld() {
+        const auto logger = Logger::GetSingleton();
+        logger->PrintInformation(RbxStu::ThreadManagement, "Pausing the world!");
+        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+
+        if (hSnapshot == INVALID_HANDLE_VALUE || hSnapshot == nullptr) {
+            throw std::exception("PauseTheWorld failed: Snapshot creation failed!");
+        }
+
+        THREADENTRY32 te{0};
+        te.dwSize = sizeof(THREADENTRY32);
+
+        if (!Thread32First(hSnapshot, &te)) {
+            CloseHandle(hSnapshot);
+            throw std::exception("PauseTheWorld failed: Thread32First failed!");
+        }
+        auto currentPid = GetCurrentProcessId();
+        std::vector<ThreadInformation> thInfo;
+        do {
+            if (te.th32ThreadID != GetCurrentThreadId() && te.th32OwnerProcessID == currentPid) {
+                auto hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+
+                auto th = ThreadInformation{false, nullptr};
+                if (SuspendThread(hThread) > 1)
+                    th.bWasSuspended = true;
+                th.hThread = hThread;
+                thInfo.push_back(th);
+            }
+        } while (Thread32Next(hSnapshot, &te));
+
+        return thInfo;
+    }
+
+    __forceinline static void ResumeWorld(const std::vector<ThreadInformation> &worldInfo) {
+        const auto logger = Logger::GetSingleton();
+        logger->PrintInformation(RbxStu::ThreadManagement, "Resuming the world!");
+        for (auto &[bWasSuspended, hThread]: worldInfo) {
+            ResumeThread(hThread);
+        }
+    }
+
+    __forceinline static void CleanUpWorldInformation(const std::vector<ThreadInformation> &worldInfo) {
+        const auto logger = Logger::GetSingleton();
+        logger->PrintInformation(RbxStu::ThreadManagement, "Closing thread handles");
+        for (auto &[_, hThread]: worldInfo) {
+            CloseHandle(hThread);
+        }
+    }
+
     __forceinline static std::string ToLower(std::string target) {
         for (auto &x: target) {
             x = std::tolower(x); // NOLINT(*-narrowing-conversions)
@@ -17,7 +74,8 @@ public:
         return target;
     }
 
-    /// @brief Splits the given std::string into a std::vector<std::string> using the given character as a separator.
+    /// @brief Splits the given std::string into a std::vector<std::string> using the given character as a
+    /// separator.
     __forceinline static std::vector<std::string> SplitBy(const std::string &target, const char split) {
         std::vector<std::string> splitted;
         std::stringstream stream(target);
@@ -36,8 +94,8 @@ public:
     }
 
     /// @brief Used to validate a pointer.
-    /// @remarks This template does NOT validate ANY data inside the pointer. It just validates that the pointer is at
-    /// LEAST of the size of the given type, and that the pointer is allocated in memory.
+    /// @remarks This template does NOT validate ANY data inside the pointer. It just validates that the pointer is
+    /// at LEAST of the size of the given type, and that the pointer is allocated in memory.
     template<typename T>
     __forceinline static bool IsPointerValid(T *tValue) { // Validate pointers.
         const auto ptr = reinterpret_cast<void *>(tValue);

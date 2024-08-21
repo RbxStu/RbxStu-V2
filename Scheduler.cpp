@@ -13,6 +13,8 @@
 #include "lstate.h"
 #include "lualib.h"
 
+std::mutex SchedulerJob::__scheduler__job__access__mutex;
+
 std::shared_ptr<Scheduler> Scheduler::pInstance;
 
 std::shared_ptr<Scheduler> Scheduler::GetSingleton() {
@@ -47,7 +49,10 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         opts.optimizationLevel = 2;
         const char *mutableGlobals[] = {"_G", "_ENV", "shared", nullptr};
         opts.mutableGlobals = mutableGlobals;
-        const auto bytecode = Luau::compile(job->luaJob.szluaCode, opts);
+        const auto bytecode = Luau::compile(
+                std::string("local script = Instance.new('LocalScript');getgenv()['string'] = getrawmetatable('').__index;")
+                        .append(job->luaJob.szluaCode),
+                opts);
 
         logger->PrintInformation(RbxStu::Scheduler, "Compiled Bytecode!");
 
@@ -103,11 +108,15 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
             // else never end!
 
             if (const auto callback = job->GetCallback(); callback.has_value()) {
-                const auto nargs = callback.value()(job->yieldJob.threadRef.thread);
+                const auto worldInformation = Utilities::PauseTheWorld();
+                const auto nargs = callback.value()(runOn);
+                lua_xmove(runOn, job->yieldJob.threadRef.thread, lua_gettop(runOn));
                 logger->PrintWarning(RbxStu::Scheduler, "Starting resumption!");
                 robloxManager->ResumeScript(&job->yieldJob.threadRef, nargs);
 
                 job->FreeResources();
+                Utilities::ResumeWorld(worldInformation);
+                Utilities::CleanUpWorldInformation(worldInformation);
             } else {
                 logger->PrintError(RbxStu::Scheduler,
                                    "Callback has no value despite the job being marked as completed!");
@@ -239,19 +248,19 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
         Luau::CodeGen::compile(L, -1, nativeOptions);
     }
 
-    if (robloxManager->GetRobloxTaskDefer().has_value()) {
-        const auto defer = robloxManager->GetRobloxTaskDefer().value();
-        defer(L);
-    } else if (robloxManager->GetRobloxTaskSpawn().has_value()) {
-        const auto spawn = robloxManager->GetRobloxTaskSpawn().value();
-        spawn(L);
-    } else {
-        logger->PrintError(RbxStu::Scheduler,
-                           "Execution attempt failed. There is no function that can run the code through Roblox's "
-                           "scheduler! Reason: task.defer and task.spawn were not found on the sigging step.");
-
-        throw std::exception("Cannot run Scheduler job!");
-    }
+    // if (robloxManager->GetRobloxTaskDefer().has_value()) {
+    //     const auto defer = robloxManager->GetRobloxTaskDefer().value();
+    //     defer(L);
+    // } else if (robloxManager->GetRobloxTaskSpawn().has_value()) {
+    //     const auto spawn = robloxManager->GetRobloxTaskSpawn().value();
+    //     spawn(L);
+    // } else {
+    //     logger->PrintError(RbxStu::Scheduler,
+    //                        "Execution attempt failed. There is no function that can run the code through Roblox's "
+    //                        "scheduler! Reason: task.defer and task.spawn were not found on the sigging step.");
+    //     throw std::exception("Cannot run Scheduler job!");
+    // }
+    lua_pcall(L, 0, 0, 0);
 
     logger->PrintInformation(RbxStu::Scheduler, "Initialized!");
 

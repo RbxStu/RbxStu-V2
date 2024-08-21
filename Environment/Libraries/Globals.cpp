@@ -48,7 +48,10 @@ namespace RbxStu {
     }
 
     int getrenv(lua_State *L) {
-        lua_pushvalue(L, LUA_GLOBALSINDEX);
+        auto rL = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
+        L->top->tt = lua_Type::LUA_TTABLE;
+        L->top->value.gc->h = *rL->gt;
+        L->top++;
         return 1;
     }
 
@@ -270,8 +273,8 @@ namespace RbxStu {
 
         if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
             const Luau::CodeGen::CompilationOptions opts{0};
-            Logger::GetSingleton()->PrintInformation(RbxStu::Scheduler,
-                                     "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
+            Logger::GetSingleton()->PrintInformation(
+                    RbxStu::Scheduler, "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
             Luau::CodeGen::compile(L, -1, opts);
         }
 

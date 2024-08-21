@@ -48,6 +48,8 @@ public:
     /// @brief The callback that is executed once the yield is completed to push the results into the lua stack for
     /// resumption.
     std::shared_future<std::function<int(lua_State *)>> *callbackFuture = nullptr;
+
+    static std::mutex __scheduler__job__access__mutex;
     explicit SchedulerJob(
             lua_State *L,
             std::function<void(lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute)>
@@ -67,6 +69,7 @@ public:
     ~SchedulerJob() = default;
 
     bool IsJobCompleted() const {
+        std::scoped_lock lg{__scheduler__job__access__mutex};
         if (this->bIsLuaCode) {
             return true;
         }
@@ -84,10 +87,9 @@ public:
     }
 
     std::optional<std::function<int(lua_State *)>> GetCallback() const {
+        std::scoped_lock lg{__scheduler__job__access__mutex};
         if (this->bIsLuaCode)
             return {};
-
-        Logger::GetSingleton()->PrintInformation(RbxStu::Scheduler, "polling callback");
 
         if (this->callbackFuture && this->callbackFuture->valid()) {
             const auto ret = this->callbackFuture->wait_for(
@@ -101,6 +103,7 @@ public:
     }
 
     void FreeResources() {
+        std::scoped_lock lg{__scheduler__job__access__mutex};
         delete this->callbackFuture;
         this->callbackFuture = nullptr;
     }
