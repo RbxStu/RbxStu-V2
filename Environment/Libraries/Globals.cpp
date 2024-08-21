@@ -495,16 +495,39 @@ namespace RbxStu {
         return 0;
     }
 
-    // I couldn't care less to add error checking, someone else do that - MakeSureDudeDies
-
     int getclipboard(lua_State* L) {
-	    OpenClipboard(nullptr);
-	    HANDLE Data = GetClipboardData(CF_TEXT);
-	    const char* pszText = static_cast<char*>(GlobalLock(Data));
-	    lua_pushstring(L, pszText);
-	    GlobalUnlock(Data);
-	    CloseClipboard();
-	    return 1;
+        if (!Communication::GetSingleton()->IsUnsafeMode()) {
+            luaG_runerror(L, "getclipboard is only enabled in unsafe mode");
+        }
+
+        if (!OpenClipboard(nullptr)) {
+            luaG_runerror(L, "Failed to open clipboard");
+        }
+
+        HANDLE hData = GetClipboardData(CF_TEXT);
+        if (!hData) {
+            CloseClipboard();
+            luaG_runerror(L, "Failed to get clipboard data");
+        }
+
+        const char* clipboardText = static_cast<const char*>(GlobalLock(hData));
+        if (!clipboardText) {
+            CloseClipboard();
+            luaG_runerror(L, "Failed to lock clipboard data");
+        }
+
+        lua_pushstring(L, clipboardText);
+
+        if (GlobalUnlock(hData) == 0 && GetLastError() != NO_ERROR) {
+            CloseClipboard();
+            luaG_runerror(L, "Failed to unlock clipboard data");
+        }
+
+        if (!CloseClipboard()) {
+            luaG_runerror(L, "Failed to close clipboard");
+        }
+
+        return 1;
     }
 
     int emptyclipboard(lua_State* L) {
