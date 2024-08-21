@@ -112,6 +112,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
         }
 
         const auto threadInformation = Utilities::SuspendRobloxThreads();
+        //const auto threadInformation = Utilities::SuspendRobloxThreads();
         const auto optionalrL = robloxManager->GetGlobalState(scriptContext);
         logger->PrintWarning(RbxStu::HookedFunction,
                              std::format("WaitingHybridScriptsJob: {}", waitingHybridScriptsJob));
@@ -133,8 +134,8 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             scheduler->InitializeWith(L, rL, getDataModel(scriptContext));
         }
 
-        Utilities::ResumeRobloxThreads(threadInformation);
-        Utilities::CleanUpThreadHandles(threadInformation);
+        //Utilities::ResumeRobloxThreads(threadInformation);
+        //Utilities::CleanUpThreadHandles(threadInformation);
     } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
         const auto threadInformation = Utilities::SuspendRobloxThreads();
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
