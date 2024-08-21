@@ -24,15 +24,16 @@ class Utilities final {
 
 public:
     class RobloxThreadSuspension {
-    private:
         std::vector<ThreadInformation> threadInformation;
         ThreadSuspensionState state;
 
     public:
         explicit RobloxThreadSuspension(const bool suspendOnCreate) {
             this->state = RESUMED;
-            if (suspendOnCreate) this->SuspendThreads();
+            if (suspendOnCreate)
+                this->SuspendThreads();
         }
+
         ~RobloxThreadSuspension() {
             const auto logger = Logger::GetSingleton();
             logger->PrintInformation(RbxStu::ThreadManagement, "Cleaning up thread handles!");
@@ -44,7 +45,8 @@ public:
         void SuspendThreads() {
             const auto logger = Logger::GetSingleton();
             if (this->state != RESUMED) {
-                logger->PrintWarning(RbxStu::ThreadManagement, "Trying to suspend threads while they are already suspended!");
+                logger->PrintWarning(RbxStu::ThreadManagement,
+                                     "Trying to suspend threads while they are already suspended!");
                 return;
             }
             logger->PrintInformation(RbxStu::ThreadManagement, "Pausing roblox threads!");
@@ -82,7 +84,8 @@ public:
         void ResumeThreads() {
             const auto logger = Logger::GetSingleton();
             if (this->state != SUSPENDED) {
-                logger->PrintWarning(RbxStu::ThreadManagement, "Attempting to resume threads while they are already resumed!");
+                logger->PrintWarning(RbxStu::ThreadManagement,
+                                     "Attempting to resume threads while they are already resumed!");
                 return;
             }
             logger->PrintInformation(RbxStu::ThreadManagement, "Resuming roblox threads!");
@@ -93,34 +96,30 @@ public:
         }
     };
 
-public:
-    static void checkInstance(lua_State* L, int index, const char* expectedClassname) {
+    __forceinline static void checkInstance(lua_State *L, int index, const char *expectedClassname) {
         luaL_checktype(L, index, LUA_TUSERDATA);
 
         lua_getglobal(L, "typeof");
         lua_pushvalue(L, index);
         lua_call(L, 1, 1);
-        bool isInstance = (strcmp(lua_tostring(L, -1), "Instance") == 0);
+        const bool isInstance = (strcmp(lua_tostring(L, -1), "Instance") == 0);
         lua_pop(L, 1);
 
-        if (!isInstance) {
-            luaL_argerror(L, index, "Expected to be Instance");
-        }
+        if (!isInstance)
+            luaL_argerror(L, index, "expected an Instance");
 
-        if (strcmp(expectedClassname, "ANY") == 0) {
+        if (strcmp(expectedClassname, "ANY") == 0)
             return;
-        }
 
         lua_getfield(L, index, "IsA");
         lua_pushvalue(L, index);
         lua_pushstring(L, expectedClassname);
         lua_call(L, 2, 1);
-        bool isExpectedClass = lua_toboolean(L, -1);
+        const bool isExpectedClass = lua_toboolean(L, -1);
         lua_pop(L, 1);
 
-        if (!isExpectedClass) {
-            luaL_argerror(L, index, ("Expected to be " + std::string(expectedClassname)).c_str());
-        }
+        if (!isExpectedClass)
+            luaL_argerror(L, index, std::format("Expected to be {}", expectedClassname).c_str());
     }
 
     __forceinline static std::string ToLower(std::string target) {
