@@ -111,7 +111,6 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             goto __scriptContext_resumeWaitingThreads__cleanup;
         }
 
-        const auto threadInformation = Utilities::SuspendRobloxThreads();
         //const auto threadInformation = Utilities::SuspendRobloxThreads();
         const auto optionalrL = robloxManager->GetGlobalState(scriptContext);
         logger->PrintWarning(RbxStu::HookedFunction,
