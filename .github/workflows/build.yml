@@ -16,9 +16,6 @@ jobs:
       - name: Add MSVC to PATH
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@master
-
       - name: Install CMake
         uses: lukka/get-cmake@latest
 
@@ -26,6 +23,9 @@ jobs:
         uses: lukka/run-vcpkg@v10
         with:
           vcpkgGitCommitId: 'fb544875b93bffebe96c6f720000003234cfba08'
+          
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
 
       - name: Configure CMake
         run: |
@@ -46,7 +46,8 @@ jobs:
           -DBUILD_TESTS=OFF `
           -DBUILD_EXAMPLES=OFF `
           -DVCPKG_APPLOCAL_DEPS=OFF `
-          -DCRYPTOTOP_BUILD_TESTS=OFF
+          -DCRYPTOTOP_BUILD_TESTS=OFF `
+          -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config RelWithDebInfo
