@@ -45,16 +45,18 @@ jobs:
           -DBUILD_TESTING=OFF `
           -DBUILD_TESTS=OFF `
           -DBUILD_EXAMPLES=OFF `
+          -DVCPKG_APPLOCAL_DEPS=OFF `
           -DCRYPTOTOP_BUILD_TESTS=OFF
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config RelWithDebInfo
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: Build
           path: |
-            ${{github.workspace}}/build/**/*.dll
-            ${{github.workspace}}/build/**/*.pdb
+            ${{github.workspace}}/build/Module.dll
+            ${{github.workspace}}/build/Module.pdb
           if-no-files-found: warn
+          compression-level: 0
