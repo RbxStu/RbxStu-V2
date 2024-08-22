@@ -1,4 +1,6 @@
 # RbxStu V2
+![Discord](https://img.shields.io/discord/1231348251719106721?logo=simple-icon) ![GitHub Downloads (specific asset, latest release)](https://img.shields.io/github/downloads/RbxStu/RbxStu-V2/latest/release.zip)
+
 
 The Roblox Studio Executor.
 
