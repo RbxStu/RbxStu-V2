@@ -36,7 +36,12 @@ jobs:
           -DCMAKE_CXX_STANDARD=23 `
           -DCMAKE_CXX_STANDARD_REQUIRED=ON `
           -DCMAKE_C_COMPILER=cl `
-          -DCMAKE_CXX_COMPILER=cl
+          -DCMAKE_CXX_COMPILER=cl `
+          -DLUAU_BUILD_TESTS=OFF `
+          -DLUAU_BUILD_CLI=OFF `
+          -DLUAU_BUILD_VM=ON `
+          -DLUAU_BUILD_COMPILER=ON `
+          -DLUAU_BUILD_ANALYSIS=OFF
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config RelWithDebInfo
