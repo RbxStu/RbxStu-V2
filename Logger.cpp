@@ -45,7 +45,7 @@ void Logger::Flush(const RBX::Console::MessageType messageType) {
 void Logger::FlushIfFull(const RBX::Console::MessageType messageType) {
     if (!this->m_bInitialized)
         throw std::exception(
-                std::format("The logger instance @ {} is not initialized!", reinterpret_cast<uintptr_t>(this)).c_str());
+                std::format("The logger instance @ {} is not initialized!!", reinterpret_cast<uintptr_t>(this)).c_str());
 
     if (this->m_bInstantFlush || this->m_szMessageBuffer.length() >= this->m_dwBufferSize)
         this->Flush(messageType);
