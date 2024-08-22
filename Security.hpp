@@ -84,14 +84,14 @@ public:
     /// @brief Converts identity to a capability
     /// @param identity The identity
     /// @remarks If identity is not specified in the identityCapabilities it will use the basic capability
-    int IdentityToCapabilities(std::uint32_t identity);
+    std::uint64_t IdentityToCapabilities(std::uint32_t identity);
 
     /// @brief Elevates a thread's identity and capability.
     /// @param L The lua state to elevate.
     /// @param identity
     /// @remarks This function will invoke the userthread callback with the parent thread as the L->global->mainthread
     /// if the given L does not contain a valid RobloxExtraSpace
-    void SetThreadSecurity(lua_State *L, int identity);
+    void SetThreadSecurity(lua_State *L, std::int32_t identity);
 
     /// @brief Validates if a given lua_State was created by RbxStu
     /// @param L The lua state to check.

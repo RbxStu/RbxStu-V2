@@ -97,8 +97,8 @@ void Security::PrintCapabilities(std::uint32_t capabilities) {
     }
 };
 
-int Security::IdentityToCapabilities(std::uint32_t identity) {
-    int capabilities = 0x3FFFF00 | (1 << 46); // Basic capability | Checkcaller check
+std::uint64_t Security::IdentityToCapabilities(std::uint32_t identity) {
+    std::uint64_t capabilities = 0x3FFFF00 | (1 << 46); // Basic capability | Checkcaller check
     auto capabilitiesForIdentity = identityCapabilities.find(identity);
 
     if (capabilitiesForIdentity != identityCapabilities.end()) {
@@ -120,7 +120,7 @@ int Security::IdentityToCapabilities(std::uint32_t identity) {
     return capabilities;
 }
 
-void Security::SetThreadSecurity(lua_State *L, int identity) {
+void Security::SetThreadSecurity(lua_State *L, std::int32_t identity) {
     if (!Utilities::IsPointerValid(static_cast<RBX::Lua::ExtraSpace *>(L->userdata)))
         L->global->cb.userthread(L->global->mainthread,
                                  L); // If unallocated, then we must run the callback to create a valid RobloxExtraSpace
@@ -132,7 +132,7 @@ void Security::SetThreadSecurity(lua_State *L, int identity) {
     plStateUd->capabilities = capabilities;
 }
 
-static void set_proto(Proto *proto, uintptr_t *proto_identity) {
+static void set_proto(Proto *proto, std::uint64_t *proto_identity) {
     // NEVER FORGET TO SET THE PROTOS and SUB PROTOS USERDATA!!
     proto->userdata = static_cast<void *>(proto_identity);
     for (auto i = 0; i < proto->sizep; i++) {
@@ -156,8 +156,8 @@ bool Security::SetLuaClosureSecurity(Closure *lClosure, std::uint32_t identity) 
     if (lClosure->isC)
         return false;
     const auto pProto = lClosure->l.p;
-    auto *pMem = pProto->userdata != nullptr ? static_cast<std::uintptr_t *>(pProto->userdata)
-                                             : static_cast<std::uintptr_t *>(malloc(sizeof(std::uintptr_t)));
+    auto *pMem = pProto->userdata != nullptr ? static_cast<std::uint64_t *>(pProto->userdata)
+                                             : static_cast<std::uint64_t *>(malloc(sizeof(std::uint64_t)));
 
     *pMem = Security::GetSingleton()->IdentityToCapabilities(identity);
     set_proto(pProto, pMem);
