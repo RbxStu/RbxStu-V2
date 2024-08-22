@@ -37,6 +37,8 @@ namespace RbxStu {
                 strStream << lStr << " ";
             }
             Logger::GetSingleton()->PrintInformation(RbxStu::RobloxConsole, strStream.str());
+
+            return 0;
         }
 
         int rconsolewarn(lua_State *L) {
@@ -48,6 +50,8 @@ namespace RbxStu {
                 strStream << lStr << " ";
             }
             Logger::GetSingleton()->PrintWarning(RbxStu::RobloxConsole, strStream.str());
+
+            return 0;
         }
 
         int rconsoleerror(lua_State *L) {
@@ -59,7 +63,8 @@ namespace RbxStu {
                 strStream << lStr << " ";
             }
             Logger::GetSingleton()->PrintError(RbxStu::RobloxConsole, strStream.str());
-            luaL_error(L, strStream.str().c_str());
+
+            return 0;
         }
     }
 }
