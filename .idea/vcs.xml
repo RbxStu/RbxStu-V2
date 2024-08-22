@@ -2,13 +2,12 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Dependencies/IXWebSocket" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Dependencies/Luau" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Dependencies/Minhook" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Dependencies/cpr" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Dependencies/cryptopp-cmake" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build-Debug/Dependencies/cryptopp-cmake/cryptopp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build-Debug/_deps/zlib-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/build/Dependencies/cryptopp-cmake/cryptopp" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/build/_deps/zlib-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/zlib-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vcpkg" vcs="Git" />
   </component>
 </project>
