@@ -38,10 +38,12 @@ std::unordered_map<std::string, std::pair<int, bool>> allCapabilities = {{"Plugi
                                                                          {"Assistant", {0x3e, true}}};
 
 std::unordered_map<int, std::list<std::string>> identityCapabilities = {
-        {3, {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite"}},
+        {3,
+         {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite", "Avatar"}},
         {2, {"CSG", "Chat", "Animation", "Avatar"}}, // These are needed for 'require' to work!
-        {4, {"Plugin", "LocalUser"}},
-        {6, {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite"}},
+        {4, {"Plugin", "LocalUser", "Avatar"}},
+        {6,
+         {"RunServerScript", "Plugin", "LocalUser", "Avatar", "RobloxScript", "RunClientScript", "AccessOutsideWrite"}},
         {8,
          {"ScriptGlobals",
           "RunServerScript",
@@ -136,16 +138,17 @@ void Security::SetThreadSecurity(lua_State *L, int identity) {
 static void set_proto(Proto *proto, uintptr_t *proto_identity) {
     // NEVER FORGET TO SET THE PROTOS and SUB PROTOS USERDATA!!
     proto->userdata = static_cast<void *>(proto_identity);
-    for (auto i = 0; i < proto->sizep; i++)
+    for (auto i = 0; i < proto->sizep; i++) {
         set_proto(proto->p[i], proto_identity);
+    }
 }
 
 bool Security::IsOurThread(lua_State *L) {
     /// The way we currently have of checking if a thread is our thread is through... capabilities!
     /// Roblox handles capabilities using an std::int64_t, giving us 64 fun bits to play around with.
     /// This way, we can set the bit 64th, used to describe NOTHING, to set it as
-    /// our thread. Then we & it to validate it is present on the integer with an AND, which it shouldn't be ever if its
-    /// anything normal, but we aren't normal!
+    /// our thread. Then we & it to validate it is present on the integer with an AND, which it shouldn't be ever if
+    /// its anything normal, but we aren't normal!
     const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     const auto logger = Logger::GetSingleton();
     const auto passed = (extraSpace->capabilities & (63 << 1)) == (63 << 1);
