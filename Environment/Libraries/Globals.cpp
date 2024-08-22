@@ -290,8 +290,8 @@ namespace RbxStu {
     }
 
     int compareinstances(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
-        luaL_checktype(L, 2, lua_Type::LUA_TUSERDATA);
+        Utilities::checkInstance(L, 1, "ANY");
+        Utilities::checkInstance(L, 2, "ANY");
 
         lua_pushboolean(L, *static_cast<const std::uintptr_t *>(lua_touserdata(L, 1)) ==
                                    *static_cast<const std::uintptr_t *>(lua_touserdata(L, 2)));
