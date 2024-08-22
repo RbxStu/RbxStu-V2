@@ -44,6 +44,8 @@ add_library(Module SHARED
         Environment/Libraries/Cache.hpp
         Environment/Libraries/Console.cpp
         Environment/Libraries/Console.hpp
+        Environment/Libraries/Script.cpp
+        Environment/Libraries/Script.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
