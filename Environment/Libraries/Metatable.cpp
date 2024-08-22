@@ -37,8 +37,8 @@ namespace RbxStu {
 
         int setrawmetatable(lua_State *L) {
             luaL_argexpected(L,
-                             lua_istable(L, 1) || lua_islightuserdata(L, 1) || lua_isuserdata(L, 1) || lua_isbuffer(L, 1) ||
-                                     lua_isvector(L, 1),
+                             lua_istable(L, 1) || lua_islightuserdata(L, 1) || lua_isuserdata(L, 1) ||
+                                     lua_isbuffer(L, 1) || lua_isvector(L, 1),
                              1, "table or userdata or vector or buffer");
 
             luaL_argexpected(L, lua_istable(L, 2) || lua_isnil(L, 2), 2, "table or nil");
@@ -69,8 +69,9 @@ namespace RbxStu {
             lua_pushvalue(L, 1);
             lua_getmetatable(L, -1);
             if (lua_getfield(L, -1, mtName) == LUA_TNIL) {
-                luaL_argerrorL(L, 2,
-                               std::format("'{}' is not a valid member of the given object's metatable.", mtName).c_str());
+                luaL_argerrorL(
+                        L, 2,
+                        std::format("'{}' is not a valid member of the given object's metatable.", mtName).c_str());
             }
             lua_setreadonly(L, -2, false);
 
@@ -83,24 +84,22 @@ namespace RbxStu {
 
             return 1;
         }
-    }
-}
+    } // namespace Metatable
+} // namespace RbxStu
 
 std::string Metatable::GetLibraryName() { return "metatable"; }
 luaL_Reg *Metatable::GetLibraryFunctions() {
-    auto *reg = new luaL_Reg[] {
-        {"getrawmetatable", RbxStu::Metatable::getrawmetatable},
-        {"setrawmetatable", RbxStu::Metatable::setrawmetatable},
+    auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::Metatable::getrawmetatable},
+                               {"setrawmetatable", RbxStu::Metatable::setrawmetatable},
 
-        {"hookmetamethod", RbxStu::Metatable::hookmetamethod},
-        {"getnamecallmethod", RbxStu::Metatable::getnamecallmethod},
-        {"setnamecallmethod", RbxStu::Metatable::setnamecallmethod},
+                               {"hookmetamethod", RbxStu::Metatable::hookmetamethod},
+                               {"getnamecallmethod", RbxStu::Metatable::getnamecallmethod},
+                               {"setnamecallmethod", RbxStu::Metatable::setnamecallmethod},
 
-        {"isreadonly", RbxStu::Metatable::isreadonly},
-        {"setreadonly", RbxStu::Metatable::setreadonly},
+                               {"isreadonly", RbxStu::Metatable::isreadonly},
+                               {"setreadonly", RbxStu::Metatable::setreadonly},
 
-        {nullptr, nullptr}
-    };
+                               {nullptr, nullptr}};
 
     return reg;
 }

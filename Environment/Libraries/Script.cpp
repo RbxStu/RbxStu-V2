@@ -33,9 +33,9 @@ namespace RbxStu {
                 if (iswhite(pGcObj))
                     return false; // The object is being collected/checked. Skip it.
 
-                if (const auto gcObjType = pGcObj->gch.tt; gcObjType == LUA_TFUNCTION || gcObjType == LUA_TUSERDATA ||
-                                                           gcObjType == LUA_TBUFFER || gcObjType == LUA_TLIGHTUSERDATA ||
-                                                           gcObjType == LUA_TTABLE && pCtx->accessTables) {
+                if (const auto gcObjType = pGcObj->gch.tt;
+                    gcObjType == LUA_TFUNCTION || gcObjType == LUA_TUSERDATA || gcObjType == LUA_TBUFFER ||
+                    gcObjType == LUA_TLIGHTUSERDATA || gcObjType == LUA_TTABLE && pCtx->accessTables) {
                     // Push copy to top of stack.
                     ctxL->top->value.gc = pGcObj;
                     ctxL->top->tt = gcObjType;
@@ -122,30 +122,28 @@ namespace RbxStu {
 
             return 0;
         }
-    }
-}
+    } // namespace Script
+} // namespace RbxStu
 
 std::string Script::GetLibraryName() { return "script"; }
 luaL_Reg *Script::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[] {
-        {"getgc", RbxStu::Script::getgc},
-        {"getgenv", RbxStu::Script::getgenv},
-        {"getrenv", RbxStu::Script::getrenv},
-        {"getreg", RbxStu::Script::getreg},
-        {"gettenv", RbxStu::Script::gettenv},
+    auto reg = new luaL_Reg[]{{"getgc", RbxStu::Script::getgc},
+                              {"getgenv", RbxStu::Script::getgenv},
+                              {"getrenv", RbxStu::Script::getrenv},
+                              {"getreg", RbxStu::Script::getreg},
+                              {"gettenv", RbxStu::Script::gettenv},
 
-        {"getidentity", RbxStu::Script::getidentity},
-        {"getthreadidentity", RbxStu::Script::getidentity},
-        {"getthreadcontext", RbxStu::Script::getidentity},
+                              {"getidentity", RbxStu::Script::getidentity},
+                              {"getthreadidentity", RbxStu::Script::getidentity},
+                              {"getthreadcontext", RbxStu::Script::getidentity},
 
-        {"setidentity", RbxStu::Script::setidentity},
-        {"setthreadcontext", RbxStu::Script::setidentity},
-        {"setthreadidentity", RbxStu::Script::setidentity},
+                              {"setidentity", RbxStu::Script::setidentity},
+                              {"setthreadcontext", RbxStu::Script::setidentity},
+                              {"setthreadidentity", RbxStu::Script::setidentity},
 
-        {"printcaps", RbxStu::Script::printcaps},
+                              {"printcaps", RbxStu::Script::printcaps},
 
-        {nullptr, nullptr}
-    };
+                              {nullptr, nullptr}};
 
     return reg;
 }

@@ -42,18 +42,17 @@ namespace RbxStu {
             return 1;
         }
 
-        // TODO: Make cache.replace, cache.iscached, cache.invalidate (Name them here just "replace", "iscached", "invalidate")
-    }
-}
+        // TODO: Make cache.replace, cache.iscached, cache.invalidate (Name them here just "replace", "iscached",
+        // "invalidate")
+    } // namespace Cache
+} // namespace RbxStu
 
 std::string Cache::GetLibraryName() { return "cache"; };
 luaL_Reg *Cache::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[] {
-        {"cloneref", RbxStu::Cache::cloneref},
-        {"compareinstances", RbxStu::Cache::compareinstances},
+    auto reg = new luaL_Reg[]{{"cloneref", RbxStu::Cache::cloneref},
+                              {"compareinstances", RbxStu::Cache::compareinstances},
 
-        {nullptr, nullptr}
-    };
+                              {nullptr, nullptr}};
 
     return reg;
 }

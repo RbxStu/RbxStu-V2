@@ -17,26 +17,25 @@ namespace fs = std::filesystem;
 
 bool canBeUsed = false;
 std::filesystem::path workspaceDir;
-std::unordered_set<std::string> blacklistedExtensions = {
-    ".exe", ".dll", ".bat", ".cmd", ".scr", ".vbs", ".js", ".ts", ".wsf", ".msi", ".com", ".lnk", ".ps1", ".py", ".py3", ".pyc", ".pyw"
-};
+std::unordered_set<std::string> blacklistedExtensions = {".exe", ".dll", ".bat", ".cmd", ".scr", ".vbs",
+                                                         ".js",  ".ts",  ".wsf", ".msi", ".com", ".lnk",
+                                                         ".ps1", ".py",  ".py3", ".pyc", ".pyw"};
 
 std::string GetDllDir() {
     char path[MAX_PATH];
     HMODULE hModule = NULL;
 
-    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-                          GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                          (LPCSTR)&GetDllDir, &hModule)) {
+    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                          (LPCSTR) &GetDllDir, &hModule)) {
         if (GetModuleFileNameA(hModule, path, sizeof(path))) {
             std::filesystem::path fullPath(path);
             return fullPath.parent_path().string();
         }
-                          }
+    }
     return "";
 }
 
-bool IsPathSafe(const std::string& relativePath) {
+bool IsPathSafe(const std::string &relativePath) {
     fs::path base = fs::absolute(workspaceDir);
     fs::path combined = base / relativePath;
 
@@ -60,7 +59,7 @@ bool IsPathSafe(const std::string& relativePath) {
     return true;
 }
 
-void CanBeUsed(lua_State* L) {
+void CanBeUsed(lua_State *L) {
     if (!canBeUsed) {
         luaG_runerror(L, "Filesystem functions are disabled!");
     }
@@ -78,7 +77,7 @@ std::filesystem::path CheckPath(lua_State *L) {
 
 namespace RbxStu {
     namespace Filesystem {
-        int isfile(lua_State* L) {
+        int isfile(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
@@ -88,7 +87,7 @@ namespace RbxStu {
             return 1;
         }
 
-        int isfolder(lua_State* L) {
+        int isfolder(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
@@ -98,19 +97,19 @@ namespace RbxStu {
             return 1;
         }
 
-        int listfiles(lua_State* L) {
+        int listfiles(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
             auto absolutePath = CheckPath(L);
 
-            if (!fs::exists(absolutePath) || !fs::is_directory(absolutePath) ) {
+            if (!fs::exists(absolutePath) || !fs::is_directory(absolutePath)) {
                 luaG_runerror(L, "This folder doesn't exist or it's not a folder!");
             }
 
             lua_newtable(L);
             int currentIndex = 1;
-            for (const auto& entry : fs::directory_iterator(absolutePath)) {
+            for (const auto &entry: fs::directory_iterator(absolutePath)) {
                 lua_pushstring(L, entry.path().string().c_str());
                 lua_rawseti(L, -2, currentIndex);
                 currentIndex++;
@@ -119,13 +118,13 @@ namespace RbxStu {
             return 1;
         }
 
-        int readfile(lua_State* L) {
+        int readfile(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
             auto absolutePath = CheckPath(L);
 
-            if (!fs::exists(absolutePath) || !fs::is_regular_file(absolutePath))  {
+            if (!fs::exists(absolutePath) || !fs::is_regular_file(absolutePath)) {
                 luaG_runerror(L, "This file doesn't exist or it's not a file!");
             }
 
@@ -146,7 +145,7 @@ namespace RbxStu {
             return 1;
         }
 
-        int writefile(lua_State* L) {
+        int writefile(lua_State *L) {
             luaL_checkstring(L, 1);
             luaL_checkstring(L, 2);
             CanBeUsed(L);
@@ -189,14 +188,15 @@ namespace RbxStu {
             return 0;
         }
 
-        int makefolder(lua_State* L) {
+        int makefolder(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
             auto absolutePath = CheckPath(L);
 
             if (fs::is_directory(absolutePath)) {
-                //luaG_runerror(L, "There is already a folder on this path!"); Most scripts do not think, that this will ever error, so I have to suppress this
+                // luaG_runerror(L, "There is already a folder on this path!"); Most scripts do not think, that this
+                // will ever error, so I have to suppress this
                 return 0;
             }
 
@@ -212,7 +212,7 @@ namespace RbxStu {
             return 0;
         }
 
-        int delfile(lua_State* L) {
+        int delfile(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
@@ -226,7 +226,7 @@ namespace RbxStu {
             return 0;
         }
 
-        int delfolder(lua_State* L) {
+        int delfolder(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
@@ -240,7 +240,7 @@ namespace RbxStu {
             return 0;
         }
 
-        int dofile(lua_State* L) {
+        int dofile(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
@@ -261,7 +261,7 @@ namespace RbxStu {
             return 0;
         }
 
-        int appendfile(lua_State* L) {
+        int appendfile(lua_State *L) {
             luaL_checkstring(L, 1);
             luaL_checkstring(L, 2);
             CanBeUsed(L);
@@ -288,18 +288,18 @@ namespace RbxStu {
             return 0;
         }
 
-        int loadfile(lua_State* L) {
+        int loadfile(lua_State *L) {
             luaL_checkstring(L, 1);
             CanBeUsed(L);
 
             auto relativePath = lua_tostring(L, 1);
             auto absolutePath = CheckPath(L);
-            const char* sectionName = "";
+            const char *sectionName = "";
             if (!lua_isnil(L, 2)) {
                 sectionName = lua_tostring(L, 2);
             }
 
-            if (!fs::exists(absolutePath) || !fs::is_regular_file(absolutePath) ) {
+            if (!fs::exists(absolutePath) || !fs::is_regular_file(absolutePath)) {
                 luaG_runerror(L, "This file doesn't exist or it's not a file!");
             }
 
@@ -321,8 +321,8 @@ namespace RbxStu {
 
             return 1;
         }
-    }
-}
+    } // namespace Filesystem
+} // namespace RbxStu
 
 std::string Filesystem::GetLibraryName() { return "fs"; }
 
@@ -336,30 +336,33 @@ luaL_Reg *Filesystem::GetLibraryFunctions() {
         workspaceDir = currentDirectory / "workspace";
         if (!fs::exists(workspaceDir)) {
             if (fs::create_directory(workspaceDir)) {
-                logger->PrintInformation(RbxStu::Env_Filesystem, std::format("Created workspace directory at: {}", workspaceDir.string()));
+                logger->PrintInformation(RbxStu::Env_Filesystem,
+                                         std::format("Created workspace directory at: {}", workspaceDir.string()));
             } else {
                 canBeUsed = false;
-                logger->PrintWarning(RbxStu::Env_Filesystem, "Failed to create workspace directory! Filesystem functions will be disabled!");
+                logger->PrintWarning(RbxStu::Env_Filesystem,
+                                     "Failed to create workspace directory! Filesystem functions will be disabled!");
             }
         }
     } else {
-        logger->PrintWarning(RbxStu::Env_Filesystem, "Failed to get directory path of the dll! Filesystem functions will be disabled!");
+        logger->PrintWarning(RbxStu::Env_Filesystem,
+                             "Failed to get directory path of the dll! Filesystem functions will be disabled!");
     }
 
     auto *reg = new luaL_Reg[]{
-                              {"isfile", RbxStu::Filesystem::isfile},
-                              {"isfolder", RbxStu::Filesystem::isfolder},
-                              {"listfiles", RbxStu::Filesystem::listfiles},
-                              {"readfile", RbxStu::Filesystem::readfile},
-                              {"writefile", RbxStu::Filesystem::writefile},
-                              {"makefolder", RbxStu::Filesystem::makefolder},
-                              {"delfile", RbxStu::Filesystem::delfile},
-                              {"delfolder", RbxStu::Filesystem::delfolder},
-                              {"dofile", RbxStu::Filesystem::dofile},
-                              {"appendfile", RbxStu::Filesystem::appendfile},
-                              {"loadfile", RbxStu::Filesystem::loadfile},
+            {"isfile", RbxStu::Filesystem::isfile},
+            {"isfolder", RbxStu::Filesystem::isfolder},
+            {"listfiles", RbxStu::Filesystem::listfiles},
+            {"readfile", RbxStu::Filesystem::readfile},
+            {"writefile", RbxStu::Filesystem::writefile},
+            {"makefolder", RbxStu::Filesystem::makefolder},
+            {"delfile", RbxStu::Filesystem::delfile},
+            {"delfolder", RbxStu::Filesystem::delfolder},
+            {"dofile", RbxStu::Filesystem::dofile},
+            {"appendfile", RbxStu::Filesystem::appendfile},
+            {"loadfile", RbxStu::Filesystem::loadfile},
 
-                              {nullptr, nullptr},
+            {nullptr, nullptr},
     };
 
     return reg;
