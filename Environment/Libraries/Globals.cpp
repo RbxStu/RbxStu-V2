@@ -202,14 +202,6 @@ namespace RbxStu {
         return lua_yield(L, 1);
     }
 
-    int setnamecallmethod(lua_State *L) {
-        luaL_checkstring(L, 1);
-        if (L->namecall != nullptr)
-            L->namecall = &L->top->value.gc->ts;
-
-        return 0;
-    }
-
     int fireproximityprompt(lua_State *L) {
         Utilities::checkInstance(L, 1, "ProximityPrompt");
 
