@@ -1,0 +1,87 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default Config",
+      "description": "Default build using Ninja generator",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl",
+        "LUAU_BUILD_TESTS": "OFF",
+        "LUAU_BUILD_CLI": "OFF",
+        "LUAU_BUILD_VM": "ON",
+        "LUAU_BUILD_COMPILER": "ON",
+        "LUAU_BUILD_ANALYSIS": "OFF",
+        "BUILD_TESTING": "OFF",
+        "BUILD_TESTS": "OFF",
+        "BUILD_EXAMPLES": "OFF",
+        "VCPKG_APPLOCAL_DEPS": "OFF",
+        "CRYPTOTOP_BUILD_TESTS": "OFF",
+        "CRYPTOPP_INSTALL": "OFF"
+      }
+    },
+    {
+      "name": "Release",
+      "inherits": "default",
+      "displayName": "Release Config",
+      "binaryDir": "${sourceDir}/build-${presetName}",
+      "description": "Release build using Ninja generator",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "RelWithDebInfo",
+      "inherits": "default",
+      "displayName": "RelWithDebInfo Config",
+      "binaryDir": "${sourceDir}/build-${presetName}",
+      "description": "RelWithDebInfo build using Ninja generator",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "Debug",
+      "inherits": "default",
+      "displayName": "Debug Config",
+      "binaryDir": "${sourceDir}/build-${presetName}",
+      "description": "RelWithDebInfo build using Ninja generator",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "configuration": "RelWithDebInfo",
+      "targets": [
+        "Module"
+      ]
+    },
+    {
+      "name": "Release",
+      "inherits": "default",
+      "configuration": "Release"
+    },
+    {
+      "name": "RelWithDebInfo",
+      "inherits": "default",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "Debug",
+      "inherits": "default",
+      "configuration": "Debug"
+    }
+  ]
+}

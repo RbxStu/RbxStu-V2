@@ -17,9 +17,11 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: true
 
       - name: Add MSVC to PATH
         uses: ilammy/msvc-dev-cmd@v1
@@ -35,32 +37,12 @@ jobs:
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
 
-      - name: Configure CMake
-        run: |
-          cmake -B ${{github.workspace}}/build -G Ninja `
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-          -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-          -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake `
-          -DCMAKE_CXX_STANDARD=20 `
-          -DCMAKE_CXX_STANDARD_REQUIRED=ON `
-          -DCMAKE_C_COMPILER=cl `
-          -DCMAKE_CXX_COMPILER=cl `
-          -DLUAU_BUILD_TESTS=OFF `
-          -DLUAU_BUILD_CLI=OFF `
-          -DLUAU_BUILD_VM=ON `
-          -DLUAU_BUILD_COMPILER=ON `
-          -DLUAU_BUILD_ANALYSIS=OFF `
-          -DBUILD_TESTING=OFF `
-          -DBUILD_TESTS=OFF `
-          -DBUILD_EXAMPLES=OFF `
-          -DVCPKG_APPLOCAL_DEPS=OFF `
-          -DCRYPTOTOP_BUILD_TESTS=OFF `
-          -DCMAKE_C_COMPILER_LAUNCHER=ccache `
-          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache `
-          -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded `
-
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config RelWithDebInfo
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'default'
+          configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache','-DCMAKE_CXX_COMPILER_LAUNCHER=ccache','-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded']"
+          buildPreset: 'default'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
