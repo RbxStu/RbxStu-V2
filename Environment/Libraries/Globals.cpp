@@ -5,6 +5,7 @@
 #include "Globals.hpp"
 
 #include <HttpStatus.hpp>
+#include <iostream>
 #include <lz4.h>
 
 #include "ClosureManager.hpp"
@@ -622,6 +623,38 @@ namespace RbxStu {
 
         return 1;
     }
+
+    int isnetworkowner(lua_State* L) {
+        Utilities::checkInstance(L, 1, "BasePart");
+        auto part = *static_cast<void**>(lua_touserdata(L, 1));
+        lua_getglobal(L, "game");
+        lua_getfield(L, -1, "Players");
+        lua_getfield(L, -1, "LocalPlayer");
+        auto player = *static_cast<void**>(lua_touserdata(L, -1));
+        lua_pop(L, 3);
+        auto partSystemAddress = RBX::SystemAddress{0};
+        auto localPlayerAddress = RBX::SystemAddress{0};
+
+        std::cout << "Part address: " << part << std::endl;
+
+        auto getNetworkOwner = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(RobloxManager::GetSingleton()->GetRobloxFunction("RBX::BasePart::getNetworkOwner"));
+
+        getNetworkOwner(part, &partSystemAddress);
+
+        std::cout << "Player address: " << player << std::endl;
+        uintptr_t playerAddr = *(uintptr_t*)((uintptr_t)player + 0x5e8);
+        std::cout << "*(Player + 0x5e8): " << (void*)playerAddr << std::endl;
+
+        localPlayerAddress.remoteId.peerId = playerAddr;
+
+        std::cout << "Part SystemAddress: " << partSystemAddress.remoteId.peerId << std::endl;
+        std::cout << "LocalPlayer SystemAddress: " << localPlayerAddress.remoteId.peerId << std::endl;
+
+        lua_pushnumber(L, partSystemAddress.remoteId.peerId);
+        lua_pushnumber(L, localPlayerAddress.remoteId.peerId);
+        lua_pushboolean(L, partSystemAddress.remoteId.peerId == localPlayerAddress.remoteId.peerId);
+        return 3;
+    }
 } // namespace RbxStu
 
 
@@ -671,6 +704,8 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"checkclosure", RbxStu::isourclosure},
                                {"isexecutorclosure", RbxStu::isourclosure},
                                {"identifyexecutor", RbxStu::identifyexecutor},
+
+                               {"isnetworkowner", RbxStu::isnetworkowner},
 
                                {"getexecutorname", RbxStu::identifyexecutor},
                                {"decompile", RbxStu::decompile},

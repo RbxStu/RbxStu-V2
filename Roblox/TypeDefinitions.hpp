@@ -7,6 +7,14 @@
 
 #include "lstate.h"
 namespace RBX {
+    struct SystemAddress {
+        struct PeerId {
+            double peerId;
+        };
+
+        PeerId remoteId;
+    };
+
     namespace Lua {
         struct WeakThreadRef {
             std::atomic_int32_t _Refs;

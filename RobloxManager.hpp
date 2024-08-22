@@ -43,6 +43,12 @@ namespace RbxStu {
         using r_RBX_ScriptContext_resume = void(__fastcall *)(void *scriptContext, std::int64_t unk[0x2],
                                                               RBX::Lua::WeakThreadRef **ppWeakThreadRef, int32_t nRet,
                                                               bool isError, char const *szErrorMessage);
+        using r_RBX_BasePart_getNetworkOwner = RBX::SystemAddress*(__fastcall *)(void* basePart, RBX::SystemAddress* returnSystemAddress);
+        using r_RBX_Player_findPlayerWithAddress = std::shared_ptr<void>*(__fastcall *)(
+            std::shared_ptr<void>* __return,
+            const RBX::SystemAddress* playerAddress,
+            const void* context
+        );
 
     } // namespace StudioFunctionDefinitions
 
@@ -157,6 +163,15 @@ namespace RbxStu {
                 "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B D9 48 83 3A 00 74 5E 48 8B D1 48 8D 4C 24 ? "
                 "E8 ? ? ? ? 90 4C 8B 07 48 8D 54 24 ? 48 8B 4C 24 ? E8 ? ? ? ? 0F B6 F0 48 8B 4C 24 ? 48 85 C9 74 15");
 
+        MakeSignature_FromIDA(
+                RBX_BasePart_getNetworkOwner,
+                "48 8B 81 ? ? ? ? 8B 88 ? ? ? ? 48 8B C2 89 0A C3");
+
+        MakeSignature_FromIDA(
+                RBX_Players_findPlayerWithAddress,
+                "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 4C 8B EA 4C 8B F9 4D 85 C0 0F 84 AE 02 00 ? 49 8B 78 ? 48 85 FF 74 13 48 8B 4F ? 48 85 C9 74 0D E8 ? ? ? ? 48 8B F8"
+        );
+
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
@@ -184,6 +199,9 @@ namespace RbxStu {
                 {"RBX::Instance::removeAllChildren", RBX_Instance_removeAllChildren},
                 {"RBX::Instance::remove", RBX_Instance_remove},
                 {"RBX::Instance::pushInstance", RBX_Instance_pushInstance},
+
+                {"RBX::BasePart::getNetworkOwner", RBX_BasePart_getNetworkOwner},
+                {"RBX::Players::findPlayerWithAddress", RBX_Players_findPlayerWithAddress},
 
                 {"RBX::DataModel::clearContents", RBX_DataModel_clearContents},
                 {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose},
