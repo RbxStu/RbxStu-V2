@@ -124,31 +124,31 @@ namespace RbxStu {
     }
 
 #ifdef ISNETWORKOWNER_DEV
-    int isnetworkowner(lua_State* L) {
+    int isnetworkowner(lua_State *L) {
         Utilities::checkInstance(L, 1, "BasePart");
-        auto part = *static_cast<void**>(lua_touserdata(L, 1));
+        auto part = *static_cast<void **>(lua_touserdata(L, 1));
         lua_getglobal(L, "game");
         lua_getfield(L, -1, "Players");
         lua_getfield(L, -1, "LocalPlayer");
-        auto player = *static_cast<void**>(lua_touserdata(L, -1));
+        auto player = *static_cast<void **>(lua_touserdata(L, -1));
         lua_pop(L, 3);
         auto partSystemAddress = RBX::SystemAddress{0};
         auto localPlayerAddress = RBX::SystemAddress{0};
 
         uintptr_t partAddr = reinterpret_cast<uintptr_t>(part);
-        std::cout << "Part address: " << reinterpret_cast<void*>(partAddr) << std::endl;
+        std::cout << "Part address: " << reinterpret_cast<void *>(partAddr) << std::endl;
 
-        uintptr_t part2Addr = *reinterpret_cast<uintptr_t*>(partAddr + 0x150);
-        std::cout << "*(Part + 0x150): " << reinterpret_cast<void*>(part2Addr) << std::endl;
+        uintptr_t part2Addr = *reinterpret_cast<uintptr_t *>(partAddr + 0x150);
+        std::cout << "*(Part + 0x150): " << reinterpret_cast<void *>(part2Addr) << std::endl;
 
-        uintptr_t part3Addr = *reinterpret_cast<uintptr_t*>(part2Addr + 0x268);
-        std::cout << "*(*(Part + 0x150) + 0x268): " << reinterpret_cast<void*>(part3Addr) << std::endl;
+        uintptr_t part3Addr = *reinterpret_cast<uintptr_t *>(part2Addr + 0x268);
+        std::cout << "*(*(Part + 0x150) + 0x268): " << reinterpret_cast<void *>(part3Addr) << std::endl;
 
         partSystemAddress.remoteId.peerId = part3Addr;
 
         std::cout << "Player address: " << player << std::endl;
-        uintptr_t playerAddr = *(uintptr_t*)((uintptr_t)player + 0x5e8);
-        std::cout << "*(Player + 0x5e8): " << (void*)playerAddr << std::endl;
+        uintptr_t playerAddr = *(uintptr_t *) ((uintptr_t) player + 0x5e8);
+        std::cout << "*(Player + 0x5e8): " << (void *) playerAddr << std::endl;
 
         localPlayerAddress.remoteId.peerId = playerAddr;
 
@@ -168,8 +168,7 @@ namespace RbxStu {
 std::string Globals::GetLibraryName() { return "rbxstu"; }
 luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
-    auto *reg = new luaL_Reg[]{
-                               {"isluau", RbxStu::isluau},
+    auto *reg = new luaL_Reg[]{{"isluau", RbxStu::isluau},
                                {"httpget", RbxStu::httpget},
                                {"gethui", RbxStu::gethui},
                                {"fireproximityprompt", RbxStu::fireproximityprompt},

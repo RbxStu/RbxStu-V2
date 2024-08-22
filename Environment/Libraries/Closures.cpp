@@ -83,35 +83,33 @@ namespace RbxStu {
             lua_setsafeenv(L, LUA_GLOBALSINDEX, false); // env is not safe anymore.
             return 1;
         }
-    }
-}
+    } // namespace Closures
+} // namespace RbxStu
 
 std::string Closures::GetLibraryName() { return "closures"; }
 
 luaL_Reg *Closures::GetLibraryFunctions() {
-    auto *reg = new luaL_Reg[] {
-        {"checkcaller", RbxStu::Closures::checkcaller},
-        {"clonefunction", ClosureManager::clonefunction},
-        {"getcallingscript", RbxStu::Closures::getcallingscript},
+    auto *reg = new luaL_Reg[]{{"checkcaller", RbxStu::Closures::checkcaller},
+                               {"clonefunction", ClosureManager::clonefunction},
+                               {"getcallingscript", RbxStu::Closures::getcallingscript},
 
-        {"hookfunction", ClosureManager::hookfunction},
-        {"replaceclosure", ClosureManager::hookfunction},
-        {"unhookfunction", ClosureManager::unhookfunction},
-        {"restorefunction", ClosureManager::unhookfunction},
+                               {"hookfunction", ClosureManager::hookfunction},
+                               {"replaceclosure", ClosureManager::hookfunction},
+                               {"unhookfunction", ClosureManager::unhookfunction},
+                               {"restorefunction", ClosureManager::unhookfunction},
 
-        {"newlclosure", ClosureManager::newlclosure},
-        {"newcclosure", ClosureManager::newcclosure},
-        {"iscclosure", RbxStu::Closures::iscclosure},
-        {"islclosure", RbxStu::Closures::islclosure},
+                               {"newlclosure", ClosureManager::newlclosure},
+                               {"newcclosure", ClosureManager::newcclosure},
+                               {"iscclosure", RbxStu::Closures::iscclosure},
+                               {"islclosure", RbxStu::Closures::islclosure},
 
-        {"isourclosure", RbxStu::Closures::isourclosure},
-        {"checkclosure", RbxStu::Closures::isourclosure},
-        {"isexecutorclosure", RbxStu::Closures::isourclosure},
+                               {"isourclosure", RbxStu::Closures::isourclosure},
+                               {"checkclosure", RbxStu::Closures::isourclosure},
+                               {"isexecutorclosure", RbxStu::Closures::isourclosure},
 
-        {"loadstring", RbxStu::Closures::loadstring},
+                               {"loadstring", RbxStu::Closures::loadstring},
 
-        {nullptr, nullptr}
-    };
+                               {nullptr, nullptr}};
 
     return reg;
 }
