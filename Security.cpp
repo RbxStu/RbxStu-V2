@@ -98,7 +98,7 @@ void Security::PrintCapabilities(std::uint32_t capabilities) {
 };
 
 int Security::IdentityToCapabilities(std::uint32_t identity) {
-    int capabilities = 0x3FFFF00 | (63 << 1); // Basic capability | Checkcaller check
+    int capabilities = 0x3FFFF00 | (1 << 46); // Basic capability | Checkcaller check
     auto capabilitiesForIdentity = identityCapabilities.find(identity);
 
     if (capabilitiesForIdentity != identityCapabilities.end()) {
@@ -128,9 +128,6 @@ void Security::SetThreadSecurity(lua_State *L, int identity) {
     auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     auto capabilities = Security::GetSingleton()->IdentityToCapabilities(identity);
 
-    Logger::GetSingleton()->PrintInformation(RbxStu::Security,
-                                             std::format("Elevating our thread capabilities to: 0x{:X}", capabilities));
-
     plStateUd->identity = identity;
     plStateUd->capabilities = capabilities;
 }
@@ -145,13 +142,13 @@ static void set_proto(Proto *proto, uintptr_t *proto_identity) {
 
 bool Security::IsOurThread(lua_State *L) {
     /// The way we currently have of checking if a thread is our thread is through... capabilities!
-    /// Roblox handles capabilities using an std::int64_t, giving us 64 fun bits to play around with.
-    /// This way, we can set the bit 64th, used to describe NOTHING, to set it as
+    /// Roblox handles capabilities using an std::int64_t, giving us 47 fun bits to play around with.
+    /// This way, we can set the bit 47th, used to describe NOTHING, to set it as
     /// our thread. Then we & it to validate it is present on the integer with an AND, which it shouldn't be ever if
     /// its anything normal, but we aren't normal!
     const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     const auto logger = Logger::GetSingleton();
-    const auto passed = (extraSpace->capabilities & (63 << 1)) == (63 << 1);
+    const auto passed = (extraSpace->capabilities & (1 << 46)) == (1 << 46);
     return passed;
 }
 
