@@ -38,6 +38,8 @@ public:
             const auto logger = Logger::GetSingleton();
             logger->PrintInformation(RbxStu::ThreadManagement, "Cleaning up thread handles!");
             for (auto &[_, hThread]: this->threadInformation) {
+                if (state == SUSPENDED)
+                    ResumeThread(hThread);
                 CloseHandle(hThread);
             }
         }
