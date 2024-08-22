@@ -406,7 +406,7 @@ namespace RbxStu {
     }
 
     int require(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+        Utilities::checkInstance(L, 1, "ModuleScript");
 
         auto moduleScript = *static_cast<RBX::ModuleScript **>(lua_touserdata(L, 1));
         moduleScript->m_bIsRobloxScriptModule = true;
