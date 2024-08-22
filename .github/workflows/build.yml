@@ -13,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Visual Studio shell
-        uses: microsoft/setup-msbuild@v1.1
+      - name: Add MSVC to PATH
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -34,7 +34,9 @@ jobs:
           -DVCPKG_TARGET_TRIPLET=x64-windows-static `
           -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake `
           -DCMAKE_CXX_STANDARD=23 `
-          -DCMAKE_CXX_STANDARD_REQUIRED=ON
+          -DCMAKE_CXX_STANDARD_REQUIRED=ON `
+          -DCMAKE_C_COMPILER=cl `
+          -DCMAKE_CXX_COMPILER=cl
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config RelWithDebInfo
