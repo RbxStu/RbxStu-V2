@@ -44,7 +44,11 @@ static lua_CFunction __namecall_game_original = nullptr;
 static std::vector<std::string> blockedServices = {"linkingservice",    "browserservice",
                                                    "httprbxapiservice", "opencloudservice",
                                                    "messagebusservice", "omnirecommendationsservice",
-                                                   "captureservice",    "corepackages"};
+                                                   "captureservice",    "corepackages",
+                                                   "animationfromvideocreatorservice",
+                                                   "insertservice", "safetyservice",
+                                                   "appupdateservice", "ugcvalidationservice",
+                                                   "avatareditorservice"};
 
 static std::vector<std::string> blockedFunctions = {"openvideosfolder",
                                                     "openscreenshotsfolder",
@@ -70,7 +74,29 @@ static std::vector<std::string> blockedFunctions = {"openvideosfolder",
                                                     "savescriptprofilingdata",
                                                     "openurl",
                                                     "deletecapture",
-                                                    "deletecapturesasync"};
+                                                    "deletecapturesasync",
+                                                    "promptbulkpurchase",
+                                                    "performbulkpurchase",
+                                                    "performsubscriptionpurchase",// Solves PerformSubscriptionPurchaseV2
+                                                    "promptcollectiblespurchase",
+                                                    "promptnativepurchasewithlocalplayer",
+                                                    "promptpremiumpurchase",
+                                                    "promptsubscriptionpurchase",
+                                                    "getusersubscriptionpaymenthistoryasync",
+                                                    "broadcastnotification",
+                                                    "setpurchasepromptisshown",
+                                                    "addcorescriptlocal",
+                                                    "savescriptprofilingdata",
+                                                    "setbaseurl",
+                                                    "requestinternal",
+                                                    "getasync",
+                                                    "requestasync",
+                                                    "postasync",
+                                                    "load",
+                                                    "openscreenshotsfolder",
+                                                    "openvideosfolder",
+                                                    "takescreenshot",
+                                                    "togglerecording"};
 
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
