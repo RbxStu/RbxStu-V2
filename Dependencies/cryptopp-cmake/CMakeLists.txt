@@ -153,7 +153,7 @@ option(
     "Get crypto++ from the master branch, not from a release tag"
     FALSE
 )
-option(CRYPTOPP_BUILD_TESTING "Build library tests" ON)
+option(CRYPTOPP_BUILD_TESTING "Build library tests" OFF)
 option(
     CRYPTOPP_BUILD_DOCUMENTATION
     "Use Doxygen to create the HTML-based API documentation"
