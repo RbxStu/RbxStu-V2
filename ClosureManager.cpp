@@ -163,7 +163,6 @@ int ClosureManager::hookfunction(lua_State *L) {
         return 1;
     }
 
-    luaL_error(L, "hookfunction: L closure hooking is currently unavailable");
 
     // L->C/NC/L
     if (!hookTarget->isC) {
