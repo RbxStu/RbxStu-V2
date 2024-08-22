@@ -79,11 +79,6 @@ namespace RbxStu {
         return 1;
     }
 
-    int isrbxactive(lua_State *L) {
-        lua_pushboolean(L, GetForegroundWindow() == GetCurrentProcess());
-        return 1;
-    }
-
     int decompile(lua_State *L) {
         // Since we can access original source, we will just return that
         Utilities::checkInstance(L, 1, "LuaSourceContainer");
@@ -104,8 +99,6 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"httpget", RbxStu::httpget},
                                {"require", RbxStu::require},
 
-                               {"isrbxactive", RbxStu::isrbxactive},
-                               {"isgameactive", RbxStu::isrbxactive},
                                {"decompile", RbxStu::decompile},
 
                                {nullptr, nullptr}};

@@ -50,6 +50,8 @@ add_library(Module SHARED
         Environment/Libraries/Misc.hpp
         Environment/Libraries/Instance.cpp
         Environment/Libraries/Instance.hpp
+        Environment/Libraries/Input.cpp
+        Environment/Libraries/Input.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
