@@ -4,6 +4,7 @@
 
 #include "EnvironmentManager.hpp"
 
+#include <cstdlib>
 #include <vector>
 
 #include "Communication.hpp"
