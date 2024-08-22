@@ -13,6 +13,7 @@
 #include "Libraries/Debug.hpp"
 #include "Libraries/Filesystem.hpp"
 #include "Libraries/Globals.hpp"
+#include "Libraries/Instance.hpp"
 #include "Libraries/Metatable.hpp"
 #include "Libraries/Misc.hpp"
 #include "Libraries/Script.hpp"
@@ -129,7 +130,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     lua_setglobal(L, "shared");
 
     for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem(), new Closures(),
-                                                 new Metatable(), new Cache(), new Console(), new Script(), new Misc()};
+                                                 new Metatable(), new Cache(), new Console(), new Script(), new Misc(),
+                                                 new Instance()};
          const auto &lib: libList) {
         try {
             const auto envGlobals = lib->GetLibraryFunctions();
