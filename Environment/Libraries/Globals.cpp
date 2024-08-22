@@ -623,7 +623,7 @@ namespace RbxStu {
 
         return 1;
     }
-
+#ifdef ISNETWORKOWNER_DEV
     int isnetworkowner(lua_State* L) {
         Utilities::checkInstance(L, 1, "BasePart");
         auto part = *static_cast<void**>(lua_touserdata(L, 1));
@@ -635,11 +635,16 @@ namespace RbxStu {
         auto partSystemAddress = RBX::SystemAddress{0};
         auto localPlayerAddress = RBX::SystemAddress{0};
 
-        std::cout << "Part address: " << part << std::endl;
+        uintptr_t partAddr = reinterpret_cast<uintptr_t>(part);
+        std::cout << "Part address: " << reinterpret_cast<void*>(partAddr) << std::endl;
 
-        auto getNetworkOwner = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(RobloxManager::GetSingleton()->GetRobloxFunction("RBX::BasePart::getNetworkOwner"));
+        uintptr_t part2Addr = *reinterpret_cast<uintptr_t*>(partAddr + 0x150);
+        std::cout << "*(Part + 0x150): " << reinterpret_cast<void*>(part2Addr) << std::endl;
 
-        getNetworkOwner(part, &partSystemAddress);
+        uintptr_t part3Addr = *reinterpret_cast<uintptr_t*>(part2Addr + 0x268);
+        std::cout << "*(*(Part + 0x150) + 0x268): " << reinterpret_cast<void*>(part3Addr) << std::endl;
+
+        partSystemAddress.remoteId.peerId = part3Addr;
 
         std::cout << "Player address: " << player << std::endl;
         uintptr_t playerAddr = *(uintptr_t*)((uintptr_t)player + 0x5e8);
@@ -655,6 +660,8 @@ namespace RbxStu {
         lua_pushboolean(L, partSystemAddress.remoteId.peerId == localPlayerAddress.remoteId.peerId);
         return 3;
     }
+#endif
+
 } // namespace RbxStu
 
 
@@ -704,9 +711,9 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"checkclosure", RbxStu::isourclosure},
                                {"isexecutorclosure", RbxStu::isourclosure},
                                {"identifyexecutor", RbxStu::identifyexecutor},
-
+#ifdef ISNETWORKOWNER_DEV
                                {"isnetworkowner", RbxStu::isnetworkowner},
-
+#endif
                                {"getexecutorname", RbxStu::identifyexecutor},
                                {"decompile", RbxStu::decompile},
 
