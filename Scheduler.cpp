@@ -46,7 +46,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         auto opts = Luau::CompileOptions{};
         opts.debugLevel = 2;
-        opts.optimizationLevel = 2;
+        opts.optimizationLevel = 1; // O2 enables inlining, this breaks hookfunction in some cases. and thus, it should be 1.
         const char *mutableGlobals[] = {"_G", "_ENV", "shared", nullptr};
         opts.mutableGlobals = mutableGlobals;
         const auto bytecode = Luau::compile(
