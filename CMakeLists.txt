@@ -77,12 +77,6 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Luau")
 # minhook
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Minhook")
 
-# Imgui
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Imgui")
-
-# oxorany
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/oxorany")
-
 # IXWebSocket
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/IXWebSocket")
 
@@ -107,12 +101,6 @@ target_link_libraries(${PROJECT_NAME}
         Luau.VM.Internals
         Luau.EqSat
         Luau.CodeGen
-
-        # Imgui
-        Imgui
-
-        # oxorany
-        oxorany
 
         Dbghelp.lib
 
