@@ -9,7 +9,7 @@
 namespace RBX {
     struct SystemAddress {
         struct PeerId {
-            double peerId;
+            uint32_t peerId;
         };
 
         PeerId remoteId;
