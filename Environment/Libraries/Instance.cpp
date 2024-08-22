@@ -40,6 +40,45 @@ namespace RbxStu {
                     proximityPrompt);
             return 0;
         }
+
+#ifdef ISNETWORKOWNER_DEV
+        int isnetworkowner(lua_State *L) {
+            Utilities::checkInstance(L, 1, "BasePart");
+            auto part = *static_cast<void **>(lua_touserdata(L, 1));
+            lua_getglobal(L, "game");
+            lua_getfield(L, -1, "Players");
+            lua_getfield(L, -1, "LocalPlayer");
+            auto player = *static_cast<void **>(lua_touserdata(L, -1));
+            lua_pop(L, 3);
+            auto partSystemAddress = RBX::SystemAddress{0};
+            auto localPlayerAddress = RBX::SystemAddress{0};
+
+            uintptr_t partAddr = reinterpret_cast<uintptr_t>(part);
+            std::cout << "Part address: " << reinterpret_cast<void *>(partAddr) << std::endl;
+
+            uintptr_t part2Addr = *reinterpret_cast<uintptr_t *>(partAddr + 0x150);
+            std::cout << "*(Part + 0x150): " << reinterpret_cast<void *>(part2Addr) << std::endl;
+
+            uintptr_t part3Addr = *reinterpret_cast<uintptr_t *>(part2Addr + 0x268);
+            std::cout << "*(*(Part + 0x150) + 0x268): " << reinterpret_cast<void *>(part3Addr) << std::endl;
+
+            partSystemAddress.remoteId.peerId = part3Addr;
+
+            std::cout << "Player address: " << player << std::endl;
+            uintptr_t playerAddr = *(uintptr_t *) ((uintptr_t) player + 0x5e8);
+            std::cout << "*(Player + 0x5e8): " << (void *) playerAddr << std::endl;
+
+            localPlayerAddress.remoteId.peerId = playerAddr;
+
+            std::cout << "Part SystemAddress: " << partSystemAddress.remoteId.peerId << std::endl;
+            std::cout << "LocalPlayer SystemAddress: " << localPlayerAddress.remoteId.peerId << std::endl;
+
+            lua_pushnumber(L, partSystemAddress.remoteId.peerId);
+            lua_pushnumber(L, localPlayerAddress.remoteId.peerId);
+            lua_pushboolean(L, partSystemAddress.remoteId.peerId == localPlayerAddress.remoteId.peerId);
+            return 3;
+        }
+#endif
     } // namespace Instance
 } // namespace RbxStu
 
@@ -47,6 +86,10 @@ std::string Instance::GetLibraryName() { return "instances"; }
 luaL_Reg *Instance::GetLibraryFunctions() {
     auto reg = new luaL_Reg[]{{"gethui", RbxStu::Instance::gethui},
                               {"fireproximityprompt", RbxStu::Instance::fireproximityprompt},
+
+#ifdef ISNETWORKOWNER_DEV
+                              {"isnetworkowner", RbxStu::isnetworkowner},
+#endif
 
                               {nullptr, nullptr}};
 
