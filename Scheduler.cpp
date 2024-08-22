@@ -197,9 +197,8 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     const auto security = Security::GetSingleton();
 
-    logger->PrintInformation(RbxStu::Scheduler, "Sandboxing threads to avoid environment modification issues!");
+    logger->PrintInformation(RbxStu::Scheduler, "Sandboxing executor state to avoid environment leaks!");
 
-    luaL_sandboxthread(rL);
     luaL_sandboxthread(L);
 
     logger->PrintInformation(RbxStu::Scheduler, "Initializing Environment for the executor thread!");
