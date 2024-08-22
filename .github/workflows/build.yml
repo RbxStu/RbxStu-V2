@@ -2,9 +2,17 @@ name: Build Project
 
 on:
   push:
-    branches: [ "*" ]
+    paths:
+      - '**.cpp'
+      - '**.hpp'
+      - '**.c'
+      - '**.h'
   pull_request:
-    branches: [ "*" ]
+    paths:
+      - '**.cpp'
+      - '**.hpp'
+      - '**.c'
+      - '**.h'
 
 jobs:
   build:
