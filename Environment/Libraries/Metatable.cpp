@@ -27,6 +27,14 @@ namespace RbxStu {
             return 1;
         }
 
+        int setnamecallmethod(lua_State *L) {
+            luaL_checkstring(L, 1);
+            if (L->namecall != nullptr)
+                L->namecall = &L->top->value.gc->ts;
+
+            return 0;
+        }
+
         int setrawmetatable(lua_State *L) {
             luaL_argexpected(L,
                              lua_istable(L, 1) || lua_islightuserdata(L, 1) || lua_isuserdata(L, 1) || lua_isbuffer(L, 1) ||
@@ -86,6 +94,7 @@ luaL_Reg *Metatable::GetLibraryFunctions() {
 
         {"hookmetamethod", RbxStu::Metatable::hookmetamethod},
         {"getnamecallmethod", RbxStu::Metatable::getnamecallmethod},
+        {"setnamecallmethod", RbxStu::Metatable::setnamecallmethod},
 
         {"isreadonly", RbxStu::Metatable::isreadonly},
         {"setreadonly", RbxStu::Metatable::setreadonly},
