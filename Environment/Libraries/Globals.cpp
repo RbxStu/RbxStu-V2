@@ -599,6 +599,29 @@ namespace RbxStu {
         lua_getfield(L, -1, "Source");
         return 1;
     }
+
+    int hookmetamethod(lua_State *L) {
+        luaL_checkany(L, 1);
+        auto mtName = luaL_checkstring(L, 2);
+        luaL_checktype(L, 3, lua_Type::LUA_TFUNCTION);
+
+        lua_pushvalue(L, 1);
+        lua_getmetatable(L, -1);
+        if (lua_getfield(L, -1, mtName) == LUA_TNIL) {
+            luaL_argerrorL(L, 2,
+                           std::format("'{}' is not a valid member of the given object's metatable.", mtName).c_str());
+        }
+        lua_setreadonly(L, -2, false);
+
+        lua_getglobal(L, "hookfunction");
+        lua_pushvalue(L, -2);
+        lua_pushvalue(L, 3);
+        lua_call(L, 2, 1);
+        lua_remove(L, -2);
+        lua_setreadonly(L, -2, true);
+
+        return 1;
+    }
 } // namespace RbxStu
 
 
@@ -680,6 +703,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"consolewarn", RbxStu::rconsolewarn},
                                {"consoleerror", RbxStu::rconsoleerror},
 
+                               {"hookmetamethod", RbxStu::hookmetamethod},
 
                                {nullptr, nullptr}};
     return reg;
