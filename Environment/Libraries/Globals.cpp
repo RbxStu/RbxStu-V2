@@ -26,40 +26,6 @@ namespace RbxStu {
         return 1;
     }
 
-    int httpget(lua_State *L) {
-        const std::string url = luaL_checkstring(L, 1);
-
-        if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos)
-            luaL_argerror(L, 1, "Invalid protocol (expected 'http://' or 'https://')");
-
-        const auto scheduler = Scheduler::GetSingleton();
-
-        scheduler->ScheduleJob(SchedulerJob(
-                L, [url](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
-                    const auto response = cpr::Get(cpr::Url{url}, cpr::Header{{"User-Agent", "Roblox/WinInet"}});
-
-                    auto output = std::string("");
-
-                    if (HttpStatus::IsError(response.status_code)) {
-                        output = std::format(
-                                "HttpGet failed\nResponse {} - {}. {}", std::to_string(response.status_code),
-                                HttpStatus::ReasonPhrase(response.status_code), std::string(response.error.message));
-                    } else {
-                        output = response.text;
-                    }
-
-                    *callbackToExecute = std::async(std::launch::async, [output]() -> std::function<int(lua_State *)> {
-                        return [output](lua_State *L) -> int {
-                            lua_pushlstring(L, output.c_str(), output.size());
-                            return 1;
-                        };
-                    });
-                }));
-
-        L->ci->flags |= 1;
-        return lua_yield(L, 1);
-    }
-
 
     int require(lua_State *L) {
         Utilities::checkInstance(L, 1, "ModuleScript");
@@ -96,9 +62,7 @@ std::string Globals::GetLibraryName() { return "rbxstu"; }
 luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
     auto *reg = new luaL_Reg[]{{"isluau", RbxStu::isluau},
-                               {"httpget", RbxStu::httpget},
                                {"require", RbxStu::require},
-
                                {"decompile", RbxStu::decompile},
 
                                {nullptr, nullptr}};
