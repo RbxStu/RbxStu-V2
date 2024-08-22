@@ -48,7 +48,9 @@ static std::vector<std::string> blockedServices = {"linkingservice",    "browser
                                                    "animationfromvideocreatorservice",
                                                    "insertservice", "safetyservice",
                                                    "appupdateservice", "ugcvalidationservice",
-                                                   "avatareditorservice"};
+                                                   "avatareditorservice", "accountservice",
+                                                   "analyticsservice", "ixpservice",
+                                                   "sessionservice", "platformcloudstorageservice"};
 
 static std::vector<std::string> blockedFunctions = {"openvideosfolder",
                                                     "openscreenshotsfolder",
@@ -96,8 +98,9 @@ static std::vector<std::string> blockedFunctions = {"openvideosfolder",
                                                     "openscreenshotsfolder",
                                                     "openvideosfolder",
                                                     "takescreenshot",
-                                                    "togglerecording"};
-
+                                                    "togglerecording",
+                                                    "startplaying",
+                                                    "sendrobloxevent"};
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
