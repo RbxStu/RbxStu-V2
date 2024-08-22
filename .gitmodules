@@ -1,0 +1,15 @@
+[submodule "vcpkg"]
+	path = vcpkg
+	url = https://github.com/microsoft/vcpkg
+[submodule "Dependencies/Minhook"]
+	path = Dependencies/Minhook
+	url = https://github.com/TsudaKageyu/minhook
+[submodule "Dependencies/IXWebSocket"]
+	path = Dependencies/IXWebSocket
+	url = https://github.com/machinezone/IXWebSocket
+[submodule "Dependencies/cryptopp-cmake"]
+	path = Dependencies/cryptopp-cmake
+	url = https://github.com/abdes/cryptopp-cmake
+[submodule "Dependencies/cpr"]
+	path = Dependencies/cpr
+	url = https://github.com/libcpr/cpr
