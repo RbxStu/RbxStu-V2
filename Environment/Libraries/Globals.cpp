@@ -80,15 +80,6 @@ namespace RbxStu {
         luaL_error(L, strStream.str().c_str());
     }
 
-    int getrawmetatable(lua_State *L) {
-        luaL_checkany(L, 1);
-
-        if (!lua_getmetatable(L, 1))
-            lua_pushnil(L);
-
-        return 1;
-    }
-
     int getreg(lua_State *L) {
         lua_pushvalue(L, LUA_REGISTRYINDEX);
         return 1;
@@ -108,17 +99,6 @@ namespace RbxStu {
         return 1;
     }
 
-    int getnamecallmethod(lua_State *L) {
-        const auto szNamecall = lua_namecallatom(L, nullptr);
-
-        if (szNamecall == nullptr) {
-            lua_pushnil(L);
-        } else {
-            lua_pushstring(L, szNamecall);
-        }
-
-        return 1;
-    }
 
     int getgc(lua_State *L) {
         const bool addTables = luaL_optboolean(L, 1, false);
@@ -158,20 +138,6 @@ namespace RbxStu {
         });
         L->global->GCthreshold = ullOldThreshold;
 
-        return 1;
-    }
-
-    int setreadonly(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TTABLE);
-        const bool bIsReadOnly = luaL_optboolean(L, 2, false);
-        lua_setreadonly(L, 1, bIsReadOnly);
-
-        return 0;
-    }
-
-    int isreadonly(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TTABLE);
-        lua_pushboolean(L, lua_getreadonly(L, 1));
         return 1;
     }
 
@@ -234,19 +200,6 @@ namespace RbxStu {
 
         L->ci->flags |= 1;
         return lua_yield(L, 1);
-    }
-
-
-    int setrawmetatable(lua_State *L) {
-        luaL_argexpected(L,
-                         lua_istable(L, 1) || lua_islightuserdata(L, 1) || lua_isuserdata(L, 1) || lua_isbuffer(L, 1) ||
-                                 lua_isvector(L, 1),
-                         1, "table or userdata or vector or buffer");
-
-        luaL_argexpected(L, lua_istable(L, 2) || lua_isnil(L, 2), 2, "table or nil");
-
-        lua_setmetatable(L, 1);
-        return 0;
     }
 
     int setnamecallmethod(lua_State *L) {
@@ -530,28 +483,6 @@ namespace RbxStu {
         return 1;
     }
 
-    int hookmetamethod(lua_State *L) {
-        luaL_checkany(L, 1);
-        auto mtName = luaL_checkstring(L, 2);
-        luaL_checktype(L, 3, lua_Type::LUA_TFUNCTION);
-
-        lua_pushvalue(L, 1);
-        lua_getmetatable(L, -1);
-        if (lua_getfield(L, -1, mtName) == LUA_TNIL) {
-            luaL_argerrorL(L, 2,
-                           std::format("'{}' is not a valid member of the given object's metatable.", mtName).c_str());
-        }
-        lua_setreadonly(L, -2, false);
-
-        lua_getglobal(L, "hookfunction");
-        lua_pushvalue(L, -2);
-        lua_pushvalue(L, 3);
-        lua_call(L, 2, 1);
-        lua_remove(L, -2);
-        lua_setreadonly(L, -2, true);
-
-        return 1;
-    }
 #ifdef ISNETWORKOWNER_DEV
     int isnetworkowner(lua_State* L) {
         Utilities::checkInstance(L, 1, "BasePart");
@@ -597,18 +528,14 @@ namespace RbxStu {
 std::string Globals::GetLibraryName() { return "rbxstu"; }
 luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
-    auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
+    auto *reg = new luaL_Reg[]{
                                {"getreg", RbxStu::getreg},
                                {"getgenv", RbxStu::getgenv},
                                {"getrenv", RbxStu::getrenv},
-                               {"getnamecallmethod", RbxStu::getnamecallmethod},
                                {"getgc", RbxStu::getgc},
-                               {"setreadonly", RbxStu::setreadonly},
-                               {"isreadonly", RbxStu::isreadonly},
                                {"isluau", RbxStu::isluau},
                                {"httpget", RbxStu::httpget},
                                {"gethui", RbxStu::gethui},
-                               {"setrawmetatable", RbxStu::setrawmetatable},
                                {"compareinstances", RbxStu::compareinstances},
                                {"fireproximityprompt", RbxStu::fireproximityprompt},
                                {"cloneref", RbxStu::cloneref},
@@ -655,8 +582,6 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"consoleprint", RbxStu::rconsoleprint},
                                {"consolewarn", RbxStu::rconsolewarn},
                                {"consoleerror", RbxStu::rconsoleerror},
-
-                               {"hookmetamethod", RbxStu::hookmetamethod},
 
                                {nullptr, nullptr}};
     return reg;
