@@ -36,14 +36,14 @@ jobs:
           -DCMAKE_CXX_STANDARD=23 `
           -DCMAKE_CXX_STANDARD_REQUIRED=ON
 
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config RelWithDebInfo
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: build-artifacts
           path: |
-              ${{github.workspace}}/build/**/*.dll
-              ${{github.workspace}}/build/**/*.pdb
+            ${{github.workspace}}/build/**/*.dll
+            ${{github.workspace}}/build/**/*.pdb
           if-no-files-found: warn
-
-      - name: Build
-        run: cmake --build ${{github.workspace}}/build --config RelWithDebInfo
