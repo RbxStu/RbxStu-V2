@@ -80,10 +80,9 @@ int ClosureManager::hookfunction(lua_State *L) {
      *  - NC->C
      *  - NC->L
      *  - NC->NC
-     *  - L->C*
-     *  - L->L*
-     *  - L->NC*
-     *  *: borked.
+     *  - L->C
+     *  - L->L
+     *  - L->NC
      */
 
     // C->C/L
