@@ -29,8 +29,6 @@ namespace RbxStu {
                                                                               const uint64_t *identity,
                                                                               const uint64_t *unk_0);
 
-        using r_RBX_Security_IdentityToCapability = std::int64_t(__fastcall *)(const std::int32_t *pIdentity);
-
         using r_RBX_Console_StandardOut = std::int32_t(__fastcall *)(RBX::Console::MessageType dwMessageId,
                                                                      const char *szFormatString, ...);
 
@@ -81,8 +79,6 @@ namespace RbxStu {
                               "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F8 48 8B F2 48 8B D9 80 ?? ?? ?? ?? ?? "
                               "?? 74 ?? 8B 81 ? ? ? ? 90 83 F8 03 7C 0F ?? ?? ?? ?? ?? ?? ?? 33 C9 E8 ? ? ? ? 90 ?? ?? "
                               "?? ?? ?? ?? ?? 4C 8B C7 48 8B D6 E8 ? ? ? ? 48 05 88 00 00 00");
-
-        MakeSignature_FromIDA(RBX_Security_IdentityToCapability, "48 63 01 83 F8 0A 77 3C");
 
         MakeSignature_FromIDA(RBX_ProximityPrompt_onTriggered,
                               "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 8B F9 "
@@ -190,8 +186,6 @@ namespace RbxStu {
 
                 {"RBX::ExtraSpace::initializeFrom", RBX_ExtraSpace_initializeFrom},
 
-                {"RBX::Security::IdentityToCapability", RBX_Security_IdentityToCapability},
-
                 {"RBX::ProximityPrompt::onTriggered", RBX_ProximityPrompt_onTriggered},
 
                 {"RBX::Console::StandardOut", RBX_Console_StandardOut},
@@ -257,13 +251,6 @@ public:
     /// obtain the correct ScriptContext to obtain the correct lua_State. This function may also fail to execute, in
     /// case that RBX::ScriptContext::getGlobalState cannot be found on the Roblox Studio assembly via AOB search.
     std::optional<lua_State *> GetGlobalState(_In_ void *ScriptContext);
-
-    /// @brief Attempts to convert the given identity into a capability.
-    /// @param identity The identity to obtain the capabilities for, valid from [1 - 10].
-    /// @return A std::optional<std::int64_t> which is a representation of the capability the identity is supposed to
-    /// represent.
-    /// @remarks This function will resort to known behaviour if the Roblox AOB search fails.
-    std::optional<std::int64_t> IdentityToCapability(const std::int32_t &identity);
 
     /// @brief Obtains the print address for the Roblox console. Used to print to the Roblox Developer Console.
     /// @return A std::optional<...> which holds the pointer to the Developer Console's standard output.

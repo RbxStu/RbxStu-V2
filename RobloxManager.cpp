@@ -406,54 +406,6 @@ std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
             this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"])(scriptContext, &identity, &script);
 }
 
-std::optional<std::int64_t> RobloxManager::IdentityToCapability(const std::int32_t &identity) {
-    const auto logger = Logger::GetSingleton();
-
-    if (identity > 10 || identity < 0) {
-        logger->PrintError(RbxStu::RobloxManager,
-                           "[IdentityToCapability] identity should more than zero and less than or equal to 10");
-        return {};
-    }
-
-    if (!this->m_bInitialized) {
-        logger->PrintError(RbxStu::RobloxManager,
-                           "Failed to get identity to capability. Reason: RobloxManager is not initialized.");
-        return {};
-    }
-
-    if (!this->m_mapRobloxFunctions.contains("RBX::Security::IdentityToCapability")) {
-        logger->PrintWarning(RbxStu::RobloxManager,
-                             "-- WARN: RobloxManager has failed to fetch the address for "
-                             "RBX::Security::IdentityToCapability. Falling back to default implementation.");
-
-        // This is a copy of behaviour of the 11/08/2024 (DD/MM/YYYY) for this very function.
-        // Roblox does not change this very often, if anything, me implementing the bypass for identity
-        // caused them to change it on the client. If this ever breaks, props to Roblox because they're actually reading
-        // this useless code comment.
-        switch (identity) {
-            case 1:
-            case 4:
-                return 3;
-            case 3:
-            case 6:
-                return 0xB;
-            case 5:
-                return 1;
-            case 7:
-            case 8:
-                return 0x3F;
-            case 9:
-                return 0xC;
-            case 0xA:
-                return 0x4000000000000003;
-            default:
-                return {};
-        }
-    }
-
-    return reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Security_IdentityToCapability>(
-            this->m_mapRobloxFunctions["RBX::Security::IdentityToCapability"])(&identity);
-}
 
 std::optional<RbxStu::StudioFunctionDefinitions::r_RBX_Console_StandardOut> RobloxManager::GetRobloxPrint() {
     auto logger = Logger::GetSingleton();
