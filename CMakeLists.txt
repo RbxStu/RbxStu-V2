@@ -72,6 +72,7 @@ target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependenc
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/cpr")
 
 # Luau
+set(LUAU_BUILD_ANALYSIS OFF CACHE BOOL "Build Luau.Analysis" FORCE)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Luau")
 
 # minhook
@@ -87,6 +88,10 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/oxorany")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/IXWebSocket")
 
 # cryptopp
+set(BUILD_TESTING OFF CACHE BOOL "Build tests" FORCE)
+set(CRYPTOPP_BUILD_TESTS OFF CACHE BOOL "Build Crypto++ tests" FORCE)
+set(CRYPTO_BUILD_TESTS OFF CACHE BOOL "Build Crypto tests" FORCE)
+set(OPENSSL_NO_TESTS ON CACHE BOOL "Don't build OpenSSL tests" FORCE)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/cryptopp-cmake")
 
 find_package(lz4 CONFIG REQUIRED)
