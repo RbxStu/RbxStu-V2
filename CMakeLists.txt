@@ -73,6 +73,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/cpr")
 
 # Luau
 set(LUAU_BUILD_ANALYSIS OFF CACHE BOOL "Build Luau.Analysis" FORCE)
+set(LUAU_BUILD_CLI OFF CACHE BOOL "Build Luau CLI" FORCE)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Luau")
 
 # minhook
