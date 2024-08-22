@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Communication.hpp"
+#include "Libraries/Closures.hpp"
 #include "Libraries/Debug.hpp"
 #include "Libraries/Filesystem.hpp"
 #include "Libraries/Globals.hpp"
@@ -112,7 +113,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     lua_pushvalue(L, LUA_GLOBALSINDEX);
     lua_setglobal(L, "shared");
 
-    for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem()};
+    for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem(), new Closures()};
          const auto &lib: libList) {
         try {
             const auto envGlobals = lib->GetLibraryFunctions();

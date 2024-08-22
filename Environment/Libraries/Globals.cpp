@@ -89,20 +89,6 @@ namespace RbxStu {
         return 1;
     }
 
-    int islclosure(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
-
-        lua_pushboolean(L, !lua_iscfunction(L, 1));
-        return 1;
-    }
-
-    int iscclosure(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
-
-        lua_pushboolean(L, lua_iscfunction(L, 1));
-        return 1;
-    }
-
     int getreg(lua_State *L) {
         lua_pushvalue(L, LUA_REGISTRYINDEX);
         return 1;
@@ -114,17 +100,6 @@ namespace RbxStu {
         // lua_pushvalue(rL, LUA_GLOBALSINDEX);
         // lua_xmove(rL, L, 1);
         lua_pushvalue(L, LUA_GLOBALSINDEX);
-        return 1;
-    }
-
-    int getcallingscript(lua_State *L) {
-        auto base = clvalue(L->base_ci->func);
-        L->top->tt = lua_Type::LUA_TTABLE;
-        L->top->value.p = base->env;
-        L->top++;
-
-        lua_getfield(L, -1, "script");
-        lua_remove(L, -2);
         return 1;
     }
 
@@ -261,13 +236,6 @@ namespace RbxStu {
         return lua_yield(L, 1);
     }
 
-    int checkcaller(lua_State *L) {
-        // Our check caller implementation, is, in fact, quite simple!
-        // We leave the 63d bit on the capabilities set. Then we retrieve it AND it, receiving the expected, if it
-        // doesn't match, then, we are 100% not in our thread.
-        lua_pushboolean(L, Security::GetSingleton()->IsOurThread(L));
-        return 1;
-    }
 
     int setrawmetatable(lua_State *L) {
         luaL_argexpected(L,
@@ -329,31 +297,6 @@ namespace RbxStu {
         lua_pushlightuserdata(L, rawUserdata);
         lua_pushvalue(L, -3);
         lua_rawset(L, -5);
-        return 1;
-    }
-
-    int loadstring(lua_State *L) {
-        const auto luauCode = luaL_checkstring(L, 1);
-        const auto chunkName = luaL_optstring(L, 2, "RbxStuV2_LoadString");
-        constexpr auto compileOpts = Luau::CompileOptions{1, 2};
-        const auto bytecode = Luau::compile(luauCode, compileOpts);
-
-        if (luau_load(L, chunkName, bytecode.c_str(), bytecode.size(), 0) != lua_Status::LUA_OK) {
-            lua_pushnil(L);
-            lua_pushvalue(L, -2);
-            return 2;
-        }
-
-        if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
-            const Luau::CodeGen::CompilationOptions opts{0};
-            Logger::GetSingleton()->PrintInformation(
-                    RbxStu::Anonymous, "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
-            Luau::CodeGen::compile(L, -1, opts);
-        }
-
-
-        Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1), 8);
-        lua_setsafeenv(L, LUA_GLOBALSINDEX, false); // env is not safe anymore.
         return 1;
     }
 
@@ -468,20 +411,6 @@ namespace RbxStu {
 
     int isrbxactive(lua_State *L) {
         lua_pushboolean(L, GetForegroundWindow() == GetCurrentProcess());
-        return 1;
-    }
-
-
-    int isourclosure(lua_State *L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
-
-        if (const auto pClosure = lua_toclosure(L, 1); pClosure->isC) {
-            lua_pushboolean(L, pClosure->c.debugname == nullptr ||
-                                       ClosureManager::GetSingleton()->IsWrappedCClosure(pClosure));
-        } else {
-            lua_pushboolean(L, pClosure->l.p->linedefined == -1);
-        }
-
         return 1;
     }
 
@@ -669,8 +598,6 @@ std::string Globals::GetLibraryName() { return "rbxstu"; }
 luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
     auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
-                               {"iscclosure", RbxStu::iscclosure},
-                               {"islclosure", RbxStu::islclosure},
                                {"getreg", RbxStu::getreg},
                                {"getgenv", RbxStu::getgenv},
                                {"getrenv", RbxStu::getrenv},
@@ -681,12 +608,10 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"isluau", RbxStu::isluau},
                                {"httpget", RbxStu::httpget},
                                {"gethui", RbxStu::gethui},
-                               {"checkcaller", RbxStu::checkcaller},
                                {"setrawmetatable", RbxStu::setrawmetatable},
                                {"compareinstances", RbxStu::compareinstances},
                                {"fireproximityprompt", RbxStu::fireproximityprompt},
                                {"cloneref", RbxStu::cloneref},
-                               {"loadstring", RbxStu::loadstring},
                                {"lz4compress", RbxStu::lz4compress},
                                {"lz4decompress", RbxStu::lz4decompress},
                                {"messagebox", RbxStu::messagebox},
@@ -707,9 +632,6 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"isrbxactive", RbxStu::isrbxactive},
                                {"isgameactive", RbxStu::isrbxactive},
 
-                               {"isourclosure", RbxStu::isourclosure},
-                               {"checkclosure", RbxStu::isourclosure},
-                               {"isexecutorclosure", RbxStu::isourclosure},
                                {"identifyexecutor", RbxStu::identifyexecutor},
 #ifdef ISNETWORKOWNER_DEV
                                {"isnetworkowner", RbxStu::isnetworkowner},
@@ -717,17 +639,6 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"getexecutorname", RbxStu::identifyexecutor},
                                {"decompile", RbxStu::decompile},
 
-                               {"clonefunction", ClosureManager::clonefunction},
-                               {"hookfunction", ClosureManager::hookfunction},
-                               {"replaceclosure", ClosureManager::hookfunction},
-
-                               {"unhookfunction", ClosureManager::unhookfunction},
-                               {"restorefunction", ClosureManager::unhookfunction},
-
-                               {"newlclosure", ClosureManager::newlclosure},
-                               {"newcclosure", ClosureManager::newcclosure},
-
-                               {"getcallingscript", RbxStu::getcallingscript},
                                {"gettenv", RbxStu::gettenv},
 
                                {"rconsolecreate", RbxStu::rconsolecreate},
