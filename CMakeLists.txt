@@ -40,6 +40,8 @@ add_library(Module SHARED
         Environment/Libraries/Closures.hpp
         Environment/Libraries/Metatable.cpp
         Environment/Libraries/Metatable.hpp
+        Environment/Libraries/Cache.cpp
+        Environment/Libraries/Cache.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
