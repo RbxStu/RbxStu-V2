@@ -3,7 +3,9 @@
 The Roblox Studio Executor.
 
 This is a rewrite of the original [RbxStu](https://github.com/RbxStu/RbxStu). This version has many improvements and it
-is magnitudes more stable than the original ever was.
+is magnitudes more stable than the original ever was. 
+
+To report a bug or suggest a feature, please head to our discord server https://discord.gg/rGWK6Sqbrs
 
 ## Features:
 
