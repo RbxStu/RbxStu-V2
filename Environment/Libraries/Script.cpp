@@ -86,13 +86,14 @@ namespace RbxStu {
             const auto security = Security::GetSingleton();
             security->SetThreadSecurity(L, newIdentity);
 
+            // WARNING: Doing this will break metamethod hooks and produces undefine behaviour on which are nested inside of others!
             // If calling closure is LClosure and is not base CI, set its capabilities too
-            if (L->base_ci != L->ci) {
-                auto callingClosure = (L->ci - 1)->func->value.gc->cl;
-                if (callingClosure.isC == 0) {
-                    security->SetLuaClosureSecurity(&callingClosure, newIdentity);
-                }
-            }
+            // if (L->base_ci != L->ci) {
+            //     auto callingClosure = (L->ci - 1)->func->value.gc->cl;
+            //     if (!callingClosure.isC) {
+            //         security->SetLuaClosureSecurity(&callingClosure, newIdentity);
+            //     }
+            // }
 
             // Capabilities and identity are applied next resumption cycle, we need to yield!
             const auto scheduler = Scheduler::GetSingleton();
