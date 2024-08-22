@@ -48,6 +48,8 @@ add_library(Module SHARED
         Environment/Libraries/Script.hpp
         Environment/Libraries/Misc.cpp
         Environment/Libraries/Misc.hpp
+        Environment/Libraries/Instance.cpp
+        Environment/Libraries/Instance.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
