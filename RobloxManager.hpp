@@ -104,7 +104,7 @@ namespace RbxStu {
                               "2F F0 77 56 0F 57 C0 F2 0F 5A C7");
 
         MakeSignature_FromIDA(RBX_ScriptContext_resumeDelayedThreads,
-                              "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 8B F1 80 3D ?? "
+                              "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 8B ?? 80 3D ?? "
                               "?? ?? ?? ?? 74 ?? 80 3D ?? ?? ?? ?? ?? 74 ?? 48 8B ");
 
         MakeSignature_FromIDA(RBX_Console_StandardOut,

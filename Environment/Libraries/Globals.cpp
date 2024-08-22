@@ -7,6 +7,7 @@
 #include <HttpStatus.hpp>
 #include <lz4.h>
 
+#include "ClosureManager.hpp"
 #include "Communication.hpp"
 #include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
@@ -19,6 +20,65 @@
 #include "lmem.h"
 
 namespace RbxStu {
+    int gettenv(lua_State *L) {
+        luaL_checktype(L, 1, LUA_TTHREAD);
+        const auto th = lua_tothread(L, -1);
+        lua_pushvalue(th, LUA_GLOBALSINDEX);
+        lua_xmove(th, L, 1);
+
+        return 1;
+    }
+
+    int rconsolecreate(lua_State *L) {
+        AllocConsole();
+        return 0;
+    }
+
+    int rconsoledestroy(lua_State *L) {
+        FreeConsole();
+        return 0;
+    }
+
+    int rconsolesettitle(lua_State *L) {
+        auto wndName = luaL_checkstring(L, 1);
+        SetWindowTextA(GetConsoleWindow(), wndName);
+        return 0;
+    }
+
+    int rconsoleprint(lua_State *L) {
+        auto argc = lua_gettop(L);
+        std::stringstream strStream;
+        strStream << "[rconsoleprint] ";
+        for (int i = 0; i <= argc - 1; i++) {
+            const char *lStr = luaL_tolstring(L, i + 1, nullptr);
+            strStream << lStr << " ";
+        }
+        Logger::GetSingleton()->PrintInformation(RbxStu::RobloxConsole, strStream.str());
+    }
+
+    int rconsolewarn(lua_State *L) {
+        auto argc = lua_gettop(L);
+        std::stringstream strStream;
+        strStream << "[rconsolewarn] ";
+        for (int i = 0; i <= argc - 1; i++) {
+            const char *lStr = luaL_tolstring(L, i + 1, nullptr);
+            strStream << lStr << " ";
+        }
+        Logger::GetSingleton()->PrintWarning(RbxStu::RobloxConsole, strStream.str());
+    }
+
+    int rconsoleerror(lua_State *L) {
+        auto argc = lua_gettop(L);
+        std::stringstream strStream;
+        strStream << "[rconsoleerror] ";
+        for (int i = 0; i <= argc - 1; i++) {
+            const char *lStr = luaL_tolstring(L, i + 1, nullptr);
+            strStream << lStr << " ";
+        }
+        Logger::GetSingleton()->PrintError(RbxStu::RobloxConsole, strStream.str());
+        luaL_error(L, strStream.str().c_str());
+    }
+
     int getrawmetatable(lua_State *L) {
         luaL_checkany(L, 1);
 
@@ -42,47 +102,28 @@ namespace RbxStu {
         return 1;
     }
 
-    int clonefunction(lua_State* L) {
-        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
-
-        const Closure* TargetClosure = reinterpret_cast<const Closure*>(lua_topointer(L, 1));
-
-        if (TargetClosure->isC) {
-            Closure* NewClosure = luaF_newCclosure(L, TargetClosure->nupvalues, TargetClosure->env);
-
-            for (int i = 0; i < TargetClosure->nupvalues; i++) {
-                NewClosure->c.upvals[i].value = TargetClosure->c.upvals[i].value;
-                NewClosure->c.upvals[i].tt = TargetClosure->c.upvals[i].tt;
-            }
-
-            NewClosure->c.f = TargetClosure->c.f;
-            NewClosure->c.cont = TargetClosure->c.cont;
-        } else {
-            Closure* NewClosure = luaF_newLclosure(L, TargetClosure->nupvalues, L->gt, TargetClosure->l.p);
-
-            for (int i = 0; i < TargetClosure->nupvalues; i++) {
-                setobj2n(L, &NewClosure->l.uprefs[i], &TargetClosure->l.uprefs[i]);
-            }
-
-            setclvalue(L, L->top, NewClosure);
-            L->top++;
-        }
-
-        return 1;
-    }
-
     int getreg(lua_State *L) {
         lua_pushvalue(L, LUA_REGISTRYINDEX);
         return 1;
     }
 
     int getrenv(lua_State *L) {
-        Utilities::RobloxThreadSuspension threadSuspension(true);
-        auto rL = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
+        // Utilities::RobloxThreadSuspension threadSuspension(true);
+        // auto rL = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
+        // lua_pushvalue(rL, LUA_GLOBALSINDEX);
+        // lua_xmove(rL, L, 1);
+        lua_pushvalue(L, LUA_GLOBALSINDEX);
+        return 1;
+    }
+
+    int getcallingscript(lua_State *L) {
+        auto base = clvalue(L->base_ci->func);
         L->top->tt = lua_Type::LUA_TTABLE;
-        L->top->value.gc->h = *rL->gt;
+        L->top->value.p = base->env;
         L->top++;
-        threadSuspension.ResumeThreads();
+
+        lua_getfield(L, -1, "script");
+        lua_remove(L, -2);
         return 1;
     }
 
@@ -189,7 +230,7 @@ namespace RbxStu {
         const std::string url = luaL_checkstring(L, 1);
 
         if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos)
-            luaG_runerror(L, "Invalid protocol (expected 'http://' or 'https://')");
+            luaL_argerror(L, 1, "Invalid protocol (expected 'http://' or 'https://')");
 
         const auto scheduler = Scheduler::GetSingleton();
 
@@ -293,7 +334,7 @@ namespace RbxStu {
     int loadstring(lua_State *L) {
         const auto luauCode = luaL_checkstring(L, 1);
         const auto chunkName = luaL_optstring(L, 2, "RbxStuV2_LoadString");
-        constexpr auto compileOpts = Luau::CompileOptions{2, 2};
+        constexpr auto compileOpts = Luau::CompileOptions{1, 2};
         const auto bytecode = Luau::compile(luauCode, compileOpts);
 
         if (luau_load(L, chunkName, bytecode.c_str(), bytecode.size(), 0) != lua_Status::LUA_OK) {
@@ -305,7 +346,7 @@ namespace RbxStu {
         if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
             const Luau::CodeGen::CompilationOptions opts{0};
             Logger::GetSingleton()->PrintInformation(
-                    RbxStu::Scheduler, "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
+                    RbxStu::Anonymous, "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
             Luau::CodeGen::compile(L, -1, opts);
         }
 
@@ -434,7 +475,8 @@ namespace RbxStu {
         luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
 
         if (const auto pClosure = lua_toclosure(L, 1); pClosure->isC) {
-            lua_pushboolean(L, pClosure->c.debugname == nullptr);
+            lua_pushboolean(L, pClosure->c.debugname == nullptr ||
+                                       ClosureManager::GetSingleton()->IsWrappedCClosure(pClosure));
         } else {
             lua_pushboolean(L, pClosure->l.p->linedefined == -1);
         }
@@ -444,29 +486,29 @@ namespace RbxStu {
 
     int setclipboard(lua_State *L) {
         luaL_checkstring(L, 1);
-        const char* text = lua_tostring(L, 1);
+        const char *text = lua_tostring(L, 1);
 
-        if (!OpenClipboard(nullptr)) {
-            luaG_runerror(L, "Failed to open clipboard");
-        }
+        if (!OpenClipboard(nullptr))
+            luaL_error(L, "Failed to open clipboard");
+
 
         if (!EmptyClipboard()) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to empty clipboard");
+            luaL_error(L, "Failed to empty clipboard");
         }
 
-        size_t textLength = strlen(text) + 1;
-        HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, textLength);
+        const size_t textLength = strlen(text) + 1;
+        const HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, textLength);
         if (!hMem) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to allocate memory in global space");
+            luaL_error(L, "Failed to allocate memory in global space");
         }
 
-        char* pMem = static_cast<char*>(GlobalLock(hMem));
+        const auto pMem = static_cast<char *>(GlobalLock(hMem));
         if (!pMem) {
             GlobalFree(hMem);
             CloseClipboard();
-            luaG_runerror(L, "Failed to lock global memory");
+            luaL_error(L, "Failed to lock global memory");
         }
 
         memcpy(pMem, text, textLength);
@@ -474,88 +516,110 @@ namespace RbxStu {
         if (GlobalUnlock(hMem) != 0 && GetLastError() != NO_ERROR) {
             GlobalFree(hMem);
             CloseClipboard();
-            luaG_runerror(L, "Failed to unlock global memory");
+            luaL_error(L, "Failed to unlock global memory");
         }
 
         if (!SetClipboardData(CF_TEXT, hMem)) {
             GlobalFree(hMem);
             CloseClipboard();
-            luaG_runerror(L, "Failed to set clipboard data");
+            luaL_error(L, "Failed to set clipboard data");
         }
 
-        if (!CloseClipboard()) {
-            luaG_runerror(L, "Failed to close clipboard");
-        }
+        if (!CloseClipboard())
+            luaL_error(L, "Failed to close clipboard");
 
         return 0;
     }
 
-    int getclipboard(lua_State* L) {
+    int getclipboard(lua_State *L) {
         if (!Communication::GetSingleton()->IsUnsafeMode()) {
-            Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous, "Script tried to access clipboard data while unsafe mode is off!");
-            lua_pushstring(L, "why u trying to steal data?");
+            Logger::GetSingleton()->PrintInformation(
+                    RbxStu::Anonymous, "getclipboard call has returned a stub value, as getclipboard is considered an "
+                                       "unsafe function, and will only be available when Unsafe mode is enabled.");
+            lua_pushstring(L, "");
             return 1;
         }
 
-        if (!OpenClipboard(nullptr)) {
-            luaG_runerror(L, "Failed to open clipboard");
-        }
+        if (!OpenClipboard(nullptr))
+            luaL_error(L, "Failed to open clipboard");
 
         HANDLE hData = GetClipboardData(CF_TEXT);
         if (!hData) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to get clipboard data");
+            luaL_error(L, "Failed to get clipboard data");
         }
 
-        const char* clipboardText = static_cast<const char*>(GlobalLock(hData));
+        const char *clipboardText = static_cast<const char *>(GlobalLock(hData));
         if (!clipboardText) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to lock clipboard data");
+            luaL_error(L, "Failed to lock clipboard data");
         }
 
         lua_pushstring(L, clipboardText);
 
         if (GlobalUnlock(hData) == 0 && GetLastError() != NO_ERROR) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to unlock clipboard data");
+            luaL_error(L, "Failed to unlock clipboard data");
         }
 
-        if (!CloseClipboard()) {
-            luaG_runerror(L, "Failed to close clipboard");
-        }
+        if (!CloseClipboard())
+            luaL_error(L, "Failed to close clipboard");
 
         return 1;
     }
 
-    int emptyclipboard(lua_State* L) {
-        if (!OpenClipboard(nullptr)) {
-            luaG_runerror(L, "Failed to open clipboard");
-        }
+    int emptyclipboard(lua_State *L) {
+        if (!OpenClipboard(nullptr))
+            luaL_error(L, "Failed to open clipboard");
+
 
         if (!EmptyClipboard()) {
             CloseClipboard();
-            luaG_runerror(L, "Failed to empty clipboard");
+            luaL_error(L, "Failed to empty clipboard");
         }
 
-        if (!CloseClipboard()) {
-            luaG_runerror(L, "Failed to close clipboard");
-        }
+
+        if (!CloseClipboard())
+            luaL_error(L, "Failed to close clipboard");
 
         return 0;
     }
 
-    int identifyexecutor(lua_State* L) {
+    int identifyexecutor(lua_State *L) {
         lua_pushstring(L, "RbxStu");
         lua_pushstring(L, "V2");
         return 2;
     }
 
-    int decompile(lua_State* L) {
+    int decompile(lua_State *L) {
         // Since we can access original source, we will just return that
         Utilities::checkInstance(L, 1, "LuaSourceContainer");
 
         lua_pushvalue(L, 1);
         lua_getfield(L, -1, "Source");
+        return 1;
+    }
+
+    int hookmetamethod(lua_State *L) {
+        luaL_checkany(L, 1);
+        auto mtName = luaL_checkstring(L, 2);
+        luaL_checktype(L, 3, lua_Type::LUA_TFUNCTION);
+
+        lua_pushvalue(L, 1);
+        lua_getmetatable(L, -1);
+        if (lua_getfield(L, -1, mtName) == LUA_TNIL) {
+            luaL_argerrorL(L, 2,
+                           std::format("'{}' is not a valid member of the given object's metatable.", mtName).c_str());
+        }
+        lua_setreadonly(L, -2, false);
+
+        lua_getglobal(L, "hookfunction");
+        lua_pushvalue(L, -2);
+        lua_pushvalue(L, 3);
+        lua_call(L, 2, 1);
+        lua_remove(L, -2);
+        lua_setreadonly(L, -2, true);
+
         return 1;
     }
 } // namespace RbxStu
@@ -567,7 +631,6 @@ luaL_Reg *Globals::GetLibraryFunctions() {
     auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::getrawmetatable},
                                {"iscclosure", RbxStu::iscclosure},
                                {"islclosure", RbxStu::islclosure},
-                               {"clonefunction", RbxStu::clonefunction},
                                {"getreg", RbxStu::getreg},
                                {"getgenv", RbxStu::getgenv},
                                {"getrenv", RbxStu::getrenv},
@@ -590,9 +653,9 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                {"setidentity", RbxStu::setidentity},
                                {"setthreadcontext", RbxStu::setidentity},
                                {"setthreadidentity", RbxStu::setidentity},
-                               {"setclipboard", RbxStu::setclipboard}, 
-                               {"getclipboard", RbxStu::getclipboard}, 
-                               {"emptyclipboard", RbxStu::emptyclipboard}, 
+                               {"setclipboard", RbxStu::setclipboard},
+                               {"getclipboard", RbxStu::getclipboard},
+                               {"emptyclipboard", RbxStu::emptyclipboard},
 
                                {"getidentity", RbxStu::getidentity},
                                {"getthreadidentity", RbxStu::getidentity},
@@ -611,6 +674,36 @@ luaL_Reg *Globals::GetLibraryFunctions() {
 
                                {"getexecutorname", RbxStu::identifyexecutor},
                                {"decompile", RbxStu::decompile},
+
+                               {"clonefunction", ClosureManager::clonefunction},
+                               {"hookfunction", ClosureManager::hookfunction},
+                               {"replaceclosure", ClosureManager::hookfunction},
+
+                               {"unhookfunction", ClosureManager::unhookfunction},
+                               {"restorefunction", ClosureManager::unhookfunction},
+
+                               {"newlclosure", ClosureManager::newlclosure},
+                               {"newcclosure", ClosureManager::newcclosure},
+
+                               {"getcallingscript", RbxStu::getcallingscript},
+                               {"gettenv", RbxStu::gettenv},
+
+                               {"rconsolecreate", RbxStu::rconsolecreate},
+                               {"rconsoledestroy", RbxStu::rconsoledestroy},
+                               {"rconsolesettitle", RbxStu::rconsolesettitle},
+                               {"rconsolename", RbxStu::rconsolesettitle},
+                               {"rconsoleprint", RbxStu::rconsoleprint},
+                               {"rconsolewarn", RbxStu::rconsolewarn},
+                               {"rconsoleerror", RbxStu::rconsoleerror},
+
+                               {"consolecreate", RbxStu::rconsolecreate},
+                               {"consoledestroy", RbxStu::rconsoledestroy},
+                               {"consolesettitle", RbxStu::rconsolesettitle},
+                               {"consoleprint", RbxStu::rconsoleprint},
+                               {"consolewarn", RbxStu::rconsolewarn},
+                               {"consoleerror", RbxStu::rconsoleerror},
+
+                               {"hookmetamethod", RbxStu::hookmetamethod},
 
                                {nullptr, nullptr}};
     return reg;

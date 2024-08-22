@@ -46,7 +46,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         auto opts = Luau::CompileOptions{};
         opts.debugLevel = 2;
-        opts.optimizationLevel = 2;
+        opts.optimizationLevel = 1; // O2 enables inlining, this breaks hookfunction in some cases. and thus, it should be 1.
         const char *mutableGlobals[] = {"_G", "_ENV", "shared", nullptr};
         opts.mutableGlobals = mutableGlobals;
         const auto bytecode = Luau::compile(
@@ -197,9 +197,8 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     const auto security = Security::GetSingleton();
 
-    logger->PrintInformation(RbxStu::Scheduler, "Sandboxing threads to avoid environment modification issues!");
+    logger->PrintInformation(RbxStu::Scheduler, "Sandboxing executor state to avoid environment leaks!");
 
-    luaL_sandboxthread(rL);
     luaL_sandboxthread(L);
 
     logger->PrintInformation(RbxStu::Scheduler, "Initializing Environment for the executor thread!");

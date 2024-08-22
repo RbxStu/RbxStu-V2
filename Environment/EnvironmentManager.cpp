@@ -83,7 +83,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     lua_pushvalue(L, LUA_GLOBALSINDEX);
     lua_setglobal(L, "shared");
 
-    for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem()}; const auto &lib: libList) {
+    for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem()};
+         const auto &lib: libList) {
         try {
             const auto envGlobals = lib->GetLibraryFunctions();
             lua_newtable(L);
@@ -296,4 +297,112 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
         logger->PrintError(RbxStu::EnvironmentManager,
                            std::format("Failed to initialize RbxStu Environment. Error from Lua: {}", ex.what()));
     }
+
+    Scheduler::GetSingleton()->ScheduleJob(SchedulerJob(
+            R"(
+local table_insert = clonefunction(table.insert)
+local getreg = clonefunction(getreg)
+local typeof = clonefunction(typeof)
+local getfenv = clonefunction(getfenv)
+local getgc = clonefunction(getgc)
+local Instance_new = clonefunction(Instance.new)
+local rawget = clonefunction(rawget)
+
+local instanceList = nil
+local getInstanceList = newcclosure(function()
+	if instanceList ~= nil then
+		return instanceList
+	end
+	local tmp = Instance_new("Part")
+	for idx, val in getreg() do
+		if typeof(val) == "table" and rawget(val, "__mode") == "kvs" then
+			for idx_, inst in val do
+				if inst == tmp then
+					tmp:Destroy()
+					instanceList = val
+					return instanceList -- Instance list
+				end
+			end
+		end
+	end
+	tmp:Destroy()
+	return {}
+end)
+
+getgenv().getnilinstances = newcclosure(function()
+	local instances = {}
+	for i, v in getInstanceList() do
+		if typeof(v) == "Instance" and not v.Parent then
+			table_insert(instances, v)
+		end
+	end
+	return instances
+end)
+
+getgenv().getinstances = newcclosure(function()
+	local instances = {}
+	for i, v in getInstanceList() do
+		if typeof(v) == "Instance" then
+			table_insert(instances, v)
+		end
+	end
+	return instances
+end)
+
+getgenv().getscripts = newcclosure(function()
+	local scripts = {}
+	for _, obj in getInstanceList() do
+		if typeof(obj) == "Instance" and (obj:IsA("ModuleScript") or obj:IsA("LocalScript")) then
+			table.insert(scripts, obj)
+		end
+	end
+	return scripts
+end)
+
+getgenv().getloadedmodules = newcclosure(function()
+	local list = {}
+	for i, v in getgc(false) do
+		if typeof(v) == "function" then
+			local env = getfenv(v)
+			if typeof(env["script"]) == "Instance" and env["script"]:IsA("ModuleScript") then
+				table_insert(list, env["script"])
+			end
+		end
+	end
+	return list
+end)
+
+getgenv().getsenv = newcclosure(function(scr)
+	if typeof(scr) ~= "Instance" then
+		error("Expected script. Got " .. typeof(script) .. " Instead.")
+	end
+
+	for _, obj in getgc(false) do
+		if obj and typeof(obj) == "function" then
+			local env = getfenv(obj)
+			if env.script == scr then
+				return getfenv(obj)
+			end
+		end
+	end
+
+	return {}
+end)
+
+getgenv().getrunningscripts = newcclosure(function()
+	local scripts = {}
+
+	for _, obj in getInstanceList() do
+		if
+			typeof(obj) == "Instance"
+			and (obj:IsA("LocalScript") or (obj:IsA("Script") and obj.RunContext == "Client"))
+			and obj.Enabled
+		then
+			table.insert(scripts, obj)
+		end
+	end
+
+	return scripts
+end)
+)"));
 }

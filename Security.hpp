@@ -79,12 +79,12 @@ public:
 
     /// @brief Prints the capabilities to the console
     /// @param capabilities The capabilities
-    void PrintCapabilities(int capabilities);
+    void PrintCapabilities(std::uint32_t capabilities);
 
     /// @brief Converts identity to a capability
     /// @param identity The identity
     /// @remarks If identity is not specified in the identityCapabilities it will use the basic capability
-    int IdentityToCapabilities(int identity);
+    int IdentityToCapabilities(std::uint32_t identity);
 
     /// @brief Elevates a thread's identity and capability.
     /// @param L The lua state to elevate.
@@ -105,7 +105,7 @@ public:
     /// @param identity
     /// @remarks This function ONLY accepts lua closures. If the lua closure proto has no userdata, one will be created
     /// to store the required information.
-    bool SetLuaClosureSecurity(Closure *lClosure, int identity);
+    bool SetLuaClosureSecurity(Closure *lClosure, std::uint32_t identity);
 
     /// @brief Removes key information from a lua closure prototype.
     /// @param lClosure The closure to wipe information from
