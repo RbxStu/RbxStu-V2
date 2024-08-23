@@ -66,6 +66,7 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "analyticsservice",
                                                    "ixpservice",
                                                    "sessionservice",
+                                                   "studioservice"
                                                    "platformcloudstorageservice"};
 
 static std::vector<std::string> blockedFunctions = {
@@ -92,6 +93,7 @@ static std::vector<std::string> blockedFunctions = {
         "reportabuse", // Avoid bans. | Handles ReportAbuseV3
         "savescriptprofilingdata",
         "openurl",
+        "openinbrowser",
         "deletecapture",
         "deletecapturesasync",
         "promptbulkpurchase",
@@ -106,6 +108,11 @@ static std::vector<std::string> blockedFunctions = {
         "setpurchasepromptisshown",
         "addcorescriptlocal",
         "savescriptprofilingdata",
+        "installplugin",
+        "importfile",
+        "requestclose",
+        "plugininstalled",
+        "publishtoroblox",
         "setbaseurl",
         "requestinternal",
         "getasync",
@@ -116,6 +123,8 @@ static std::vector<std::string> blockedFunctions = {
         "takescreenshot",
         "togglerecording",
         "startplaying",
+        "getsecret",
+        "requestasync",
         "sendrobloxevent"};
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
