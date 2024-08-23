@@ -4,10 +4,12 @@
 
 #include "Debug.hpp"
 #include <iostream>
+#include "Luau/BytecodeBuilder.h"
 #include "Utilities.hpp"
 #include "lapi.h"
 #include "lfunc.h"
 #include "lgc.h"
+#include "lmem.h"
 #include "lua.h"
 #include "lualib.h"
 namespace RbxStu {
@@ -44,8 +46,7 @@ namespace RbxStu {
                 TValue *tval = &(consts[i]);
 
                 if (tval->tt == LUA_TFUNCTION) {
-                    L->top->tt = LUA_TNIL;
-                    L->top++;
+                    lua_pushnil(L);
                 } else {
                     L->top->value = tval->value;
                     L->top->tt = tval->tt;
@@ -85,7 +86,7 @@ namespace RbxStu {
             const auto *p = cl->l.p;
             auto *k = p->k;
 
-            if (!index)
+            if (index < 1)
                 luaL_argerror(L, 2, "constant index starts at 1");
 
             if (index > p->sizek)
@@ -234,23 +235,25 @@ namespace RbxStu {
 
             const auto closure = clvalue(luaA_toobject(L, -1));
 
-            if (active) {
-                lua_newtable(L);
-            }
-
             const auto index = lua_tointeger(L, 2);
 
             if (index < 1 || index > closure->l.p->sizep) {
                 luaL_argerror(L, 2, "proto index out of range");
             }
 
-            const auto proto = closure->l.p->p[index - 1];
+            auto proto = closure->l.p->p[index - 1];
+
+            if (!active) {
+                auto tmp = luaF_newproto(L);
+                std::memcpy(proto, tmp, sizeof(Proto));
+                proto = tmp;
+                tmp->code = luaM_newarray(L, 1, Instruction, tmp->memcat);
+                tmp->code[0] = LOP_RETURN | (0 << 8) | (1 << 16) | (0 << 24); // emitAbc LOP_RETURN (No args)
+                tmp->codeentry = tmp->code;
+            }
 
             setclvalue(L, L->top, luaF_newLclosure(L, proto->nups, closure->env, proto));
             L->top++;
-
-            if (active)
-                lua_rawseti(L, -2, 1);
 
             return 1;
         }
@@ -291,7 +294,14 @@ namespace RbxStu {
 
             for (int i = 0; i < mProto->sizep; i++) {
                 Proto *proto_data = mProto->p[i];
-                Closure *lclosure = luaF_newLclosure(L, proto_data->nups, cl->env, proto_data);
+
+                const auto newProto = luaF_newproto(L);
+                std::memcpy(proto_data, newProto, sizeof(Proto));
+                newProto->code = luaM_newarray(L, 1, Instruction, newProto->memcat);
+                newProto->code[0] = LOP_RETURN | (0 << 8) | (1 << 16) | (0 << 24); // emitAbc LOP_RETURN (No args)
+                newProto->codeentry = newProto->code;
+
+                Closure *lclosure = luaF_newLclosure(L, proto_data->nups, cl->env, newProto);
 
                 setclvalue(L, L->top, lclosure);
                 L->top++;
@@ -322,6 +332,9 @@ namespace RbxStu {
             if (index < 1 || index > top)
                 luaL_argerror(L, 2, "stack index out of range");
 
+            if (frame->base[index - 1].tt != lua_type(L, 3))
+                luaL_argerror(L, 2, "type on the stack is different than that you are trying to set!");
+
             setobj2s(L, &frame->base[index - 1], luaA_toobject(L, 3));
             return 0;
         }
@@ -336,6 +349,10 @@ namespace RbxStu {
                 luaL_argerror(L, 1, "level out of range");
             }
 
+            if (index < 0) {
+                luaL_argerrorL(L, 2, "index out of range");
+            }
+
             const auto frame = L->ci - level;
             const auto top = frame->top - frame->base;
 
@@ -343,23 +360,13 @@ namespace RbxStu {
                 luaL_argerror(L, 1, "level points to a C closure, Lua closure expected!");
             }
 
-            if (index == -1) {
-                lua_newtable(L);
-
-                for (int i = 0; i < top; i++) {
-                    setobj2s(L, L->top, &frame->base[i]);
-                    L->top++;
-
-                    lua_rawseti(L, -2, i + 1);
-                }
-            } else {
-                if (index < 1 || index > top) {
-                    luaL_argerror(L, 2, "stack index out of range");
-                }
-
-                setobj2s(L, L->top, &frame->base[index - 1]);
-                L->top++;
+            if (index < 1 || index > top) {
+                luaL_argerror(L, 2, "stack index out of range");
             }
+
+            setobj2s(L, L->top, &frame->base[index - 1]);
+            L->top++;
+
             return 1;
         }
 
@@ -367,8 +374,12 @@ namespace RbxStu {
             if (lua_isfunction(L, 1) == false && lua_isnumber(L, 1) == false)
                 luaL_typeerror(L, 1, "function or level expected");
 
+            if (lua_iscfunction(L, 1))
+                luaL_argerrorL(L, 1, "cannot set upvalues of C functions");
+
             const int index = luaL_checkinteger(L, 2);
             luaL_checkany(L, 3);
+
 
             if (lua_isnumber(L, 1)) {
                 lua_Debug ar;
@@ -385,10 +396,8 @@ namespace RbxStu {
 
             if (!cl->isC)
                 upvalue_table = cl->l.uprefs;
-            else if (cl->isC)
-                upvalue_table = cl->c.upvals;
 
-            if (!index)
+            if (index < 1)
                 luaL_argerror(L, 2, "upvalue index starts at 1");
 
             if (index > cl->nupvalues)
@@ -397,6 +406,7 @@ namespace RbxStu {
             TValue *upvalue = (&upvalue_table[index - 1]);
 
             upvalue->value = value->value;
+
             upvalue->tt = value->tt;
 
             luaC_barrier(L, cl, value);
