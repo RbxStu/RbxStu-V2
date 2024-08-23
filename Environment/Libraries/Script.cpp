@@ -119,13 +119,12 @@ namespace RbxStu {
             auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
             const auto security = Security::GetSingleton();
             security->PrintCapabilities(plStateUd->capabilities);
-
             return 0;
         }
     } // namespace Script
 } // namespace RbxStu
 
-std::string Script::GetLibraryName() { return "script"; }
+std::string Script::GetLibraryName() { return "scriptlib"; }
 luaL_Reg *Script::GetLibraryFunctions() {
     auto reg = new luaL_Reg[]{{"getgc", RbxStu::Script::getgc},
                               {"getgenv", RbxStu::Script::getgenv},
