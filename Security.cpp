@@ -11,33 +11,33 @@
 #include "Utilities.hpp"
 
 // Capability Name, Capability, IsUsingBITTESTQ?
-std::unordered_map<std::string, std::pair<int, bool>> allCapabilities = {{"Plugin", {0x1, false}},
-                                                                         {"LocalUser", {0x2, false}},
-                                                                         {"WritePlayer", {0x4, false}},
-                                                                         {"RobloxScript", {0x8, false}},
-                                                                         {"RobloxEngine", {0x10, false}},
-                                                                         {"NotAccessible", {0x20, false}},
-                                                                         {"RunClientScript", {0x8, true}},
-                                                                         {"RunServerScript", {0x9, true}},
-                                                                         {"AccessOutsideWrite", {0xb, true}},
-                                                                         {"Unassigned", {0xf, true}},
-                                                                         {"AssetRequire", {0x10, true}},
-                                                                         {"LoadString", {0x11, true}},
-                                                                         {"ScriptGlobals", {0x12, true}},
-                                                                         {"CreateInstances", {0x13, true}},
-                                                                         {"Basic", {0x14, true}},
-                                                                         {"Audio", {0x15, true}},
-                                                                         {"DataStore", {0x16, true}},
-                                                                         {"Network", {0x17, true}},
-                                                                         {"Physics", {0x18, true}},
-                                                                         {"UI", {0x19, true}},
-                                                                         {"CSG", {0x1a, true}},
-                                                                         {"Chat", {0x1b, true}},
-                                                                         {"Animation", {0x1c, true}},
-                                                                         {"Avatar", {0x1d, true}},
-                                                                         {"Assistant", {0x3e, true}}};
+std::unordered_map<std::string, std::pair<std::uint64_t, bool>> allCapabilities = {{"Plugin", {0x1, false}},
+                                                                                   {"LocalUser", {0x2, false}},
+                                                                                   {"WritePlayer", {0x4, false}},
+                                                                                   {"RobloxScript", {0x8, false}},
+                                                                                   {"RobloxEngine", {0x10, false}},
+                                                                                   {"NotAccessible", {0x20, false}},
+                                                                                   {"RunClientScript", {0x8, true}},
+                                                                                   {"RunServerScript", {0x9, true}},
+                                                                                   {"AccessOutsideWrite", {0xb, true}},
+                                                                                   {"Unassigned", {0xf, true}},
+                                                                                   {"AssetRequire", {0x10, true}},
+                                                                                   {"LoadString", {0x11, true}},
+                                                                                   {"ScriptGlobals", {0x12, true}},
+                                                                                   {"CreateInstances", {0x13, true}},
+                                                                                   {"Basic", {0x14, true}},
+                                                                                   {"Audio", {0x15, true}},
+                                                                                   {"DataStore", {0x16, true}},
+                                                                                   {"Network", {0x17, true}},
+                                                                                   {"Physics", {0x18, true}},
+                                                                                   {"UI", {0x19, true}},
+                                                                                   {"CSG", {0x1a, true}},
+                                                                                   {"Chat", {0x1b, true}},
+                                                                                   {"Animation", {0x1c, true}},
+                                                                                   {"Avatar", {0x1d, true}},
+                                                                                   {"Assistant", {0x3e, true}}};
 
-std::unordered_map<int, std::list<std::string>> identityCapabilities = {
+std::unordered_map<std::int32_t, std::list<std::string>> identityCapabilities = {
         {3,
          {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite", "Avatar"}},
         {2, {"CSG", "Chat", "Animation", "Avatar"}}, // These are needed for 'require' to work!
@@ -97,19 +97,19 @@ void Security::PrintCapabilities(std::uint32_t capabilities) {
     }
 };
 
-std::uint64_t Security::IdentityToCapabilities(std::uint32_t identity) {
-    std::uint64_t capabilities = 0x3FFFF00 | (1 << 46); // Basic capability | Checkcaller check
-    auto capabilitiesForIdentity = identityCapabilities.find(identity);
+std::uint64_t Security::IdentityToCapabilities(const std::uint32_t identity) {
+    std::uint64_t capabilities = 0x3FFFF00 | (1ll << 46ll); // Basic capability | Checkcaller check
 
-    if (capabilitiesForIdentity != identityCapabilities.end()) {
+    if (const auto capabilitiesForIdentity = identityCapabilities.find(identity);
+        capabilitiesForIdentity != identityCapabilities.end()) {
         for (const auto &capability: capabilitiesForIdentity->second) {
-            auto it = allCapabilities.find(capability);
-            if (it != allCapabilities.end()) {
+            if (auto it = allCapabilities.find(capability); it != allCapabilities.end()) {
                 if (it->second.second == true) {
                     capabilities |= (1 << it->second.first);
-                } else {
-                    capabilities |= it->second.first;
+                    continue;
                 }
+
+                capabilities |= it->second.first;
             } else {
                 Logger::GetSingleton()->PrintWarning(
                         RbxStu::Security, std::format("Couldn't find capability {} in allCapabilities", capability));
@@ -127,7 +127,7 @@ void Security::SetThreadSecurity(lua_State *L, std::int32_t identity) {
 
     auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     auto capabilities = Security::GetSingleton()->IdentityToCapabilities(identity);
-
+    printf("%p\n", capabilities);
     plStateUd->identity = identity;
     plStateUd->capabilities = capabilities;
 }
@@ -146,9 +146,10 @@ bool Security::IsOurThread(lua_State *L) {
     /// This way, we can set the bit 47th, used to describe NOTHING, to set it as
     /// our thread. Then we & it to validate it is present on the integer with an AND, which it shouldn't be ever if
     /// its anything normal, but we aren't normal!
+    /// When doing the bit shift, in C by default numbers are int32_t, we must use int64_t, thus we must post-fix the the number with 'll'
     const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     const auto logger = Logger::GetSingleton();
-    const auto passed = (extraSpace->capabilities & (1 << 46)) == (1 << 46);
+    const auto passed = (extraSpace->capabilities & (1ll << 46ll)) == (1ll << 46ll);
     return passed;
 }
 
