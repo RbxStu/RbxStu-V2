@@ -171,20 +171,6 @@ namespace RbxStu {
             return 0;
         }
 
-
-        int systemexec(lua_State *L) {
-            if (!Communication::GetSingleton()->IsUnsafeMode()) {
-                Logger::GetSingleton()->PrintInformation(
-                        RbxStu::Anonymous,
-                        "system call won't be ran, because it is considered an"
-                        "unsafe function, and will only be available when Unsafe mode is enabled.");
-                return 0;
-            }
-                const char* stringarg = lua_tostring(L, 1);
-                system(stringarg); // Ever felt like you need to boost your commit status to boost your ego? This is the way.
-            return 0;
-        }
-
         int httpget(lua_State *L) {
             const std::string url = luaL_checkstring(L, 1);
 
@@ -236,8 +222,6 @@ luaL_Reg *Misc::GetLibraryFunctions() {
                               {"setclipboard", RbxStu::Misc::setclipboard},
                               {"getclipboard", RbxStu::Misc::getclipboard},
                               {"emptyclipboard", RbxStu::Misc::emptyclipboard},
-
-                              {"system", RbxStu::Misc::systemexec},
 
                               {"httpget", RbxStu::Misc::httpget},
 
