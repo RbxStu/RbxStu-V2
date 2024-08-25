@@ -167,9 +167,11 @@ namespace RBX {
         char _4c0[0x40];
         char _500[0x40];
         char _540[1];
+        char _541[1];
+        char _542[1];
         bool m_bIsClosed;
         bool m_bIsContentLoaded;
-        char _543[0x3d];
+        char _543[0x3b];
         char _580[0x40];
         char _5c0[0x20];
         char _5e0[0x10];
