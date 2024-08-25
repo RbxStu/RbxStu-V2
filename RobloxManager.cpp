@@ -63,8 +63,9 @@ void rbx_rbxcrash(const char *crashType, const char *crashDescription) {
     Sleep(60000);
 }
 
-RBX::SystemAddress* getNetworkOwner(void* basePart, RBX::SystemAddress* returnAddress) {
-    auto originalFunction = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(RobloxManager::GetSingleton()->GetHookOriginal("RBX::BasePart::getNetworkOwner"));
+RBX::SystemAddress *getNetworkOwner(void *basePart, RBX::SystemAddress *returnAddress) {
+    auto originalFunction = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(
+            RobloxManager::GetSingleton()->GetHookOriginal("RBX::BasePart::getNetworkOwner"));
     auto returnOutput = originalFunction(basePart, returnAddress);
 
     std::stringstream ss;
@@ -306,7 +307,9 @@ void RobloxManager::Initialize() {
     logger->PrintInformation(RbxStu::RobloxManager, "Additional dumping step... [2/3]");
 
     {
-        logger->PrintInformation(RbxStu::RobloxManager, "Attempting to obtain ");
+        logger->PrintWarning(
+                RbxStu::RobloxManager,
+                "Attempting to obtain encryption for RBX::ScriptContext::getGlobalState's obfuscated pointer!");
         { // getglobalstate encryption dump, both functions' encryption match correctly.
 
             auto functionStart = this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"];
@@ -314,26 +317,30 @@ void RobloxManager::Initialize() {
 
             switch (*asm_0) {
                 case 0x2B: // sub ecx, dword ptr [rax]
-                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is SUB");
+                    logger->PrintWarning(RbxStu::RobloxManager,
+                                         "Encryption identified as SUB; SUB ECX, DWORD PTR [RAX]");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
                             RbxStu::RbxPointerEncryptionType::SUB;
                     break;
 
                 case 0x3: // add ecx, dword ptr [rax]
-                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is ADD");
+                    logger->PrintWarning(RbxStu::RobloxManager,
+                                         "Encryption identified as ADD; ADD ECX, DWORD PTR [RAX]");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
                             RbxStu::RbxPointerEncryptionType::ADD;
                     break;
 
                 case 0x33: // xor ecx, dword ptr [rax]
-                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is XOR");
+                    logger->PrintWarning(RbxStu::RobloxManager,
+                                         "Encryption identified as XOR; XOR ECX, DWORD PTR [RAX]");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
                             RbxStu::RbxPointerEncryptionType::XOR;
                     break;
 
                 default:
-                    logger->PrintInformation(RbxStu::RobloxManager,
-                                             std::format("Encryption match failed found code: {}", *asm_0));
+                    logger->PrintWarning(
+                            RbxStu::RobloxManager,
+                            std::format("Failed to determine encryption (Checked bit is as follows!): {}", *asm_0));
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
                             RbxStu::RbxPointerEncryptionType::UNDETERMINED;
                     break;
@@ -364,9 +371,10 @@ void RobloxManager::Initialize() {
     MH_CreateHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"], rbx_rbxcrash, &this->m_mapHookMap["RBX::RBXCRASH"]);
     MH_EnableHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"]);
 
-    //this->m_mapHookMap["RBX::BasePart::getNetworkOwner"] = new void *();
-    //MH_CreateHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"], getNetworkOwner, &this->m_mapHookMap["RBX::BasePart::getNetworkOwner"]);
-    //MH_EnableHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"]);
+    // this->m_mapHookMap["RBX::BasePart::getNetworkOwner"] = new void *();
+    // MH_CreateHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"], getNetworkOwner,
+    // &this->m_mapHookMap["RBX::BasePart::getNetworkOwner"]);
+    // MH_EnableHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"]);
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initialization Completed. [3/3]");
     this->m_bInitialized = true;
