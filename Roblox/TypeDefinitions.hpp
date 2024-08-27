@@ -4,8 +4,8 @@
 
 #pragma once
 #include <cstdint>
-
 #include "lstate.h"
+
 namespace RBX {
     struct SystemAddress {
         struct PeerId {
@@ -238,4 +238,24 @@ namespace RBX {
     };
 
 
+    enum PointerEncryptionType { ADD, SUB, XOR, UNDETERMINED };
+
+    template<typename T>
+    class PointerEncryption final {
+        std::uintptr_t addressOne;
+        std::uintptr_t *addressTwo;
+
+        T DecodePointerWithOperation(const PointerEncryptionType pointerEncryption) {
+            switch (pointerEncryption) {
+                case ADD:
+                    return addressOne + *addressTwo;
+                case XOR:
+                    return addressOne ^ *addressTwo;
+                case SUB:
+                    return addressOne - *addressTwo;
+                default:
+                    return *addressTwo - addressOne;
+            }
+        }
+    };
 } // namespace RBX

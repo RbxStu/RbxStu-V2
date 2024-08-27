@@ -338,18 +338,25 @@ void RobloxManager::Initialize() {
                 if (isSub) {
                     logger->PrintWarning(RbxStu::RobloxManager,
                                          "Determined RBX::ScriptContext::getGlobalState encryption to be SUB!");
-                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::SUB;
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::SUB;
                 } else if (isAdd) {
                     logger->PrintWarning(RbxStu::RobloxManager,
                                          "Determined RBX::ScriptContext::getGlobalState encryption to be ADD!");
-                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::ADD;
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::ADD;
                 } else if (isXor) {
                     logger->PrintWarning(RbxStu::RobloxManager,
                                          "Determined RBX::ScriptContext::getGlobalState encryption to be XOR!");
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::XOR;
+                } else {
+                    logger->PrintWarning(
+                            RbxStu::RobloxManager,
+                            "Failed to determine RBX::ScriptContext::getGlobalState encryption! Dumping assembly! \n");
+                    for (const auto &insn: chunk->GetInstructions()) {
+                        printf("0x%" PRIx64 ":\t%s\t\t%s\n", insn.address, insn.mnemonic, insn.op_str);
+                    }
+                    printf("\n");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::XOR;
+                            RBX::PointerEncryptionType::UNDETERMINED;
                 }
             }
         }

@@ -110,13 +110,27 @@ Disassembler::GetInstructions(_In_ DisassemblyRequest &disassemblyRequest) {
     return {};
 }
 void *Disassembler::ObtainPossibleEndFromStart(void *mapped) {
+    const auto logger = Logger::GetSingleton();
     // Compilers normally leave some stub 0xCC at the end of functions to split them up, I'm not joking.
     // we can abuse this to find the possible ending of a function, keyword, possible, we cannot really get everything
-    // we want on this life :(. That also said, for the purposes of MORE simplicity, we will make the address an even one, just for the sake of god.
+    // we want on this life :(. That also said, for the purposes of MORE simplicity, we will make the address an even
+    // one, just for the sake of god.
+    if (reinterpret_cast<std::uintptr_t>(mapped) % 2) {
+        logger->PrintWarning(RbxStu::Disassembler, "Rounding address to a multiple of 2 for simplicity");
+        mapped = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(mapped) - 1);
+    }
 
     auto pAsm = static_cast<std::uint8_t *>(mapped);
 
+    bool f = false;
     while (*pAsm == static_cast<std::uint8_t>(0xCC)) {
+        if (!f) {
+            logger->PrintWarning(
+                    RbxStu::Disassembler,
+                    "mapped has been dereferenced into a 0xCC! Assuming that the provided pointer is pointing to the "
+                    "prelude of a function. Advancing mapped until dereferencing is not 0xCC!");
+            f = true;
+        }
         // The provided address is at the end of a function, we must crawl forward until we get to a valid code segment.
         pAsm++;
     }
