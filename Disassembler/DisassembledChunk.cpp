@@ -13,6 +13,8 @@ DisassembledChunk::DisassembledChunk(cs_insn *pInstructions, std::size_t ullInst
         this->vInstructionsvec.push_back(*(pInstructions + i));
     }
 
+    this->instructionCount = ullInstructionCount;
+    this->originalInstruction = pInstructions;
     // Freeing correctly will result in freeing pInstructions->detail, which we do not want,
     // but we also do not want to free other things like the pInstructions, because else we CANNOT free detail later on.
     // cs_free is to run when deconstructing for simplicity.
