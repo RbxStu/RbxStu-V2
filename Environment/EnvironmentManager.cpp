@@ -67,7 +67,8 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "ixpservice",
                                                    "sessionservice",
                                                    "studioservice"
-                                                   "platformcloudstorageservice"};
+                                                   "platformcloudstorageservice",
+                                                   "startpageservice"};
 
 static std::vector<std::string> blockedFunctions = {
         "openvideosfolder",
@@ -125,7 +126,9 @@ static std::vector<std::string> blockedFunctions = {
         "startplaying",
         "getsecret",
         "requestasync",
-        "sendrobloxevent"};
+        "sendrobloxevent",
+        "startsessionwithpath" // StartSessionWithPathAsync
+};
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
