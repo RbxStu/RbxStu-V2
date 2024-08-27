@@ -58,6 +58,7 @@ public:
 namespace RbxStu {
 /// @brief Defines a section for use in the logger
 #define DefineSectionName(varName, sectionName) constexpr auto varName = sectionName
+    DefineSectionName(Disassembler, "RbxStu::Disassembler");
     DefineSectionName(RobloxConsole, "RbxStu::RobloxConsole");
     DefineSectionName(ThreadManagement, "RbxStu::ThreadManagement");
     DefineSectionName(MainThread, "RbxStu::MainThread");

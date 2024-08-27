@@ -10,6 +10,8 @@
 
 #include <DbgHelp.h>
 
+#include "Disassembler/Disassembler.hpp"
+#include "Disassembler/DisassemblyRequest.hpp"
 #include "LuauManager.hpp"
 #include "Scanner.hpp"
 #include "Scheduler.hpp"
@@ -261,6 +263,9 @@ void RobloxManager::Initialize() {
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing MinHook for function hooking [1/3]");
     MH_Initialize();
 
+    logger->PrintInformation(RbxStu::RobloxManager, "Obtaining RbxStu::Disassembler for disassembling [1/3]");
+    const auto disassembler = Disassembler::GetSingleton();
+
     logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions (Simple step)... [1/3]");
 
     for (const auto &[fName, fSignature]: RbxStu::StudioSignatures::s_signatureMap) {
@@ -314,36 +319,38 @@ void RobloxManager::Initialize() {
 
             auto functionStart = this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"];
             const auto asm_0 = reinterpret_cast<std::uint8_t *>(reinterpret_cast<std::uintptr_t>(functionStart) + 0x56);
+            DisassemblyRequest request{};
+            request.bIgnorePageProtection = false;
+            request.pStartAddress = functionStart;
+            request.pEndAddress = disassembler->ObtainPossibleEndFromStart(functionStart);
 
-            switch (*asm_0) {
-                case 0x2B: // sub ecx, dword ptr [rax]
+            if (auto ret = disassembler->GetInstructions(request); !ret.has_value()) {
+                logger->PrintWarning(RbxStu::RobloxManager,
+                                     "Cannot dump RBX::ScriptContext::getGlobalState encryption. Disassembly failed.");
+            } else {
+                const auto chunk = std::move(ret.value());
+
+
+                const auto isSub = chunk->ContainsInstruction("sub", "ecx, dword ptr [rax", true);
+                const auto isAdd = chunk->ContainsInstruction("add", "ecx, dword ptr [rax", true);
+                const auto isXor = chunk->ContainsInstruction("xor", "ecx, dword ptr [rax", true);
+
+                if (isSub) {
                     logger->PrintWarning(RbxStu::RobloxManager,
-                                         "Encryption identified as SUB; SUB ECX, DWORD PTR [RAX]");
+                                         "Determined RBX::ScriptContext::getGlobalState encryption to be SUB!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
                             RbxStu::RbxPointerEncryptionType::SUB;
-                    break;
-
-                case 0x3: // add ecx, dword ptr [rax]
+                } else if (isAdd) {
                     logger->PrintWarning(RbxStu::RobloxManager,
-                                         "Encryption identified as ADD; ADD ECX, DWORD PTR [RAX]");
+                                         "Determined RBX::ScriptContext::getGlobalState encryption to be ADD!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
                             RbxStu::RbxPointerEncryptionType::ADD;
-                    break;
-
-                case 0x33: // xor ecx, dword ptr [rax]
+                } else if (isXor) {
                     logger->PrintWarning(RbxStu::RobloxManager,
-                                         "Encryption identified as XOR; XOR ECX, DWORD PTR [RAX]");
+                                         "Determined RBX::ScriptContext::getGlobalState encryption to be XOR!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
                             RbxStu::RbxPointerEncryptionType::XOR;
-                    break;
-
-                default:
-                    logger->PrintWarning(
-                            RbxStu::RobloxManager,
-                            std::format("Failed to determine encryption (Checked bit is as follows!): {}", *asm_0));
-                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::UNDETERMINED;
-                    break;
+                }
             }
         }
     }
