@@ -3,6 +3,8 @@ project(Module)
 
 add_definitions(-DLUAI_GCMETRICS)   # Force GC metrics on Luau.
 
+option(CAPSTONE_X86_SUPPORT "Enable x86 capstone" ON)
+
 set(BUILD_SHARED_LIBS OFF)
 set(PROJECT_NAME Module)
 set(CMAKE_CXX_STANDARD 23)

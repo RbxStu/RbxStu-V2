@@ -55,17 +55,17 @@ endif()
 
 
 # to configure the options specify them in the command line or change them in the cmake UI.
-# Don't edit the makefile!
+# Don't edit the makefile! ( jokes on you ill edit the file directly like someone super responsible )
 option(BUILD_SHARED_LIBS "Build shared library" OFF)
-option(CAPSTONE_BUILD_STATIC_RUNTIME "Embed static runtime" ${BUILD_SHARED_LIBS})
+option(CAPSTONE_BUILD_STATIC_RUNTIME "Embed static runtime" ON)
 option(CAPSTONE_BUILD_MACOS_THIN "Disable universal2 builds on macOS" OFF)
-option(CAPSTONE_BUILD_DIET "Build diet library" OFF)
+option(CAPSTONE_BUILD_DIET "Build diet library" ON)
 option(CAPSTONE_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(CAPSTONE_BUILD_CSTOOL "Build cstool" ${PROJECT_IS_TOP_LEVEL})
 option(CAPSTONE_BUILD_CSTEST "Build cstest" OFF)
 option(CAPSTONE_USE_DEFAULT_ALLOC "Use default memory allocation functions" ON)
 option(CAPSTONE_USE_ARCH_REGISTRATION "Use explicit architecture registration" OFF)
-option(CAPSTONE_ARCHITECTURE_DEFAULT "Whether architectures are enabled by default" ON)
+option(CAPSTONE_ARCHITECTURE_DEFAULT "Whether architectures are enabled by default" OFF)
 option(CAPSTONE_DEBUG "Whether to enable extra debug assertions" OFF)
 option(CAPSTONE_INSTALL "Generate install target" ${PROJECT_IS_TOP_LEVEL})
 option(ENABLE_ASAN "Enable address sanitizer" OFF)
@@ -81,8 +81,8 @@ if(APPLE AND NOT CAPSTONE_BUILD_MACOS_THIN)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64")
 endif()
 
-set(SUPPORTED_ARCHITECTURES ARM AARCH64 M68K MIPS PPC SPARC SYSZ XCORE X86 TMS320C64X M680X EVM MOS65XX WASM BPF RISCV SH TRICORE ALPHA HPPA LOONGARCH)
-set(SUPPORTED_ARCHITECTURE_LABELS ARM AARCH64 M68K MIPS PowerPC Sparc SystemZ XCore x86 TMS320C64x M680x EVM MOS65XX WASM BPF RISCV SH TriCore Alpha HPPA LoongArch)
+set(SUPPORTED_ARCHITECTURES x86) # ARM AARCH64 M68K MIPS PPC SPARC SYSZ XCORE X86 TMS320C64X M680X EVM MOS65XX WASM BPF RISCV SH TRICORE ALPHA HPPA LOONGARCH)
+set(SUPPORTED_ARCHITECTURE_LABELS x86) # ARM AARCH64 M68K MIPS PowerPC Sparc SystemZ XCore x86 TMS320C64x M680x EVM MOS65XX WASM BPF RISCV SH TriCore Alpha HPPA LoongArch)
 
 # If building for OSX it's best to allow CMake to handle building both architectures
 if(APPLE AND NOT CAPSTONE_BUILD_MACOS_THIN)
@@ -111,7 +111,7 @@ foreach(i RANGE ${count})
 endforeach()
 
 option(CAPSTONE_X86_REDUCE "x86 with reduce instruction sets to minimize library" OFF)
-option(CAPSTONE_X86_ATT_DISABLE "Disable x86 AT&T syntax" OFF)
+option(CAPSTONE_X86_ATT_DISABLE "Disable x86 AT&T syntax" ON)
 option(CAPSTONE_OSXKERNEL_SUPPORT "Support to embed Capstone into OS X Kernel extensions" OFF)
 
 if(CAPSTONE_BUILD_DIET)
