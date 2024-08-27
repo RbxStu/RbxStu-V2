@@ -115,7 +115,7 @@ void *Disassembler::ObtainPossibleEndFromStart(void *mapped) {
     // we can abuse this to find the possible ending of a function, keyword, possible, we cannot really get everything
     // we want on this life :(. That also said, for the purposes of MORE simplicity, we will make the address an even
     // one, just for the sake of god.
-    if (reinterpret_cast<std::uintptr_t>(mapped) % 2) {
+    if (reinterpret_cast<std::uintptr_t>(mapped) % 2 != 0) {
         logger->PrintWarning(RbxStu::Disassembler, "Rounding address to a multiple of 2 for simplicity");
         mapped = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(mapped) - 1);
     }
