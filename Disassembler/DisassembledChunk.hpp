@@ -8,11 +8,14 @@
 
 class DisassembledChunk final {
     std::vector<cs_insn> vInstructionsvec;
+    cs_insn *originalInstruction;
+    std::size_t instructionCount;
 
 public:
+    ~DisassembledChunk();
     DisassembledChunk(_In_ cs_insn *pInstructions, std::size_t ullInstructionCount);
 
-    bool ContainsInstruction(const char *szMnemonic, const char *szOperationAsString, bool bUseContains);
+    bool ContainsInstruction(_In_ const char *szMnemonic, _In_ const char *szOperationAsString, bool bUseContains);
 
     std::vector<cs_insn> GetInstructions();
 };
