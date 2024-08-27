@@ -36,8 +36,8 @@ bool DisassembledChunk::ContainsInstruction(const char *szMnemonic, const char *
     }
 }
 
-bool DisassembledChunk::ContainsInstructionChain(std::vector<const char *> szMnemonics,
-                                                 std::vector<const char *> szOperationAsString, bool bUseContains) {
+bool DisassembledChunk::ContainsInstructionChain(std::vector<const char *>& szMnemonics,
+                                                 std::vector<const char *>& szOperationAsString, bool bUseContains) {
     const auto logger = Logger::GetSingleton();
     if (szMnemonics.size() != szOperationAsString.size()) {
         logger->PrintError(RbxStu::Anonymous, "Cannot determine if the DisassembledChunk contains the chain of "
@@ -62,4 +62,4 @@ bool DisassembledChunk::ContainsInstructionChain(std::vector<const char *> szMne
     return false;
 }
 
-std::vector<cs_insn> DisassembledChunk::GetInstructions() { return this->vInstructionsvec; }
+const std::vector<cs_insn>& DisassembledChunk::GetInstructions() { return this->vInstructionsvec; }
