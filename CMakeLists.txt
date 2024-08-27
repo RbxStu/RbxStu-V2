@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.26)
 project(Module)
 
 add_definitions(-DLUAI_GCMETRICS)   # Force GC metrics on Luau.
+
 set(BUILD_SHARED_LIBS OFF)
 set(PROJECT_NAME Module)
 set(CMAKE_CXX_STANDARD 23)
@@ -52,6 +53,11 @@ add_library(Module SHARED
         Environment/Libraries/Instance.hpp
         Environment/Libraries/Input.cpp
         Environment/Libraries/Input.hpp
+        Disassembler/Disassembler.cpp
+        Disassembler/Disassembler.hpp
+        Disassembler/DisassemblyRequest.hpp
+        Disassembler/DisassembledChunk.cpp
+        Disassembler/DisassembledChunk.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
@@ -83,6 +89,9 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/IXWebSocket")
 # cryptopp
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/cryptopp-cmake")
 
+# capstone
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Capstone")
+
 find_package(lz4 CONFIG REQUIRED)
 find_package(OpenSSL CONFIG REQUIRED)
 
@@ -109,5 +118,7 @@ target_link_libraries(${PROJECT_NAME}
         lz4::lz4
 
         cryptopp::cryptopp
+
+        capstone
 )
 
