@@ -3,9 +3,12 @@
 //
 
 #include "DisassembledChunk.hpp"
+
+#include "Logger.hpp"
 DisassembledChunk::~DisassembledChunk() { cs_free(this->originalInstruction, this->instructionCount); }
 DisassembledChunk::DisassembledChunk(cs_insn *pInstructions, std::size_t ullInstructionCount) {
     std::size_t count = 0;
+    this->vInstructionsvec.reserve(ullInstructionCount);
     for (std::size_t i = 0; i < ullInstructionCount; i++) {
         this->vInstructionsvec.push_back(*(pInstructions + i));
     }
@@ -29,6 +32,32 @@ bool DisassembledChunk::ContainsInstruction(const char *szMnemonic, const char *
             return true;
         }
     }
+}
+
+bool DisassembledChunk::ContainsInstructionChain(std::vector<const char *> szMnemonics,
+                                                 std::vector<const char *> szOperationAsString, bool bUseContains) {
+    const auto logger = Logger::GetSingleton();
+    if (szMnemonics.size() != szOperationAsString.size()) {
+        logger->PrintError(RbxStu::Anonymous, "Cannot determine if the DisassembledChunk contains the chain of "
+                                              "instructions. Reason: szMnemonics.size() != szOperationAsString.size(); "
+                                              "making it impossible to compute.");
+        return false;
+    }
+    for (const auto &instr: this->vInstructionsvec) {
+        auto matchCount = 0;
+        for (std::size_t i = 0; i < szMnemonics.size(); i++) {
+            if (((!bUseContains && strcmp(instr.mnemonic, szMnemonics[i]) == 0) ||
+                 bUseContains && strstr(instr.mnemonic, szMnemonics[i]) != nullptr) &&
+                ((!bUseContains && strcmp(instr.op_str, szOperationAsString[i]) == 0) ||
+                 bUseContains && strstr(instr.op_str, szOperationAsString[i]) != nullptr)) {
+                matchCount++;
+            }
+        }
+        if (matchCount == szMnemonics.size())
+            return true;
+    }
+
+    return false;
 }
 
 std::vector<cs_insn> DisassembledChunk::GetInstructions() { return this->vInstructionsvec; }
