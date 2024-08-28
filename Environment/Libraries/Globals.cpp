@@ -62,7 +62,7 @@ std::string Globals::GetLibraryName() { return "rbxstu"; }
 luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
     auto *reg = new luaL_Reg[]{{"isluau", RbxStu::isluau},
-                               {"require", RbxStu::require},
+                               //{"require", RbxStu::require},
                                {"decompile", RbxStu::decompile},
 
                                {nullptr, nullptr}};

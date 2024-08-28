@@ -464,5 +464,17 @@ getgenv().getrunningscripts = newcclosure(function()
 
 	return scripts
 end)
+
+local originalRequire = require
+getgenv().require = function(module)
+    if typeof(module) ~= "Instance" then error("Attempted to call require with invalid argument(s).") end
+    if not module:IsA("ModuleScript") then error("Attempted to call require with invalid argument(s).") end
+    local originalIdentity = getidentity()
+    setidentity(2)
+    local success, result = pcall(originalRequire, module)
+    setidentity(originalIdentity)
+    if not success then error(result) end
+    return result
+end
 )"));
 }
