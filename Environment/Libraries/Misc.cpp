@@ -221,6 +221,7 @@ luaL_Reg *Misc::GetLibraryFunctions() {
 
                               {"setclipboard", RbxStu::Misc::setclipboard},
                               {"getclipboard", RbxStu::Misc::getclipboard},
+                              {"toclipboard", RbxStu::Misc::getclipboard},
                               {"emptyclipboard", RbxStu::Misc::emptyclipboard},
 
                               {"httpget", RbxStu::Misc::httpget},
