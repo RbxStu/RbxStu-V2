@@ -46,13 +46,16 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         auto opts = Luau::CompileOptions{};
         opts.debugLevel = 2;
-        opts.optimizationLevel = 1; // O2 enables inlining, this breaks hookfunction in some cases. and thus, it should be 1.
+        opts.optimizationLevel =
+                1; // O2 enables inlining, this breaks hookfunction in some cases. and thus, it should be 1.
         const char *mutableGlobals[] = {"_G", "_ENV", "shared", nullptr};
         opts.mutableGlobals = mutableGlobals;
-        const auto bytecode = Luau::compile(
-                std::string("local script = Instance.new('LocalScript');getgenv()['string'] = getrawmetatable('').__index;")
-                        .append(job->luaJob.szluaCode),
-                opts);
+        const auto bytecode =
+                Luau::compile(std::string("(function() local script = Instance.new('LocalScript');getgenv()['string'] "
+                                          "= getrawmetatable('').__index; end)(); (function() ")
+                                      .append(job->luaJob.szluaCode)
+                                      .append("; end)();"),
+                              opts);
 
         logger->PrintInformation(RbxStu::Scheduler, "Compiled Bytecode!");
 
@@ -64,8 +67,6 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         security->SetThreadSecurity(L, 8);
 
-        logger->PrintInformation(RbxStu::Scheduler, "Set Thread identity & capabilities");
-
         if (luau_load(L, "RbxStuV2", bytecode.c_str(), bytecode.size(), 0) != LUA_OK) {
             const char *err = lua_tostring(L, -1);
             logger->PrintError(RbxStu::Scheduler, err);
@@ -73,7 +74,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
             return;
         }
         logger->PrintWarning(RbxStu::Scheduler,
-                             std::format("Execution Lua State = {:#x}", reinterpret_cast<std::uintptr_t>(L)));
+                             std::format("lua_State *nL = {:#x};", reinterpret_cast<std::uintptr_t>(L)));
 
         auto *pClosure = const_cast<Closure *>(static_cast<const Closure *>(lua_topointer(L, -1)));
 
