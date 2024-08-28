@@ -127,7 +127,6 @@ void Security::SetThreadSecurity(lua_State *L, std::int32_t identity) {
 
     auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     auto capabilities = Security::GetSingleton()->IdentityToCapabilities(identity);
-    printf("%p\n", capabilities);
     plStateUd->identity = identity;
     plStateUd->capabilities = capabilities;
 }
