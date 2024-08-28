@@ -88,7 +88,7 @@ luaL_Reg *Instance::GetLibraryFunctions() {
                               {"fireproximityprompt", RbxStu::Instance::fireproximityprompt},
 
 #ifdef ISNETWORKOWNER_DEV
-                              {"isnetworkowner", RbxStu::isnetworkowner},
+                              {"isnetworkowner", RbxStu::Instance::isnetworkowner},
 #endif
 
                               {nullptr, nullptr}};
