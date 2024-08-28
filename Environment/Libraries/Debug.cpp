@@ -88,7 +88,7 @@ namespace RbxStu {
             if (index < 1)
                 luaL_argerror(L, 2, "constant index starts at 1");
 
-            if (index >= p->sizek)
+            if (index > p->sizek)
                 luaL_argerror(L, 2, "constant index out of range");
 
             const auto constant = &k[index - 1];
@@ -137,7 +137,7 @@ namespace RbxStu {
             if (dbgIndx < 1)
                 luaL_argerror(L, 2, "constant index starts at 1");
 
-            if (dbgIndx >= pClosure->l.p->sizek)
+            if (dbgIndx > pClosure->l.p->sizek)
                 luaL_argerror(L, 2, "constant index is out of range");
 
             if (const auto tValue = &constants[dbgIndx - 1]; tValue->tt == LUA_TFUNCTION) {
@@ -467,27 +467,30 @@ namespace RbxStu {
             const auto level = lua_tointeger(L, 1);
             const auto index = luaL_optinteger(L, 2, -1);
 
-            if (level >= L->ci - L->base_ci || level < 0) {
+            if (level >= L->ci - L->base_ci || level < 0)
                 luaL_argerror(L, 1, "level out of range");
-            }
-
-            if (index < 0) {
-                luaL_argerrorL(L, 2, "index out of range");
-            }
 
             const auto frame = L->ci - level;
-            const auto top = frame->top - frame->base;
+            const std::size_t stackFrameSize = (frame->top - frame->base);
 
-            if (clvalue(frame->func)->isC) {
+            if (clvalue(frame->func)->isC)
                 luaL_argerror(L, 1, "level points to a C closure, Lua closure expected!");
-            }
 
-            if (index < 1 || index > top) {
-                luaL_argerror(L, 2, "stack index out of range");
-            }
+            if (index == -1) {
+                lua_newtable(L);
+                for (int i = 0; i < stackFrameSize; i++) {
+                    setobj2s(L, L->top, &frame->base[i]);
+                    L->top++;
 
-            setobj2s(L, L->top, &frame->base[index - 1]);
-            L->top++;
+                    lua_rawseti(L, -2, i + 1);
+                }
+            } else {
+                if (index < 1 || index > stackFrameSize)
+                    luaL_argerror(L, 2, "index out of range");
+
+                setobj2s(L, L->top, &frame->base[index - 1]);
+                L->top++;
+            }
 
             return 1;
         }
