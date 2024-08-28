@@ -65,8 +65,9 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "accountservice",
                                                    "analyticsservice",
                                                    "ixpservice",
+                                                   "commerceservice",
                                                    "sessionservice",
-                                                   "studioservice"
+                                                   "studioservice",
                                                    "platformcloudstorageservice",
                                                    "startpageservice"};
 
