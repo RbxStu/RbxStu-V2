@@ -322,16 +322,27 @@ namespace RbxStu {
                     lua_pop(L, 1);
                 }
 
+                std::string Body;
+                lua_getfield(L, 1, "Body");
+                if (!lua_isnil(L, -1)) {
+                    if (!lua_isstring(L, -1))
+                        luaL_argerrorL(L, 1, "Body must be a string");
+
+                    Body = _strdup(lua_tostring(L, -1));
+                    lua_pop(L, 1);
+                }
+
                 const auto scheduler = Scheduler::GetSingleton();
 
                 scheduler->ScheduleJob(SchedulerJob(
                         L,
-                        [Url, Method, Headers, cookies](
+                        [Url, Method, Headers, Body, cookies](
                                 lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
                             cpr::Session requestSession;
                             requestSession.SetUrl(Url);
                             requestSession.SetHeader(cpr::Header{Headers});
                             requestSession.SetCookies(cookies);
+                            requestSession.SetBody(Body);
 
                             cpr::Response response;
                             if (Method == "get") {
