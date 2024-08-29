@@ -615,7 +615,7 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
                        &threadRef, nret, false, nullptr);
     } catch (const std::exception &ex) {
         logger->PrintError(RbxStu::RobloxManager,
-                           std::format("An error occured whilst resuming the thread! Exception: {}", ex.what()));
+                           std::format("An error occurred whilst resuming the thread! Exception: {}", ex.what()));
     }
 
 
