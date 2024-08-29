@@ -349,7 +349,7 @@ namespace RbxStu {
                             *callbackToExecute =
                                     std::async(std::launch::async, [response]() -> std::function<int(lua_State *)> {
                                         return [response](lua_State *L) -> int {
-                                            lua_createtable(L, 0, 3);
+                                            lua_newtable(L);
 
                                             lua_pushboolean(L, !HttpStatus::IsError(response.status_code) &&
                                                                        response.status_code != 0);
@@ -360,6 +360,9 @@ namespace RbxStu {
 
                                             lua_pushstring(L, response.text.c_str());
                                             lua_setfield(L, -2, "Body");
+
+                                            lua_pushstring(L, response.status_line.c_str());
+                                            lua_setfield(L, -2, "StatusMessage");
 
                                             return 1;
                                         };
