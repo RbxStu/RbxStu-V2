@@ -250,10 +250,10 @@ namespace RbxStu {
                 auto getRequiredString = [L](const char *field) -> std::string {
                     lua_getfield(L, 1, field);
                     if (lua_isnil(L, -1)) {
-                        throw std::runtime_error(std::string("Options must have a ") + field + " field");
+                        luaL_argerrorL(L, 1, std::format("Options must have a {} field", field).c_str());
                     }
                     if (!lua_isstring(L, -1)) {
-                        throw std::runtime_error(std::string(field) + " must be a string");
+                        luaL_argerrorL(L, 1, std::format("{} must be a string", field).c_str());
                     }
                     std::string value = _strdup(lua_tostring(L, -1));
                     lua_pop(L, 1);
@@ -264,7 +264,7 @@ namespace RbxStu {
                 std::string Method = Utilities::ToLower(getRequiredString("Method"));
 
                 if (!isValidHttpMethod(Method)) {
-                    throw std::runtime_error("Method must be one of these 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'");
+                    luaL_argerrorL(L, 1, "Method must be one of these 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'");
                 }
 
                 auto Headers = std::map<std::string, std::string, cpr::CaseInsensitiveCompare>();
@@ -273,13 +273,13 @@ namespace RbxStu {
                 lua_getfield(L, 1, "Headers");
                 if (!lua_isnil(L, -1)) {
                     if (!lua_istable(L, -1)) {
-                        throw std::runtime_error("Headers must be a table");
+                        luaL_argerrorL(L, 1, "Headers must be a table");
                     }
 
                     lua_pushnil(L);
                     while (lua_next(L, -2) != 0) {
                         if (!lua_isstring(L, -2) || !lua_isstring(L, -1)) {
-                            throw std::runtime_error("Header key and value must be strings");
+                            luaL_argerrorL(L, 1, "Header key and value must be strings");
                         }
 
                         Headers[_strdup(lua_tostring(L, -2))] = _strdup(lua_tostring(L, -1));
@@ -294,12 +294,12 @@ namespace RbxStu {
                 lua_getfield(L, 1, "Cookies");
                 if (!lua_isnil(L, -1)) {
                     if (!lua_istable(L, -1)) {
-                        throw std::runtime_error("Cookies must be a table");
+                        luaL_argerrorL(L, 1, "Cookies must be a table");
                     }
                     lua_pushnil(L);
                     while (lua_next(L, -2) != 0) {
                         if (!lua_isstring(L, -2) || !lua_isstring(L, -1)) {
-                            throw std::runtime_error("Cookie key and value must be strings");
+                            luaL_argerrorL(L, 1, "Cookie key and value must be strings");
                         }
 
                         cookies.emplace_back(cpr::Cookie{_strdup(lua_tostring(L, -2)), _strdup(lua_tostring(L, -1))});
