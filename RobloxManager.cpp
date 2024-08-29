@@ -415,8 +415,6 @@ void RobloxManager::Initialize() {
         logger->PrintInformation(RbxStu::RobloxManager,
                                  std::format("Rebuilt fast variables. Fast Variables found in Studio: {}",
                                              this->m_mapFastVariables.size()));
-
-        logger->PrintInformation(RbxStu::RobloxManager, std::format("{}", this->m_mapFastVariables.at("TaskSchedulerTargetFps")));
     }
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
