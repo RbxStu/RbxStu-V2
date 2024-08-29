@@ -47,11 +47,11 @@ public:
         void SuspendThreads() {
             const auto logger = Logger::GetSingleton();
             if (this->state != RESUMED) {
-                logger->PrintWarning(RbxStu::ThreadManagement,
+                logger->PrintDebug(RbxStu::ThreadManagement,
                                      "Trying to suspend threads while they are already suspended!");
                 return;
             }
-            logger->PrintInformation(RbxStu::ThreadManagement, "Pausing roblox threads!");
+            logger->PrintDebug(RbxStu::ThreadManagement, "Pausing roblox threads!");
             HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 
             if (hSnapshot == INVALID_HANDLE_VALUE || hSnapshot == nullptr) {
@@ -86,11 +86,11 @@ public:
         void ResumeThreads() {
             const auto logger = Logger::GetSingleton();
             if (this->state != SUSPENDED) {
-                logger->PrintWarning(RbxStu::ThreadManagement,
+                logger->PrintDebug(RbxStu::ThreadManagement,
                                      "Attempting to resume threads while they are already resumed!");
                 return;
             }
-            logger->PrintInformation(RbxStu::ThreadManagement, "Resuming roblox threads!");
+            logger->PrintDebug(RbxStu::ThreadManagement, "Resuming roblox threads!");
             for (auto &[bWasSuspended, hThread]: this->threadInformation) {
                 ResumeThread(hThread);
             }

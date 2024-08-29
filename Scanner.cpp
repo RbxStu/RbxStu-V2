@@ -119,10 +119,8 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
     std::vector<std::future<std::vector<void *>>> scansVector{};
     std::vector<void *> results{};
     MEMORY_BASIC_INFORMATION memoryInfo{};
-#if _DEBUG
-    logger->PrintInformation(RbxStu::ByteScanner,
-                             std::format("Beginning scan from address {} to far beyond!", lpStartAddress));
-#endif
+    logger->PrintDebug(RbxStu::ByteScanner,
+                       std::format("Beginning scan from address {} to far beyond!", lpStartAddress));
     auto startAddress = reinterpret_cast<std::uintptr_t>(lpStartAddress);
 
     while (VirtualQuery(reinterpret_cast<void *>(startAddress), &memoryInfo, sizeof(MEMORY_BASIC_INFORMATION))) {
@@ -137,10 +135,10 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
             valid &= memoryInfo.Type == MEM_PRIVATE || memoryInfo.Type == MEM_IMAGE;
 
             if (!valid) {
-                // logger->PrintInformation(
-                //         RbxStu::ByteScanner,
-                //         std::format("Memory block at address {} is invalid for scanning.",
-                //         memoryInfo.BaseAddress));
+                const auto logger = Logger::GetSingleton();
+                logger->PrintDebug(
+                        RbxStu::ByteScanner,
+                        std::format("Memory block at address {} is invalid for scanning.", memoryInfo.BaseAddress));
                 return std::vector<void *>{};
             }
             auto *buffer = new unsigned char[memoryInfo.RegionSize];
@@ -161,10 +159,7 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
         }
     }
 
-#if _DEBUG
-    logger->PrintInformation(
-            RbxStu::ByteScanner,
-            std::format("Scan finalized. Found {} candidates for the given signature.", results.size()));
-#endif
+    logger->PrintDebug(RbxStu::ByteScanner,
+                       std::format("Scan finalized. Found {} candidates for the given signature.", results.size()));
     return results;
 }
