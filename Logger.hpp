@@ -37,6 +37,7 @@ public:
     /// @param bInstantFlush Whether the logger should keep no buffer, and let the underlying implementation for stdio
     /// and files handle it.
     void Initialize(bool bInstantFlush);
+    void PrintDebug(const std::string &sectionName, const std::string &msg);
 
     /// @brief Emits an Information with the given section name into the Logger's buffer.
     /// @param sectionName The name of the section that the code is running at

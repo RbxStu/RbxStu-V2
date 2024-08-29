@@ -70,6 +70,14 @@ void Logger::Initialize(const bool bInstantFlush) {
     });
 }
 
+void Logger::PrintDebug(const std::string &sectionName, const std::string &msg) {
+#if _DEBUG
+    std::lock_guard lock{mutex};
+    this->m_szMessageBuffer.append(std::format("[DEBUG/{}] {}", sectionName, msg));
+    this->FlushIfFull(RBX::Console::InformationBlue);
+#endif
+}
+
 void Logger::PrintInformation(const std::string &sectionName, const std::string &msg) {
     std::lock_guard lock{mutex};
     this->m_szMessageBuffer.append(std::format("[INFO/{}] {}", sectionName, msg));
