@@ -66,7 +66,7 @@ Disassembler::GetInstructions(_In_ DisassemblyRequest &disassemblyRequest) {
     // ReSharper disable once CppDFAUnreachableCode
 
     if (disassemblyRequest.pStartAddress < disassemblyRequest.pEndAddress) {
-        logger->PrintWarning(RbxStu::Disassembler, "pStartAddress is bigger than pEndAddress! For the purposes of "
+        logger->PrintDebug(RbxStu::Disassembler, "pStartAddress is bigger than pEndAddress! For the purposes of "
                                                    "simplicity, the addresses will be flipped! Beware!");
         const auto t = disassemblyRequest.pStartAddress;
         disassemblyRequest.pStartAddress = disassemblyRequest.pEndAddress;
@@ -83,32 +83,51 @@ Disassembler::GetInstructions(_In_ DisassemblyRequest &disassemblyRequest) {
         // ReSharper disable once CppRedundantComplexityInComparison
         if (CHECK_NOT_FLAG(buf.Protect, PAGE_EXECUTE) && CHECK_NOT_FLAG(buf.Protect, PAGE_EXECUTE_READ) &&
             CHECK_NOT_FLAG(buf.Protect, PAGE_EXECUTE_READWRITE) && CHECK_NOT_FLAG(buf.Protect, PAGE_GRAPHICS_EXECUTE)) {
-            logger->PrintWarning(RbxStu::Disassembler,
+            logger->PrintDebug(RbxStu::Disassembler,
                                  "Memory protections are non-executable! Disassembly will not proceed.");
             return {};
         }
 #undef CHECK_NOT_FLAG
     }
 
-    logger->PrintInformation(RbxStu::Disassembler, std::format("Disassembling segment: {} ~ {}. Size: {:#x}",
-                                                               disassemblyRequest.pStartAddress,
-                                                               disassemblyRequest.pEndAddress, segmentSize));
+    logger->PrintDebug(RbxStu::Disassembler,
+                       std::format("Disassembling segment: {} ~ {}. Size: {:#x}", disassemblyRequest.pStartAddress,
+                                   disassemblyRequest.pEndAddress, segmentSize));
 
     cs_insn *instructions{0};
 
     auto disassembledCount = cs_disasm(
             this->m_pCapstoneHandle,
             static_cast<const uint8_t *>(const_cast<const void *>(disassemblyRequest.pStartAddress)), segmentSize,
-            reinterpret_cast<std::uintptr_t>(disassemblyRequest.pStartAddress), 0, &instructions);
+            reinterpret_cast<std::uintptr_t>(disassemblyRequest.pStartAddress), segmentSize, &instructions);
 
     if (disassembledCount > 0) {
-        logger->PrintInformation(RbxStu::Disassembler, "Serializing instructions into a DiassembledChunk instance!");
+        logger->PrintDebug(RbxStu::Disassembler, "Serializing instructions into a DiassembledChunk instance!");
         return std::make_unique<DisassembledChunk>(instructions, disassembledCount);
     }
 
     logger->PrintError(RbxStu::Disassembler, "Failed to disassemble the given code!");
     return {};
 }
+
+std::optional<void *> Disassembler::TranslateRelativeLeaIntoRuntimeAddress(const cs_insn &insn) {
+    if (strcmp(insn.mnemonic, "lea") != 0) { // Not lea.
+        return {};
+    }
+    auto insnOpAsString = std::string(insn.op_str);
+    if (insnOpAsString.find("rip") == std::string::npos) { // Not relative
+        return {};
+    }
+
+    const auto ripOff =
+            insnOpAsString.find("rip + 0x") + sizeof("rip + 0x") - 1; // stRIP null-byte. (SEE WHAT I DID THERE????)
+    insnOpAsString = insnOpAsString.substr(ripOff, insnOpAsString.size() - ripOff);
+    insnOpAsString = insnOpAsString.substr(0, insnOpAsString.size() - 1); // Strip last ']'
+    char *endChar;
+
+    return reinterpret_cast<void *>(insn.address + insn.size + strtoull(insnOpAsString.c_str(), &endChar, 16));
+}
+
 void *Disassembler::ObtainPossibleEndFromStart(void *mapped) {
     const auto logger = Logger::GetSingleton();
     // Compilers normally leave some stub 0xCC at the end of functions to split them up, I'm not joking.
