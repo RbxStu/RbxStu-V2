@@ -236,6 +236,141 @@ namespace RbxStu {
             *static_cast<int32_t *>(possiblePointerToTargetFps.value()) = num;
             return 0;
         }
+
+        const std::array<std::string, 5> validMethods = {
+            "get", "post", "put", "patch", "delete"
+        };
+
+        bool isValidHttpMethod(const std::string& method) {
+            return std::find(validMethods.begin(), validMethods.end(), method) != validMethods.end();
+        }
+
+        int request(lua_State *L) {
+            luaL_checktype(L, 1, lua_Type::LUA_TTABLE);
+            lua_getfield(L, 1, "Url");
+            if (lua_isnil(L, -1))
+                luaL_argerrorL(L, 1, "Options must have a Url field");
+            if (!lua_isstring(L, -1))
+                luaL_argerrorL(L, 1, "Url must be a string");
+            lua_pop(L, 1);
+
+            lua_getfield(L, 1, "Method");
+            if (lua_isnil(L, -1))
+                luaL_argerrorL(L, 1, "Options must have a Method field");
+            if (!lua_isstring(L, -1))
+                luaL_argerrorL(L, 1, "Method must be a string");
+            lua_pop(L, 1);
+
+            lua_getfield(L, 1, "Url");
+            std::string Url = _strdup(lua_tostring(L, -1));
+            lua_pop(L, 1);
+
+            lua_getfield(L, 1, "Method");
+            std::string Method = Utilities::ToLower(_strdup(lua_tostring(L, -1)));
+            lua_pop(L, 1);
+            if (!isValidHttpMethod(Method))
+                luaL_argerrorL(L, 1, "Method must be one of these 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'");
+
+            auto Headers = std::list<std::pair<std::string, std::string>>();
+            Headers.emplace_back("User-Agent", "Roblox/WinInet");
+
+            lua_getfield(L, 1, "Headers");
+            if (!lua_isnil(L, -1)) {
+                if (!lua_istable(L, -1))
+                    luaL_argerrorL(L, 1, "Headers must a be table");
+
+                lua_pushnil(L);
+                while (lua_next(L, -2) != 0) {
+                    if (!lua_isstring(L, -2))
+                        luaL_argerrorL(L, 1, "Key of a header must be a string");
+
+                    if (!lua_isstring(L, -1))
+                        luaL_argerrorL(L, 1, "Value of a header must be a string");
+
+                    std::string headerName = _strdup(lua_tostring(L, -2));
+                    std::string headerValue = _strdup(lua_tostring(L, -1));
+                    Headers.emplace_back(headerName, headerValue);
+
+                    lua_pop(L, 1);
+                }
+
+                lua_pop(L, 1);
+            }
+
+            cpr::Cookies cookies;
+            lua_getfield(L, 1, "Cookies");
+            if (!lua_isnil(L, -1)) {
+                if (!lua_istable(L, -1))
+                    luaL_argerrorL(L, 1, "Cookies must be a table");
+
+                lua_pushnil(L);
+                while (lua_next(L, -2) != 0) {
+                    if (!lua_isstring(L, -2))
+                        luaL_argerrorL(L, 1, "Key of a cookie must be a string");
+
+                    if (!lua_isstring(L, -1))
+                        luaL_argerrorL(L, 1, "Value of a cookie must be a string");
+
+                    std::string cookieName = _strdup(lua_tostring(L, -2));
+                    std::string cookieValue = _strdup(lua_tostring(L, -1));
+                    cookies.emplace_back(cpr::Cookie{cookieName, cookieValue});
+
+                    lua_pop(L, 1);
+                }
+
+                lua_pop(L, 1);
+            }
+
+            const auto scheduler = Scheduler::GetSingleton();
+
+            scheduler->ScheduleJob(SchedulerJob(
+                    L, [Url, Method, Headers, cookies](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
+                        cpr::Session requestSession;
+                        requestSession.SetUrl(Url);
+
+                        std::map<std::string, std::string, cpr::CaseInsensitiveCompare> headerMap;
+                        for (const auto& header : Headers) {
+                            headerMap[header.first] = header.second;
+                        }
+
+                        requestSession.SetOption(cpr::Header(headerMap));
+                        requestSession.SetOption(cookies);
+
+                        if (Method == "get") {
+                            requestSession.PrepareGet();
+                        } else if (Method == "post") {
+                            requestSession.PreparePost();
+                        } else if (Method == "put") {
+                            requestSession.PreparePut();
+                        } else if (Method == "patch") {
+                            requestSession.PreparePatch();
+                        } else if (Method == "delete") {
+                            requestSession.PrepareDelete();
+                        }
+
+                        CURLcode curl_result = curl_easy_perform(requestSession.GetCurlHolder()->handle);
+                        cpr::Response response = requestSession.Complete(curl_result);
+
+                        *callbackToExecute =
+                                std::async(std::launch::async, [response]() -> std::function<int(lua_State *)> {
+                                    return [response](lua_State *L) -> int {
+                                        lua_newtable(L);
+                                        lua_pushboolean(L, !HttpStatus::IsError(response.status_code) && response.status_code != 0);
+                                        lua_setfield(L, -2, "Success");
+
+                                        lua_pushnumber(L, response.status_code);
+                                        lua_setfield(L, -2, "StatusCode");
+
+                                        lua_pushstring(L, response.text.c_str());
+                                        lua_setfield(L, -2, "Body");
+
+                                        return 1;
+                                    };
+                                });
+                    }));
+
+            return lua_yield(L, 1);
+        }
     } // namespace Misc
 } // namespace RbxStu
 
@@ -257,6 +392,7 @@ luaL_Reg *Misc::GetLibraryFunctions() {
                               {"emptyclipboard", RbxStu::Misc::emptyclipboard},
 
                               {"httpget", RbxStu::Misc::httpget},
+                              {"request", RbxStu::Misc::request},
 
                               {nullptr, nullptr}};
 
