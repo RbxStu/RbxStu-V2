@@ -226,6 +226,9 @@ class RobloxManager final {
     /// @brief The map used to hold scanned data pointers.
     std::map<std::string, void *> m_mapDataPointersMap;
 
+    /// @brief The map used to hold the name and the reference that points to the fast variables in roblox.
+    std::map<std::string, void *> m_mapFastVariables;
+
     /// @brief The map used to hold the pointer's encryption type and the identifier.
     std::map<std::string, RBX::PointerEncryptionType> m_mapPointerEncryptionMap;
 
@@ -257,6 +260,7 @@ public:
     std::optional<lua_CFunction> GetRobloxTaskSpawn();
 
     std::optional<void *> GetScriptContext(lua_State *L);
+
     std::optional<RBX::DataModel *> GetDataModelFromScriptContext(void *scriptContext);
 
     /// @brief Returns whether this instance of RobloxManager is initialized.

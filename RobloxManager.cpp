@@ -331,9 +331,9 @@ void RobloxManager::Initialize() {
                 const auto chunk = std::move(ret.value());
 
 
-                const auto isSub = chunk->ContainsInstruction("sub", "ecx, dword ptr [rax", true);
-                const auto isAdd = chunk->ContainsInstruction("add", "ecx, dword ptr [rax", true);
-                const auto isXor = chunk->ContainsInstruction("xor", "ecx, dword ptr [rax", true);
+                const auto isSub = chunk->ContainsInstruction("sub", ", dword ptr [rax", true);
+                const auto isAdd = chunk->ContainsInstruction("add", ", dword ptr [rax", true);
+                const auto isXor = chunk->ContainsInstruction("xor", ", dword ptr [rax", true);
 
                 if (isSub) {
                     logger->PrintWarning(RbxStu::RobloxManager,
@@ -360,6 +360,63 @@ void RobloxManager::Initialize() {
                 }
             }
         }
+    }
+
+    {
+        logger->PrintInformation(RbxStu::RobloxManager, "Scanning for possible registrations of fast variables...");
+        // We must find all functions which have flags in them, this signature
+        // CC 41 B8 ? ? ? ? 48 8D 15 ? ? ? ? 48 8D 0D ? ? ? ? E9 ? ? ? ? CC
+        // Will match functions which define such. The function is CLEARLY delimited by CC.
+        const auto __GenericFastVarDefineAob = SignatureByte::GetSignatureFromIDAString(
+                "CC CC 41 B8 ? ? ? ? 48 8D 15 ? ? ? ? 48 8D 0D ? ? ? ? E9 ? ? ? ? CC CC");
+
+        auto scanResult = scanner->Scan(__GenericFastVarDefineAob, GetModuleHandle(nullptr));
+
+        logger->PrintInformation(RbxStu::RobloxManager,
+                                 std::format("Found {} possible registrations in Studio.", scanResult.size()));
+        for (const auto &result: scanResult) {
+            auto request = DisassemblyRequest{};
+            request.bIgnorePageProtection = true;
+            request.pStartAddress = result;
+            request.pEndAddress = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(result) - 0x1b);
+            auto possibleInsns = disassembler->GetInstructions(request);
+
+            if (!possibleInsns.has_value()) {
+                logger->PrintWarning(
+                        RbxStu::RobloxManager,
+                        "Failed to disassemble flag function! The flag this function references may be unavailable");
+                continue;
+            }
+            const auto insns = std::move(possibleInsns.value());
+
+            const auto possibleLoadDataReference = insns->GetInstructionWhichMatches("lea", "rdx, [rip + ", true);
+            const auto possibleLoadFlagName = insns->GetInstructionWhichMatches("lea", "rcx, [rip + ", true);
+            if (!possibleLoadDataReference.has_value() || !possibleLoadFlagName.has_value()) {
+                logger->PrintWarning(RbxStu::RobloxManager, "Cannot find the required assembly without them being "
+                                                            "coupled! Function analysis may not continue.");
+
+                continue;
+            }
+            const auto loadNameInsn = possibleLoadFlagName.value();
+            const auto loadDataInsn = possibleLoadDataReference.value();
+
+            const auto flagNameReference = disassembler->TranslateRelativeLeaIntoRuntimeAddress(loadNameInsn);
+            const auto dataReference = disassembler->TranslateRelativeLeaIntoRuntimeAddress(loadDataInsn);
+
+            if (!dataReference.has_value() || !flagNameReference.has_value()) {
+                logger->PrintWarning(RbxStu::RobloxManager,
+                                     "Failed to translate the RIP-based offset into a memory address for any of the "
+                                     "LEA operations! This will result on bad things, thus, we cannot continue trying "
+                                     "to get this flag :(");
+                continue;
+            }
+            this->m_mapFastVariables[static_cast<const char *>(flagNameReference.value())] = dataReference.value();
+        }
+        logger->PrintInformation(RbxStu::RobloxManager,
+                                 std::format("Rebuilt fast variables. Fast Variables found in Studio: {}",
+                                             this->m_mapFastVariables.size()));
+
+        logger->PrintInformation(RbxStu::RobloxManager, std::format("{}", this->m_mapFastVariables.at("TaskSchedulerTargetFps")));
     }
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
