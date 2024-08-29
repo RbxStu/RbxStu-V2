@@ -364,6 +364,13 @@ namespace RbxStu {
                                             lua_pushstring(L, response.status_line.c_str());
                                             lua_setfield(L, -2, "StatusMessage");
 
+                                            lua_newtable(L);
+                                            for (const auto &cookie: response.cookies) {
+                                                lua_pushstring(L, cookie.GetValue().c_str());
+                                                lua_setfield(L, -2, cookie.GetName().c_str());
+                                            }
+                                            lua_setfield(L, -2, "Cookies");
+
                                             return 1;
                                         };
                                     });
