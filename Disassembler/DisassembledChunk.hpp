@@ -5,6 +5,10 @@
 
 #include <array>
 #include <capstone/capstone.h>
+#include <format>
+#include <iosfwd>
+#include <optional>
+#include <sstream>
 #include <vector>
 
 class DisassembledChunk final {
@@ -17,8 +21,10 @@ public:
     DisassembledChunk(_In_ cs_insn *pInstructions, std::size_t ullInstructionCount);
 
     bool ContainsInstruction(_In_ const char *szMnemonic, _In_ const char *szOperationAsString, bool bUseContains);
-    bool ContainsInstructionChain(std::vector<const char *> szMnemonics, std::vector<const char *> szOperationAsString,
-                                  bool bUseContains);
+    std::optional<const cs_insn> GetInstructionWhichMatches(const char *szMnemonic, const char *szOperationAsString,
+                                                            bool bUseContains);
 
     std::vector<cs_insn> GetInstructions();
+
+    std::string RenderInstructions();
 };

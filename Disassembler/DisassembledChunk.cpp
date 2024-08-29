@@ -4,6 +4,8 @@
 
 #include "DisassembledChunk.hpp"
 
+#include <optional>
+
 #include "Logger.hpp"
 DisassembledChunk::~DisassembledChunk() { cs_free(this->originalInstruction, this->instructionCount); }
 DisassembledChunk::DisassembledChunk(cs_insn *pInstructions, std::size_t ullInstructionCount) {
@@ -35,31 +37,31 @@ bool DisassembledChunk::ContainsInstruction(const char *szMnemonic, const char *
         }
     }
 }
-
-bool DisassembledChunk::ContainsInstructionChain(std::vector<const char *> szMnemonics,
-                                                 std::vector<const char *> szOperationAsString, bool bUseContains) {
-    const auto logger = Logger::GetSingleton();
-    if (szMnemonics.size() != szOperationAsString.size()) {
-        logger->PrintError(RbxStu::Anonymous, "Cannot determine if the DisassembledChunk contains the chain of "
-                                              "instructions. Reason: szMnemonics.size() != szOperationAsString.size(); "
-                                              "making it impossible to compute.");
-        return false;
-    }
+std::optional<const cs_insn> DisassembledChunk::GetInstructionWhichMatches(const char *szMnemonic,
+                                                                           const char *szOperationAsString,
+                                                                           bool bUseContains) {
     for (const auto &instr: this->vInstructionsvec) {
-        auto matchCount = 0;
-        for (std::size_t i = 0; i < szMnemonics.size(); i++) {
-            if (((!bUseContains && strcmp(instr.mnemonic, szMnemonics[i]) == 0) ||
-                 bUseContains && strstr(instr.mnemonic, szMnemonics[i]) != nullptr) &&
-                ((!bUseContains && strcmp(instr.op_str, szOperationAsString[i]) == 0) ||
-                 bUseContains && strstr(instr.op_str, szOperationAsString[i]) != nullptr)) {
-                matchCount++;
-            }
+        if (!bUseContains && strcmp(instr.mnemonic, szMnemonic) == 0 &&
+            strcmp(instr.op_str, szOperationAsString) == 0) {
+            return instr;
         }
-        if (matchCount == szMnemonics.size())
-            return true;
+
+        if (bUseContains && strstr(instr.mnemonic, szMnemonic) != nullptr &&
+            strstr(instr.op_str, szOperationAsString) != nullptr) {
+            return instr;
+        }
     }
 
-    return false;
+    return {};
 }
 
 std::vector<cs_insn> DisassembledChunk::GetInstructions() { return this->vInstructionsvec; }
+std::string DisassembledChunk::RenderInstructions() {
+    std::stringstream strstream{};
+    for (const auto &insn: this->GetInstructions()) {
+        strstream << std::format("{}"
+                                 ":\t{}\t\t{}\n",
+                                 reinterpret_cast<void *>(insn.address), insn.mnemonic, insn.op_str);
+    }
+    return strstream.str();
+}
