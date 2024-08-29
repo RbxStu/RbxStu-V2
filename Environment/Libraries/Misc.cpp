@@ -8,6 +8,7 @@
 #include <lz4.h>
 
 #include "Communication.hpp"
+#include "RobloxManager.hpp"
 #include "Scheduler.hpp"
 #include "cpr/api.h"
 
@@ -206,6 +207,35 @@ namespace RbxStu {
             L->ci->flags |= 1;
             return lua_yield(L, 1);
         }
+
+        int getfpscap(lua_State *L) {
+            const auto possiblePointerToTargetFps =
+                    RobloxManager::GetSingleton()->GetFastVariable("TaskSchedulerTargetFps");
+            if (!possiblePointerToTargetFps.has_value())
+                luaL_error(L,
+                           "cannot getfpscap: The Fast Variable of type Int 'TaskSchedulerTargetFps' is unavailable!");
+            lua_pushinteger(L, *static_cast<int32_t *>(possiblePointerToTargetFps.value()));
+
+            return 1;
+        }
+
+        int setfpscap(lua_State *L) {
+            luaL_checkinteger(L, 1);
+
+            auto num = luaL_optinteger(L, 1, 60);
+
+            if (num <= 0)
+                num = 1000;
+
+            const auto possiblePointerToTargetFps =
+                    RobloxManager::GetSingleton()->GetFastVariable("TaskSchedulerTargetFps");
+            if (!possiblePointerToTargetFps.has_value())
+                luaL_error(L,
+                           "cannot setfpscap: The Fast Variable of type Int 'TaskSchedulerTargetFps' is unavailable!");
+
+            *static_cast<int32_t *>(possiblePointerToTargetFps.value()) = num;
+            return 0;
+        }
     } // namespace Misc
 } // namespace RbxStu
 
@@ -218,6 +248,8 @@ luaL_Reg *Misc::GetLibraryFunctions() {
                               {"lz4decompress", RbxStu::Misc::lz4decompress},
 
                               {"messagebox", RbxStu::Misc::messagebox},
+                              {"getfpscap", RbxStu::Misc::getfpscap},
+                              {"setfpscap", RbxStu::Misc::setfpscap},
 
                               {"setclipboard", RbxStu::Misc::setclipboard},
                               {"toclipboard", RbxStu::Misc::setclipboard},
