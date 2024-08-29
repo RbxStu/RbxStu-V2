@@ -363,10 +363,14 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 local table_insert = clonefunction(table.insert)
 local getreg = clonefunction(getreg)
 local typeof = clonefunction(typeof)
+local error = clonefunction(error)
 local getfenv = clonefunction(getfenv)
 local getgc = clonefunction(getgc)
 local Instance_new = clonefunction(Instance.new)
 local rawget = clonefunction(rawget)
+local pcall = clonefunction(pcall)
+local setidentity = clonefunction(setidentity)
+local getidentity = clonefunction(getidentity)
 
 local instanceList = nil
 local getInstanceList = newcclosure(function()
@@ -466,7 +470,7 @@ getgenv().getrunningscripts = newcclosure(function()
 end)
 
 local originalRequire = require
-getgenv().require = function(module)
+getgenv().require = newcclosure(function(module)
     if typeof(module) ~= "Instance" then error("Attempted to call require with invalid argument(s).") end
     if not module:IsA("ModuleScript") then error("Attempted to call require with invalid argument(s).") end
     local originalIdentity = getidentity()
@@ -475,6 +479,6 @@ getgenv().require = function(module)
     setidentity(originalIdentity)
     if not success then error(result) end
     return result
-end
+end)
 )"));
 }
