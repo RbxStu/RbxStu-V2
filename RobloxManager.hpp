@@ -310,4 +310,5 @@ public:
     ///     - The pointer is on an allocated memory page.
     ///     - The DataModel has not been closed ((RBX::DataModel *)->m_bIsClosed).
     bool IsDataModelValid(const RBX::DataModelType &type) const;
+    std::optional<void *> GetFastVariable(const std::string &str);
 };

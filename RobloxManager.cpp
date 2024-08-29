@@ -677,3 +677,19 @@ bool RobloxManager::IsDataModelValid(const RBX::DataModelType &type) const {
 
     return false;
 }
+
+std::optional<void *> RobloxManager::GetFastVariable(const std::string &str) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager, "Cannot fetch Fast Variable! Reason: RobloxManager not initialized!");
+        return {};
+    }
+
+    if (this->m_mapFastVariables.contains(str))
+        return this->m_mapFastVariables[str];
+
+    logger->PrintWarning(RbxStu::RobloxManager,
+                         "Cannot fetch Fast Variable! Reason: Fast Variable was not found during scanning!");
+
+    return {};
+}
