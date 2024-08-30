@@ -67,7 +67,7 @@ Disassembler::GetInstructions(_In_ DisassemblyRequest &disassemblyRequest) {
 
     if (disassemblyRequest.pStartAddress < disassemblyRequest.pEndAddress) {
         logger->PrintDebug(RbxStu::Disassembler, "pStartAddress is bigger than pEndAddress! For the purposes of "
-                                                   "simplicity, the addresses will be flipped! Beware!");
+                                                 "simplicity, the addresses will be flipped! Beware!");
         const auto t = disassemblyRequest.pStartAddress;
         disassemblyRequest.pStartAddress = disassemblyRequest.pEndAddress;
         disassemblyRequest.pEndAddress = t;
@@ -84,7 +84,7 @@ Disassembler::GetInstructions(_In_ DisassemblyRequest &disassemblyRequest) {
         if (CHECK_NOT_FLAG(buf.Protect, PAGE_EXECUTE) && CHECK_NOT_FLAG(buf.Protect, PAGE_EXECUTE_READ) &&
             CHECK_NOT_FLAG(buf.Protect, PAGE_EXECUTE_READWRITE) && CHECK_NOT_FLAG(buf.Protect, PAGE_GRAPHICS_EXECUTE)) {
             logger->PrintDebug(RbxStu::Disassembler,
-                                 "Memory protections are non-executable! Disassembly will not proceed.");
+                               "Memory protections are non-executable! Disassembly will not proceed.");
             return {};
         }
 #undef CHECK_NOT_FLAG
@@ -118,8 +118,8 @@ std::optional<void *> Disassembler::TranslateRelativeLeaIntoRuntimeAddress(const
     if (insnOpAsString.find("rip") == std::string::npos) { // Not relative
         return {};
     }
-
     const auto ripOff =
+
             insnOpAsString.find("rip + 0x") + sizeof("rip + 0x") - 1; // stRIP null-byte. (SEE WHAT I DID THERE????)
     insnOpAsString = insnOpAsString.substr(ripOff, insnOpAsString.size() - ripOff);
     insnOpAsString = insnOpAsString.substr(0, insnOpAsString.size() - 1); // Strip last ']'
