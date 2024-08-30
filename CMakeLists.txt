@@ -19,16 +19,18 @@ add_library(Module SHARED
         Utilities.hpp
         RobloxManager.cpp
         RobloxManager.hpp
-        Roblox/TypeDefinitions.hpp
-        Roblox/TypeDefinitions.hpp
         LuauManager.cpp
         LuauManager.hpp
         Scheduler.hpp
         Scheduler.cpp
         Security.hpp
         Security.cpp
-        Communication.cpp
-        Communication.hpp
+        ClosureManager.cpp
+        ClosureManager.hpp
+        Roblox/TypeDefinitions.hpp
+        Roblox/TypeDefinitions.hpp
+        Communication/Communication.cpp
+        Communication/Communication.hpp
         Environment/EnvironmentManager.cpp
         Environment/EnvironmentManager.hpp
         Environment/Libraries/Globals.cpp
@@ -37,8 +39,6 @@ add_library(Module SHARED
         Environment/Libraries/Debug.hpp
         Environment/Libraries/Filesystem.cpp
         Environment/Libraries/Filesystem.hpp
-        ClosureManager.cpp
-        ClosureManager.hpp
         Environment/Libraries/Closures.cpp
         Environment/Libraries/Closures.hpp
         Environment/Libraries/Metatable.cpp
@@ -60,6 +60,10 @@ add_library(Module SHARED
         Disassembler/DisassemblyRequest.hpp
         Disassembler/DisassembledChunk.cpp
         Disassembler/DisassembledChunk.hpp
+        Communication/CommunicationPacket.cpp
+        Communication/CommunicationPacket.hpp
+        Communication/PacketSerdes.cpp
+        Communication/PacketSerdes.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
@@ -113,7 +117,6 @@ target_link_libraries(${PROJECT_NAME}
         Luau.EqSat
         Luau.CodeGen
 
-        Dbghelp.lib
 
         ixwebsocket
 
@@ -122,5 +125,8 @@ target_link_libraries(${PROJECT_NAME}
         cryptopp::cryptopp
 
         capstone
+
+        Dbghelp.lib
+        Ws2_32.lib
 )
 
