@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <vector>
 
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "Libraries/Cache.hpp"
 #include "Libraries/Closures.hpp"
 #include "Libraries/Console.hpp"

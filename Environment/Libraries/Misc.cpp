@@ -7,7 +7,7 @@
 #include <HttpStatus.hpp>
 #include <lz4.h>
 
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "RobloxManager.hpp"
 #include "Scheduler.hpp"
 #include "cpr/api.h"

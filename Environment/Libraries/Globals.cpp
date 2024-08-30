@@ -9,7 +9,7 @@
 #include <lz4.h>
 
 #include "ClosureManager.hpp"
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
 #include "RobloxManager.hpp"

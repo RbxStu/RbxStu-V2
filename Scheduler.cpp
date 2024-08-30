@@ -2,7 +2,7 @@
 #include <iostream>
 #include <shared_mutex>
 
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "Environment/EnvironmentManager.hpp"
 #include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"

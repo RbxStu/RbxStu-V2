@@ -9,7 +9,7 @@
 
 #include <DbgHelp.h> // Must be positioned here because else include failure.
 
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "LuauManager.hpp"
 #include "RobloxManager.hpp"
 #include "Scanner.hpp"
