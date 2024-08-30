@@ -9,6 +9,7 @@ class Communication final {
     static std::shared_ptr<Communication> pInstance;
     bool m_bIsUnsafe = false;
     bool m_bEnableCodeGen = false;
+    bool m_bIsInitialized = false;
 
 public:
     static std::shared_ptr<Communication> GetSingleton();
@@ -27,6 +28,7 @@ public:
 
     bool IsCodeGenerationEnabled() const;
     void SetCodeGenerationEnabled(bool enableCodeGen);
+    void NewCommunication();
 
     /// @brief Swiftly handles the pipe used for executing Luau code.
     /// @param szPipeName The name of the pipe as a constant std::string.

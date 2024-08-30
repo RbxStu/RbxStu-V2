@@ -7,9 +7,14 @@
 #include "Logger.hpp"
 #include "Scheduler.hpp"
 
+#include "ixwebsocket/IXWebSocket.h"
+
 std::shared_ptr<Communication> Communication::pInstance;
 
+static std::mutex __get_singleton_lock{};
+
 std::shared_ptr<Communication> Communication::GetSingleton() {
+    std::scoped_lock lock{__get_singleton_lock};
     if (Communication::pInstance == nullptr)
         Communication::pInstance = std::make_shared<Communication>();
 
@@ -27,6 +32,14 @@ void Communication::SetUnsafeMode(bool isUnsafe) {
 bool Communication::IsCodeGenerationEnabled() const { return this->m_bEnableCodeGen; }
 void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnableCodeGen = enableCodeGen; }
 
+void Communication::NewCommunication() {
+    const auto logger = Logger::GetSingleton();
+    const auto scheduler = Scheduler::GetSingleton();
+
+    logger->PrintInformation(RbxStu::Communication, "Starting ix::WebSocketServer for communication!");
+    const auto webSocket = std::make_unique<ix::WebSocket>();
+    webSocket->start();
+}
 
 void Communication::HandlePipe(const std::string &szPipeName) {
     const auto logger = Logger::GetSingleton();
@@ -54,8 +67,15 @@ void Communication::HandlePipe(const std::string &szPipeName) {
         BufferSize[Read] = '\0';
         Script += BufferSize;
 
-        logger->PrintInformation(RbxStu::Communication, "Pipe request received! Scheduling...");
-        scheduler->ScheduleJob(SchedulerJob(Script));
+        if (scheduler->IsInitialized()) {
+            logger->PrintInformation(RbxStu::Communication, "Luau code scheduled for execution.");
+            scheduler->ScheduleJob(SchedulerJob(Script));
+
+        } else {
+            logger->PrintWarning(RbxStu::Communication,
+                                 "RbxStu::Scheduler is NOT initialized! Luau code NOT scheduled, please enter into a "
+                                 "game to be able to enqueue jobs into the Scheduler for execution!");
+        }
         Script.clear();
     }
 }
