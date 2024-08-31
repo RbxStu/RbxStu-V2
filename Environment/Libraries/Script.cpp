@@ -100,7 +100,7 @@ namespace RbxStu {
             scheduler->ScheduleJob(SchedulerJob(
                     L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
                         *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
-                            std::this_thread::sleep_for(std::chrono::nanoseconds(0));
+                            Sleep(16);  // FIXME: Crashes with "bad function call"!
                             return [](lua_State *L) { return 0; };
                         });
                     }));
