@@ -11,7 +11,7 @@ class Communication final {
     bool m_bIsUnsafe = false;
     bool m_bEnableCodeGen = false;
     bool m_bIsInitialized = false;
-    std::string m_szFingerprintHeader;
+    std::string m_szFingerprintHeader = "Solara-Fingerprint";   // Sorry quiving, imma steal it.
 
 public:
     static std::shared_ptr<Communication> GetSingleton();
