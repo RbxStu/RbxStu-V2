@@ -199,14 +199,14 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
-            // Will cause errors while using lua armor, disabled for now. Dottik fix your shit
-            /*if (loweredIndex.find("getservice") != std::string::npos ||
+            if (loweredIndex.find("getservice") != std::string::npos ||
                 loweredIndex.find("findservice") != std::string::npos) {
                 // getservice / findservice
                 lua_pushcclosure(
                         L,
                         [](lua_State *L) -> int {
                             luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+                            auto dataModel = lua_topointer(L, 1);
                             auto serviceName = luaL_checkstring(L, 2);
                             const auto svcName = Utilities::ToLower(serviceName);
                             for (const auto &func: blockedServices) {
@@ -222,18 +222,24 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                                     luaL_errorL(L, "This service has been blocked for security");
                                 }
                             }
+                            lua_pop(L, 1);
+                            L->top->value.p = L->ci->func->value.p;
+                            L->top->tt = lua_Type::LUA_TFUNCTION;
+                            L->top++;
+                            lua_getupvalue(L, -1, 1);
+                            lua_remove(L, 2);
+                            __index_game_original(L);
                             lua_pushvalue(L, 1);
-                            lua_pushstring(L, L->ci->func->value.gc->cl.c.upvals[0].value.gc->ts.data);
-                            return __index_game_original(L);
+                            lua_pushstring(L, serviceName);
+                            lua_pcall(L, 2, 1, 0);
+                            return 1;
                         },
                         nullptr, 1);
                 const auto cl = lua_toclosure(L, -1);
-                cl->c.upvals[0].tt = lua_Type::LUA_TSTRING;
-                cl->c.upvals[0].value.gc->ts = *luaS_newlstr(L, index, strlen(index));
-
+                lua_pushstring(L, index);
+                lua_setupvalue(L, -2, 1);
                 return 1;
-            }*/
-
+            }
 
             if (loweredIndex.find("httpget") != std::string::npos ||
                 loweredIndex.find("httpgetasync") != std::string::npos) {
@@ -329,7 +335,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 lua_getglobal(L, "httpget");
                 lua_pushvalue(L, 2);
                 const auto err = lua_pcall(L, 1, 1, 0);
-                if (strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
+                if (lua_type(L, -1) == lua_Type::LUA_TSTRING &&
+                    strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
                     return lua_yield(L, 1);
 
                 if (err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
@@ -347,6 +354,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
                 if (err == LUA_YIELD)
                     return lua_yield(L, 1);
+
                 return 1;
             }
 
