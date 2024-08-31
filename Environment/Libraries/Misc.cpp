@@ -173,7 +173,16 @@ namespace RbxStu {
         }
 
         int httpget(lua_State *L) {
-            const std::string url = luaL_checkstring(L, 1);
+
+            std::string url;
+            if (!lua_isstring(L, 1)) {
+                // We might be called as namecall, try second one
+                luaL_checkstring(L, 2);
+                // If passes, it means it was called like namecall
+                url = std::string(lua_tostring(L, 2));
+            } else {
+                url = std::string(lua_tostring(L, 1));
+            }
 
             if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos)
                 luaL_argerror(L, 1, "Invalid protocol (expected 'http://' or 'https://')");
