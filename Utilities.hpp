@@ -3,6 +3,8 @@
 //
 #pragma once
 #include <Windows.h>
+#include <cmake-build-debug/Dependencies/cryptopp-cmake/cryptopp/hex.h>
+#include <sha.h>
 #include <sstream>
 #include <string>
 #include <tlhelp32.h>
@@ -186,6 +188,28 @@ public:
         }
 
         return true;
+    }
+
+    __forceinline static std::optional<const std::string> GetHwid() {
+        auto logger = Logger::GetSingleton();
+        HW_PROFILE_INFO hwProfileInfo;
+        if (!GetCurrentHwProfileA(&hwProfileInfo)) {
+            logger->PrintError(RbxStu::Anonymous, "Failed to obtain Hardware Identifier from GetCurrentHwProfileA, returning empty!");
+            return {};
+        }
+
+        CryptoPP::SHA256 sha256;
+        unsigned char digest[CryptoPP::SHA256::DIGESTSIZE];
+        sha256.CalculateDigest(digest, reinterpret_cast<unsigned char *>(hwProfileInfo.szHwProfileGuid),
+                               sizeof(hwProfileInfo.szHwProfileGuid));
+
+        CryptoPP::HexEncoder encoder;
+        std::string output;
+        encoder.Attach(new CryptoPP::StringSink(output));
+        encoder.Put(digest, sizeof(digest));
+        encoder.MessageEnd();
+
+        return output;
     }
 };
 
