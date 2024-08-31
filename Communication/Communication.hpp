@@ -1,6 +1,7 @@
 //
 // Created by Yoru on 8/16/2024.
 //
+#pragma once
 
 #include <memory>
 #include <string>
