@@ -312,7 +312,7 @@ void RobloxManager::Initialize() {
     logger->PrintInformation(RbxStu::RobloxManager, "Additional dumping step... [2/3]");
 
     {
-        logger->PrintWarning(
+        logger->PrintInformation(
                 RbxStu::RobloxManager,
                 "Attempting to obtain encryption for RBX::ScriptContext::getGlobalState's obfuscated pointer!");
         { // getglobalstate encryption dump, both functions' encryption match correctly.
@@ -325,7 +325,7 @@ void RobloxManager::Initialize() {
             request.pEndAddress = disassembler->ObtainPossibleEndFromStart(functionStart);
 
             if (auto ret = disassembler->GetInstructions(request); !ret.has_value()) {
-                logger->PrintWarning(RbxStu::RobloxManager,
+                logger->PrintError(RbxStu::RobloxManager,
                                      "Cannot dump RBX::ScriptContext::getGlobalState encryption. Disassembly failed.");
             } else {
                 const auto chunk = std::move(ret.value());
@@ -336,15 +336,15 @@ void RobloxManager::Initialize() {
                 const auto isXor = chunk->ContainsInstruction("xor", ", dword ptr [rax", true);
 
                 if (isSub) {
-                    logger->PrintWarning(RbxStu::RobloxManager,
+                    logger->PrintInformation(RbxStu::RobloxManager,
                                          "Determined RBX::ScriptContext::getGlobalState encryption to be SUB!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::SUB;
                 } else if (isAdd) {
-                    logger->PrintWarning(RbxStu::RobloxManager,
+                    logger->PrintInformation(RbxStu::RobloxManager,
                                          "Determined RBX::ScriptContext::getGlobalState encryption to be ADD!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::ADD;
                 } else if (isXor) {
-                    logger->PrintWarning(RbxStu::RobloxManager,
+                    logger->PrintInformation(RbxStu::RobloxManager,
                                          "Determined RBX::ScriptContext::getGlobalState encryption to be XOR!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::XOR;
                 } else {
