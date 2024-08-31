@@ -194,9 +194,6 @@ namespace RbxStu {
                         auto Headers = std::map<std::string, std::string, cpr::CaseInsensitiveCompare>();
                         Headers["User-Agent"] = "Roblox/WinInet";
                         lua_getglobal(L, "game");
-                        lua_getfield(L, -1, "PlaceId");
-                        Headers["Roblox-Game-Id"] = _strdup(lua_tostring(L, -1));
-                        lua_pop(L, 2);
 
                         const auto response = cpr::Get(cpr::Url{url}, cpr::Header{Headers});
 
@@ -286,10 +283,6 @@ namespace RbxStu {
                 auto Headers = std::map<std::string, std::string, cpr::CaseInsensitiveCompare>();
                 Headers["User-Agent"] = "Roblox/WinInet";
 
-                lua_getglobal(L, "game");
-                lua_getfield(L, -1, "PlaceId");
-                Headers["Roblox-Game-Id"] = _strdup(lua_tostring(L, -1));
-                lua_pop(L, 2);
 
                 lua_getfield(L, 1, "Headers");
                 if (!lua_isnil(L, -1)) {
