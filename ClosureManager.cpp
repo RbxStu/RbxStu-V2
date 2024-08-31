@@ -44,7 +44,7 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     lua_insert(L, 1);
 
     const auto callResult = lua_pcall(L, argc, LUA_MULTRET, 0);
-    if (callResult != LUA_OK &&
+    if (callResult != LUA_OK && callResult != LUA_YIELD &&
         std::strcmp(luaL_optstring(L, -1, ""), "attempt to yield across metamethod/C-call boundary") == 0) {
         return lua_yield(L, LUA_MULTRET);
     }
