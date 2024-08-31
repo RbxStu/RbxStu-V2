@@ -48,7 +48,7 @@ public:
             const auto logger = Logger::GetSingleton();
             if (this->state != RESUMED) {
                 logger->PrintDebug(RbxStu::ThreadManagement,
-                                     "Trying to suspend threads while they are already suspended!");
+                                   "Trying to suspend threads while they are already suspended!");
                 return;
             }
             logger->PrintDebug(RbxStu::ThreadManagement, "Pausing roblox threads!");
@@ -87,7 +87,7 @@ public:
             const auto logger = Logger::GetSingleton();
             if (this->state != SUSPENDED) {
                 logger->PrintDebug(RbxStu::ThreadManagement,
-                                     "Attempting to resume threads while they are already resumed!");
+                                   "Attempting to resume threads while they are already resumed!");
                 return;
             }
             logger->PrintDebug(RbxStu::ThreadManagement, "Resuming roblox threads!");
@@ -188,3 +188,9 @@ public:
         return true;
     }
 };
+
+// Concepts are virtually T : where ... in C#, type constraints on templates.
+namespace RbxStu::Concepts {
+    template<typename Derived, typename Base>
+    concept TypeConstraint = std::is_base_of_v<Base, Derived>;
+}
