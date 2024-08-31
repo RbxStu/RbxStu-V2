@@ -11,8 +11,12 @@
 #include <optional>
 
 #include "Logger.hpp"
-std::optional<CommunicationPacket> PacketSerdes::DeserializeFromString(const std::string &input) {
-    return this->DeserializeFromBytes(std::vector<std::uint8_t>{input.begin(), input.end()});
+
+std::shared_ptr<PacketSerdes> PacketSerdes::pInstance;
+
+template<RbxStu::Concepts::TypeConstraint<PacketBase> T>
+std::optional<CommunicationPacket<T>> PacketSerdes::DeserializeFromString(const std::string &input) {
+    return this->DeserializeFromBytes<T>(std::vector<std::uint8_t>{input.begin(), input.end()});
 }
 
 /*  Note on why this is here:
@@ -54,7 +58,8 @@ std::optional<CommunicationPacket> PacketSerdes::DeserializeFromString(const std
 #define CanReadDouble CanReadLongLong // Doubles are 64 bytes anyway.
 #define ReadDouble(input, offset) *reinterpret_cast<double *>(&ReadLongLong(input, offset)) // Quake III type shit.
 
-std::optional<CommunicationPacket> PacketSerdes::DeserializeFromBytes(const std::vector<std::uint8_t> &input) {
+template<RbxStu::Concepts::TypeConstraint<PacketBase> T>
+std::optional<CommunicationPacket<T>> PacketSerdes::DeserializeFromBytes(const std::vector<std::uint8_t> &input) {
     const auto logger = Logger::GetSingleton();
 
     if (!CanReadLong(input, 0)) {
@@ -69,21 +74,32 @@ std::optional<CommunicationPacket> PacketSerdes::DeserializeFromBytes(const std:
     const std::uint64_t packetSize = ReadLongLong(input, 4);
 
     // packetSize should not include packetId nor packetSize, only packetData.
-    if (packetSize + sizeof(std::uint64_t) + sizeof(std::int32_t) != input.size()) {
+    if ((packetSize + sizeof(std::uint64_t) + sizeof(std::int32_t)) != input.size()) {
         logger->PrintError(
                 RbxStu::PacketSerdes,
                 "Malformed packet received: Packet Size appears to be too small, refusing to read malformed packet.");
         return {};
     }
 
-    const auto dataPointer = input.data() + sizeof(std::uint64_t) + sizeof(std::int32_t);
+    if (packetSize != sizeof(T)) {
+        logger->PrintError(RbxStu::PacketSerdes,
+                           "Malformed packet received: Packet Size is not equal to the size of the structure T!");
+        return {};
+    }
 
-    std::vector data(dataPointer, input.data() + input.size());
+    const auto dataPointer = reinterpret_cast<T *>(input.data() + sizeof(std::uint64_t) + sizeof(std::int32_t));
 
-    auto packet = CommunicationPacket{0};
+    if (sizeof(T) != (input.size() - sizeof(std::uint64_t) - sizeof(std::int32_t))) {
+        logger->PrintError(
+                RbxStu::PacketSerdes,
+                std::format("Malformed packet received: sizeof(T) != data.size()! PacketID: {:#x}, PacketSize: {:#x}",
+                            packetId, packetSize));
+    }
+
+    auto packet = CommunicationPacket<T>{0};
     packet.ulPacketId = packetId;
     packet.ullPacketSize = packetSize;
-    packet.vData = std::move(data);
+    packet.vData = std::make_unique<T>(std::move(dataPointer));
 
     return packet;
 }
