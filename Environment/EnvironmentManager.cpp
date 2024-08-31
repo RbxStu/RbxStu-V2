@@ -199,7 +199,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
-            if (loweredIndex.find("getservice") != std::string::npos ||
+            // Will cause errors while using lua armor, disabled for now. Dottik fix your shit
+            /*if (loweredIndex.find("getservice") != std::string::npos ||
                 loweredIndex.find("findservice") != std::string::npos) {
                 // getservice / findservice
                 lua_pushcclosure(
@@ -231,7 +232,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 cl->c.upvals[0].value.gc->ts = *luaS_newlstr(L, index, strlen(index));
 
                 return 1;
-            }
+            }*/
 
 
             if (loweredIndex.find("httpget") != std::string::npos ||
