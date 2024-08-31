@@ -4,11 +4,13 @@
 
 #pragma once
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 
+template<typename T>
 struct CommunicationPacket {
     std::uint32_t ulPacketId;
     std::uint64_t ullPacketSize;
-    std::vector<std::uint8_t> vData;
+    std::unique_ptr<T> vData;
 };
