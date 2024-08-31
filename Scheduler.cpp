@@ -50,7 +50,12 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
                 1; // O2 enables inlining, this breaks hookfunction in some cases. and thus, it should be 1.
         const char *mutableGlobals[] = {"_G", "_ENV", "shared", nullptr};
         opts.mutableGlobals = mutableGlobals;
-        const auto bytecode = Luau::compile(job->luaJob.szluaCode);
+        const auto bytecode =
+                Luau::compile(std::string("(function() script = Instance.new('LocalScript');getgenv()['string'] "
+                                          "= getrawmetatable('').__index; end)(); task.spawn(function()")
+                                      .append(job->luaJob.szluaCode)
+                                      .append("; end);"),
+                              opts);
 
         logger->PrintInformation(RbxStu::Scheduler, "Compiled Bytecode!");
 
