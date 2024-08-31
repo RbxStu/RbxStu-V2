@@ -11,28 +11,35 @@ set(CMAKE_CXX_STANDARD 23)
 
 add_library(Module SHARED
         main.cpp
+
         Logger.cpp
         Logger.hpp
         Scanner.cpp
         Scanner.hpp
         Utilities.cpp
         Utilities.hpp
-        RobloxManager.cpp
-        RobloxManager.hpp
-        LuauManager.cpp
-        LuauManager.hpp
         Scheduler.hpp
         Scheduler.cpp
         Security.hpp
         Security.cpp
+
+        # Managers
+        RobloxManager.cpp
+        RobloxManager.hpp
+        LuauManager.cpp
+        LuauManager.hpp
         ClosureManager.cpp
         ClosureManager.hpp
+
+        # Roblox Definitions
         Roblox/TypeDefinitions.hpp
         Roblox/TypeDefinitions.hpp
-        Communication/Communication.cpp
-        Communication/Communication.hpp
+
+        # Environment
         Environment/EnvironmentManager.cpp
         Environment/EnvironmentManager.hpp
+
+        # Environment -> Libraries
         Environment/Libraries/Globals.cpp
         Environment/Libraries/Globals.hpp
         Environment/Libraries/Debug.cpp
@@ -55,15 +62,28 @@ add_library(Module SHARED
         Environment/Libraries/Instance.hpp
         Environment/Libraries/Input.cpp
         Environment/Libraries/Input.hpp
+
+        # Disassembler abstraction
         Disassembler/Disassembler.cpp
         Disassembler/Disassembler.hpp
         Disassembler/DisassemblyRequest.hpp
         Disassembler/DisassembledChunk.cpp
         Disassembler/DisassembledChunk.hpp
+
+        # Communication
+        Communication/Communication.cpp
+        Communication/Communication.hpp
         Communication/CommunicationPacket.cpp
         Communication/CommunicationPacket.hpp
         Communication/PacketSerdes.cpp
         Communication/PacketSerdes.hpp
+
+        # Communication -> Packets
+        Communication/Packets/PacketBase.hpp
+        Communication/Packets/SetSafeModePacket.hpp
+        Communication/Packets/SetFunctionBlockStatePacket.hpp
+        Communication/Packets/SetNativeCodeGenPacket.hpp
+        Communication/Packets/SetFastVariablePacket.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
