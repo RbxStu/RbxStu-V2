@@ -29,6 +29,15 @@ void Communication::SetUnsafeMode(bool isUnsafe) {
             RbxStu::Communication, "WARNING! UNSAFE MODE IS ENABLED! THIS CAN HAVE CONSEQUENCES THAT GO HIGHER THAN "
                                    "YOU THINK! IF YOU DO NOT KNOW WHAT YOU'RE DOING, TURN SAFE MODE BACK ON!");
 }
+std::string Communication::SetFingerprintHeader(const std::string &header) {
+    if (header.find("-Fingerprint") == std::string::npos)
+        return this->m_szFingerprintHeader;
+
+    auto old = this->m_szFingerprintHeader;
+    this->m_szFingerprintHeader = header;
+    return old;
+}
+const std::string &Communication::GetFingerprintHeaderName() { return this->m_szFingerprintHeader; }
 bool Communication::IsCodeGenerationEnabled() const { return this->m_bEnableCodeGen; }
 void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnableCodeGen = enableCodeGen; }
 

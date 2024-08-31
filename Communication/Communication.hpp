@@ -11,6 +11,7 @@ class Communication final {
     bool m_bIsUnsafe = false;
     bool m_bEnableCodeGen = false;
     bool m_bIsInitialized = false;
+    std::string m_szFingerprintHeader;
 
 public:
     static std::shared_ptr<Communication> GetSingleton();
@@ -27,8 +28,18 @@ public:
     /// @remarks THIS IS A DANGEROUS FUNCTIOn, AND MAY EXPOSE THE USER TO TERRIBLE THINGS! CALL AT YOUR OWN RISK!
     void SetUnsafeMode(bool isUnsafe);
 
+
+    /// @brief Allows to set the Fingerprint header used to identify RbxStu, used to impersonate other executors.
+    /// @param header The new header.
+    /// @return Returns the old Fingerprint header.
+    /// @remarks Will not set the fingerprint header to "header" if "header" does not contain "-Fingerprint"
+    std::string SetFingerprintHeader(const std::string &header);
+
+    const std::string &GetFingerprintHeaderName();
+
     bool IsCodeGenerationEnabled() const;
     void SetCodeGenerationEnabled(bool enableCodeGen);
+
     void NewCommunication();
 
     /// @brief Swiftly handles the pipe used for executing Luau code.
