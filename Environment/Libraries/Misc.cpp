@@ -193,7 +193,7 @@ namespace RbxStu {
                     L, [url](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
                         auto Headers = std::map<std::string, std::string, cpr::CaseInsensitiveCompare>();
                         Headers["User-Agent"] = "Roblox/WinInet";
-                        lua_getglobal(L, "game");
+                        Headers["Solara-Fingerprint"] = "8F3A2C1BE9D70F4";
 
                         const auto response = cpr::Get(cpr::Url{url}, cpr::Header{Headers});
 
@@ -282,7 +282,7 @@ namespace RbxStu {
 
                 auto Headers = std::map<std::string, std::string, cpr::CaseInsensitiveCompare>();
                 Headers["User-Agent"] = "Roblox/WinInet";
-
+                Headers["Solara-Fingerprint"] = "8F3A2C1BE9D70F4";
 
                 lua_getfield(L, 1, "Headers");
                 if (!lua_isnil(L, -1)) {
