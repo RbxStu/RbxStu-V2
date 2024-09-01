@@ -390,6 +390,9 @@ namespace RbxStu {
 
                                             lua_newtable(L);
                                             for (const auto &cookie: response.cookies) {
+                                                if (cookie.GetName() == "ROBLOSECURITY")
+                                                    continue; // Skip roblosecurity if it EVER appears.
+
                                                 lua_pushstring(L, cookie.GetValue().c_str());
                                                 lua_setfield(L, -2, cookie.GetName().c_str());
                                             }
