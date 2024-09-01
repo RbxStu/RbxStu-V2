@@ -348,7 +348,7 @@ luaL_Reg *Filesystem::GetLibraryFunctions() {
                              "Failed to get directory path of the dll! Filesystem functions will be disabled!");
     }
 
-    const auto *reg = new luaL_Reg[]{
+    const auto reg = new luaL_Reg[]{
             {"isfile", RbxStu::Filesystem::isfile},
             {"isfolder", RbxStu::Filesystem::isfolder},
             {"listfiles", RbxStu::Filesystem::listfiles},
