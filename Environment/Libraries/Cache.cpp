@@ -49,10 +49,12 @@ namespace RbxStu {
 
 std::string Cache::GetLibraryName() { return "cache"; };
 luaL_Reg *Cache::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[]{{"cloneref", RbxStu::Cache::cloneref},
-                              {"compareinstances", RbxStu::Cache::compareinstances},
+    const auto reg = new luaL_Reg[]{{"cloneref", RbxStu::Cache::cloneref},
+                                    {"invalidate", RbxStu::Cache::cloneref},
 
-                              {nullptr, nullptr}};
+                                    {"compareinstances", RbxStu::Cache::compareinstances},
+
+                                    {nullptr, nullptr}};
 
     return reg;
 }

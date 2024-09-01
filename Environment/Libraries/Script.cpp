@@ -126,7 +126,7 @@ namespace RbxStu {
 
 std::string Script::GetLibraryName() { return "scriptlib"; }
 luaL_Reg *Script::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[]{{"getgc", RbxStu::Script::getgc},
+    const auto reg = new luaL_Reg[]{{"getgc", RbxStu::Script::getgc},
                               {"getgenv", RbxStu::Script::getgenv},
                               {"getrenv", RbxStu::Script::getrenv},
                               {"getreg", RbxStu::Script::getreg},

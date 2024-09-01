@@ -328,8 +328,7 @@ std::string Filesystem::GetLibraryName() { return "fs"; }
 
 luaL_Reg *Filesystem::GetLibraryFunctions() {
     const auto logger = Logger::GetSingleton();
-    auto currentDirectory = fs::path(GetDllDir());
-    if (!currentDirectory.empty()) {
+    if (const auto currentDirectory = fs::path(GetDllDir()); !currentDirectory.empty()) {
         logger->PrintDebug(RbxStu::Env_Filesystem, std::format("Current path: {}", currentDirectory.string()));
         canBeUsed = true;
 
@@ -349,7 +348,7 @@ luaL_Reg *Filesystem::GetLibraryFunctions() {
                              "Failed to get directory path of the dll! Filesystem functions will be disabled!");
     }
 
-    auto *reg = new luaL_Reg[]{
+    const auto *reg = new luaL_Reg[]{
             {"isfile", RbxStu::Filesystem::isfile},
             {"isfolder", RbxStu::Filesystem::isfolder},
             {"listfiles", RbxStu::Filesystem::listfiles},

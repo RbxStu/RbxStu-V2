@@ -84,7 +84,7 @@ namespace RbxStu {
 
 std::string Instance::GetLibraryName() { return "instances"; }
 luaL_Reg *Instance::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[]{{"gethui", RbxStu::Instance::gethui},
+    const auto reg = new luaL_Reg[]{{"gethui", RbxStu::Instance::gethui},
                               {"fireproximityprompt", RbxStu::Instance::fireproximityprompt},
 
 #ifdef ISNETWORKOWNER_DEV

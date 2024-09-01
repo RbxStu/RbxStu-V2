@@ -71,22 +71,22 @@ namespace RbxStu {
 
 std::string Console::GetLibraryName() { return "console"; }
 luaL_Reg *Console::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[]{{"rconsolecreate", RbxStu::Console::rconsolecreate},
-                              {"rconsoledestroy", RbxStu::Console::rconsoledestroy},
-                              {"rconsolesettitle", RbxStu::Console::rconsolesettitle},
-                              {"rconsolename", RbxStu::Console::rconsolesettitle},
-                              {"rconsoleprint", RbxStu::Console::rconsoleprint},
-                              {"rconsolewarn", RbxStu::Console::rconsolewarn},
-                              {"rconsoleerror", RbxStu::Console::rconsoleerror},
+    const auto reg = new luaL_Reg[]{{"rconsolecreate", RbxStu::Console::rconsolecreate},
+                                    {"rconsoledestroy", RbxStu::Console::rconsoledestroy},
+                                    {"rconsolesettitle", RbxStu::Console::rconsolesettitle},
+                                    {"rconsolename", RbxStu::Console::rconsolesettitle},
+                                    {"rconsoleprint", RbxStu::Console::rconsoleprint},
+                                    {"rconsolewarn", RbxStu::Console::rconsolewarn},
+                                    {"rconsoleerror", RbxStu::Console::rconsoleerror},
 
-                              {"consolecreate", RbxStu::Console::rconsolecreate},
-                              {"consoledestroy", RbxStu::Console::rconsoledestroy},
-                              {"consolesettitle", RbxStu::Console::rconsolesettitle},
-                              {"consoleprint", RbxStu::Console::rconsoleprint},
-                              {"consolewarn", RbxStu::Console::rconsolewarn},
-                              {"consoleerror", RbxStu::Console::rconsoleerror},
+                                    {"consolecreate", RbxStu::Console::rconsolecreate},
+                                    {"consoledestroy", RbxStu::Console::rconsoledestroy},
+                                    {"consolesettitle", RbxStu::Console::rconsolesettitle},
+                                    {"consoleprint", RbxStu::Console::rconsoleprint},
+                                    {"consolewarn", RbxStu::Console::rconsolewarn},
+                                    {"consoleerror", RbxStu::Console::rconsoleerror},
 
-                              {nullptr, nullptr}};
+                                    {nullptr, nullptr}};
 
     return reg;
 }

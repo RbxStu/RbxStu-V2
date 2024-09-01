@@ -631,7 +631,7 @@ std::string Debug::GetLibraryName() { return "debug"; }
 
 
 luaL_Reg *Debug::GetLibraryFunctions() {
-    auto *reg = new luaL_Reg[]{
+    const auto reg = new luaL_Reg[]{
             {"setconstant", RbxStu::Debug::debug_setconstant},
             {"getconstant", RbxStu::Debug::debug_getconstant},
             {"getconstants", RbxStu::Debug::debug_getconstants},

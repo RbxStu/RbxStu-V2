@@ -89,17 +89,17 @@ namespace RbxStu {
 
 std::string Metatable::GetLibraryName() { return "metatable"; }
 luaL_Reg *Metatable::GetLibraryFunctions() {
-    auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::Metatable::getrawmetatable},
-                               {"setrawmetatable", RbxStu::Metatable::setrawmetatable},
+    const auto *reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::Metatable::getrawmetatable},
+                                     {"setrawmetatable", RbxStu::Metatable::setrawmetatable},
 
-                               {"hookmetamethod", RbxStu::Metatable::hookmetamethod},
-                               {"getnamecallmethod", RbxStu::Metatable::getnamecallmethod},
-                               {"setnamecallmethod", RbxStu::Metatable::setnamecallmethod},
+                                     {"hookmetamethod", RbxStu::Metatable::hookmetamethod},
+                                     {"getnamecallmethod", RbxStu::Metatable::getnamecallmethod},
+                                     {"setnamecallmethod", RbxStu::Metatable::setnamecallmethod},
 
-                               {"isreadonly", RbxStu::Metatable::isreadonly},
-                               {"setreadonly", RbxStu::Metatable::setreadonly},
+                                     {"isreadonly", RbxStu::Metatable::isreadonly},
+                                     {"setreadonly", RbxStu::Metatable::setreadonly},
 
-                               {nullptr, nullptr}};
+                                     {nullptr, nullptr}};
 
     return reg;
 }

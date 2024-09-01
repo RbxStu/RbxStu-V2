@@ -413,7 +413,7 @@ namespace RbxStu {
 
 std::string Misc::GetLibraryName() { return "misc"; }
 luaL_Reg *Misc::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[]{{"identifyexecutor", RbxStu::Misc::identifyexecutor},
+    const auto reg = new luaL_Reg[]{{"identifyexecutor", RbxStu::Misc::identifyexecutor},
                               {"getexecutorname", RbxStu::Misc::identifyexecutor},
 
                               {"lz4compress", RbxStu::Misc::lz4compress},

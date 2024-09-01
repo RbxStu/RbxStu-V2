@@ -16,10 +16,10 @@ namespace RbxStu {
 
 std::string Input::GetLibraryName() { return "input"; };
 luaL_Reg *Input::GetLibraryFunctions() {
-    auto reg = new luaL_Reg[]{{"isrbxactive", RbxStu::Input::isrbxactive},
-                              {"isgameactive", RbxStu::Input::isrbxactive},
+    const auto reg = new luaL_Reg[]{{"isrbxactive", RbxStu::Input::isrbxactive},
+                                    {"isgameactive", RbxStu::Input::isrbxactive},
 
-                              {nullptr, nullptr}};
+                                    {nullptr, nullptr}};
 
     return reg;
 }
