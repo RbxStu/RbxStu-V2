@@ -3,7 +3,7 @@
 //
 #pragma once
 #include <Windows.h>
-#include <cmake-build-debug/Dependencies/cryptopp-cmake/cryptopp/hex.h>
+#include <hex.h>
 #include <sha.h>
 #include <sstream>
 #include <string>
