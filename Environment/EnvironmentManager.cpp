@@ -19,6 +19,7 @@
 #include "Libraries/Metatable.hpp"
 #include "Libraries/Misc.hpp"
 #include "Libraries/Script.hpp"
+#include "Libraries/WebSocket.hpp"
 #include "Logger.hpp"
 #include "Scheduler.hpp"
 #include "Security.hpp"
@@ -143,7 +144,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
     for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem(), new Closures(),
                                                  new Metatable(), new Cache(), new Console(), new Script(), new Misc(),
-                                                 new Instance(), new Input()};
+                                                 new Instance(), new Input() /*, new Websocket()*/};
          const auto &lib: libList) {
         try {
             const auto envGlobals = lib->GetLibraryFunctions();

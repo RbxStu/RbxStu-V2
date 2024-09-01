@@ -85,6 +85,8 @@ add_library(Module SHARED
         Communication/Packets/SetNativeCodeGenPacket.hpp
         Communication/Packets/SetFastVariablePacket.hpp
         Communication/Packets/SetRequestFingerprintPacket.hpp
+        Environment/Libraries/WebSocket.cpp
+        Environment/Libraries/WebSocket.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
