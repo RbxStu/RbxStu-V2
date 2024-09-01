@@ -126,7 +126,7 @@ class Scheduler final {
     std::optional<RBX::DataModel *> m_pClientDataModel;
 
     /// @brief Internal function used to dequeue a job from the job queue.
-    SchedulerJob DequeueSchedulerJob();
+    SchedulerJob GetSchedulerJob(bool pop);
 
 public:
     /// @brief Obtains the shared pointer that points to the global singleton for the current class.
@@ -137,7 +137,7 @@ public:
     /// @param runOn The lua state to execute the scheduler job into
     /// @param job The scheduler job to execute on
     /// @remarks This is an exposed internal function. Calling it may result in undefined behaviour.
-    void ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job);
+    bool ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job);
 
     /// @brief Schedules a job into the Scheduler given its Luau source code.
     /// @param job An instance of a job to enqueue on the scheduler for execution.

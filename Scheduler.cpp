@@ -1,3 +1,4 @@
+#include <Environment/Libraries/WebSocket.hpp>
 #include <Scheduler.hpp>
 #include <iostream>
 #include <shared_mutex>
@@ -26,21 +27,22 @@ std::shared_ptr<Scheduler> Scheduler::GetSingleton() {
 
 void Scheduler::ScheduleJob(SchedulerJob job) { this->m_qSchedulerJobs.emplace(job); }
 
-SchedulerJob Scheduler::DequeueSchedulerJob() {
+SchedulerJob Scheduler::GetSchedulerJob(bool pop) {
     if (this->m_qSchedulerJobs.empty())
         return SchedulerJob("");
-    auto job = this->m_qSchedulerJobs.back();
-    this->m_qSchedulerJobs.pop();
+    auto job = this->m_qSchedulerJobs.front();
+    if (pop)
+        this->m_qSchedulerJobs.pop();
     return job;
 }
 
-void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
+bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
     const auto logger = Logger::GetSingleton();
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto security = Security::GetSingleton();
     if (job->bIsLuaCode) {
         if (job->luaJob.szluaCode.empty())
-            return;
+            return true;
 
         logger->PrintInformation(RbxStu::Scheduler, "Compiling Bytecode...");
 
@@ -71,7 +73,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
             const char *err = lua_tostring(L, -1);
             logger->PrintError(RbxStu::Scheduler, err);
             lua_pop(L, 1);
-            return;
+            return true;
         }
         logger->PrintWarning(RbxStu::Scheduler,
                              std::format("lua_State *nL = {:#x};", reinterpret_cast<std::uintptr_t>(L)));
@@ -101,7 +103,7 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
             throw std::exception("Cannot run Scheduler job!");
         }
 
-        return;
+        return true;
     } else if (job->bIsYieldingJob) {
         if (job->IsJobCompleted()) {
             // If the job is completed, we want to call RBX::ScriptContext::resume using it!
@@ -109,28 +111,33 @@ void Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
             // else never end!
 
             if (const auto callback = job->GetCallback(); callback.has_value()) {
-                Utilities::RobloxThreadSuspension threadSuspension(true);
                 const auto nargs = callback.value()(runOn);
-                lua_xmove(runOn, job->yieldJob.threadRef.thread, lua_gettop(runOn));
-                logger->PrintWarning(RbxStu::Scheduler, "Starting resumption!");
-                robloxManager->ResumeScript(&job->yieldJob.threadRef, nargs);
+                if (nargs == -1) { // Script errored!
+                    logger->PrintWarning(RbxStu::Scheduler, "Resuming with error!");
+                    lua_xmove(runOn, job->yieldJob.threadRef.thread, lua_gettop(runOn));
+                    const auto szError = lua_tostring(job->yieldJob.threadRef.thread, -1);
+                    robloxManager->ResumeScript(&job->yieldJob.threadRef, 1, true, szError);
+                } else {
+                    logger->PrintWarning(RbxStu::Scheduler, "Starting resumption!");
+                    lua_xmove(runOn, job->yieldJob.threadRef.thread, lua_gettop(runOn));
+                    robloxManager->ResumeScript(&job->yieldJob.threadRef, nargs, false, nullptr);
+                }
 
                 job->FreeResources();
-                threadSuspension.ResumeThreads();
             } else {
                 logger->PrintError(RbxStu::Scheduler,
                                    "Callback has no value despite the job being marked as completed!");
             }
+            return true;
         } else {
-            this->m_qSchedulerJobs.emplace(*job);
             // Due to the nature of this architecture, when we have only one job left, we will just start calling it
             // again and again Which is truly terrible for performance, and I should refactor to separate the execution
             // from the resumption, but whats done its done...
 
             // if (this->m_qSchedulerJobs.size() == 1)
             //     _mm_pause();
+            return false;
         }
-        return;
     }
 
     logger->PrintError(RbxStu::Scheduler, "Cannot find a valid job to step into; not even a stub one!");
@@ -152,7 +159,7 @@ std::optional<lua_State *> Scheduler::GetGlobalRobloxState() const {
 std::shared_mutex __scheduler_lock;
 
 void Scheduler::StepScheduler(lua_State *runner) {
-    std::lock_guard lg{__scheduler_lock};
+    std::scoped_lock lg{__scheduler_lock};
     // Here we will check if the DataModel obtained is correct, as in, our data model is successful!
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto logger = Logger::GetSingleton();
@@ -171,8 +178,8 @@ void Scheduler::StepScheduler(lua_State *runner) {
     //             "environment into segments which are not supposed to have such elevated access! Reason: gt and L are
     //             different!");
     // }
-    auto job = this->DequeueSchedulerJob();
-    this->ExecuteSchedulerJob(runner, &job);
+    auto job = this->GetSchedulerJob(false);
+    this->GetSchedulerJob(this->ExecuteSchedulerJob(runner, &job));
 }
 
 void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *dataModel) {
@@ -279,6 +286,9 @@ void Scheduler::ResetScheduler() {
         // Clear job queue
         this->m_qSchedulerJobs.pop();
     }
+
+    logger->PrintWarning(RbxStu::Scheduler, "Applying environment side effects!");
+    Websocket::ResetWebsockets(); // Reset websockets
 
     logger->PrintInformation(RbxStu::Scheduler, "Scheduler reset completed. All fields set to no value.");
 }
