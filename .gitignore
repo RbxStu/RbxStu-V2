@@ -3,5 +3,3 @@ cmake-*/
 .idea/workspace.xml
 /cmake-*
 .idea/editor.xml
-/build-*
-/build
