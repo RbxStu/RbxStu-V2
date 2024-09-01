@@ -11,8 +11,6 @@
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "CMAKE_CXX_STANDARD": "20",
-        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_C_COMPILER": "cl",
         "CMAKE_CXX_COMPILER": "cl",
         "LUAU_BUILD_TESTS": "OFF",
