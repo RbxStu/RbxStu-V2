@@ -5,6 +5,12 @@
 #pragma once
 #include "Environment/EnvironmentManager.hpp"
 
+namespace RbxStu {
+    namespace Misc {
+        int request(lua_State *L);
+    }
+} // namespace RbxStu
+
 class Misc final : public Library {
 public:
     std::string GetLibraryName() override;

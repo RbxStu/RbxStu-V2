@@ -430,6 +430,7 @@ luaL_Reg *Misc::GetLibraryFunctions() {
 
                               {"httpget", RbxStu::Misc::httpget},
                               {"request", RbxStu::Misc::request},
+                              {"http_request", RbxStu::Misc::request},
 
                               {nullptr, nullptr}};
 
