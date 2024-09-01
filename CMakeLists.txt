@@ -62,6 +62,10 @@ add_library(Module SHARED
         Environment/Libraries/Instance.hpp
         Environment/Libraries/Input.cpp
         Environment/Libraries/Input.hpp
+        Environment/Libraries/WebSocket.cpp
+        Environment/Libraries/WebSocket.hpp
+        Environment/Libraries/Http.cpp
+        Environment/Libraries/Http.hpp
 
         # Disassembler abstraction
         Disassembler/Disassembler.cpp
@@ -85,8 +89,6 @@ add_library(Module SHARED
         Communication/Packets/SetNativeCodeGenPacket.hpp
         Communication/Packets/SetFastVariablePacket.hpp
         Communication/Packets/SetRequestFingerprintPacket.hpp
-        Environment/Libraries/WebSocket.cpp
-        Environment/Libraries/WebSocket.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
