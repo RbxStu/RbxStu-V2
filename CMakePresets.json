@@ -26,6 +26,9 @@
         "VCPKG_APPLOCAL_DEPS": "OFF",
         "CRYPTOTOP_BUILD_TESTS": "OFF",
         "CRYPTOPP_INSTALL": "OFF"
+      },
+      "environment": {
+        "VCPKG_ROOT": "C:\\vcpkg"
       }
     },
     {
