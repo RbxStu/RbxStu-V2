@@ -5,7 +5,7 @@
 #include "Closures.hpp"
 
 #include "ClosureManager.hpp"
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "Logger.hpp"
 #include "Luau/CodeGen.h"
 #include "Luau/Compiler.h"

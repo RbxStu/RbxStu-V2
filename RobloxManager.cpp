@@ -10,6 +10,8 @@
 
 #include <DbgHelp.h>
 
+#include "Disassembler/Disassembler.hpp"
+#include "Disassembler/DisassemblyRequest.hpp"
 #include "LuauManager.hpp"
 #include "Scanner.hpp"
 #include "Scheduler.hpp"
@@ -63,8 +65,9 @@ void rbx_rbxcrash(const char *crashType, const char *crashDescription) {
     Sleep(60000);
 }
 
-RBX::SystemAddress* getNetworkOwner(void* basePart, RBX::SystemAddress* returnAddress) {
-    auto originalFunction = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(RobloxManager::GetSingleton()->GetHookOriginal("RBX::BasePart::getNetworkOwner"));
+RBX::SystemAddress *getNetworkOwner(void *basePart, RBX::SystemAddress *returnAddress) {
+    auto originalFunction = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(
+            RobloxManager::GetSingleton()->GetHookOriginal("RBX::BasePart::getNetworkOwner"));
     auto returnOutput = originalFunction(basePart, returnAddress);
 
     std::stringstream ss;
@@ -260,6 +263,9 @@ void RobloxManager::Initialize() {
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing MinHook for function hooking [1/3]");
     MH_Initialize();
 
+    logger->PrintInformation(RbxStu::RobloxManager, "Obtaining RbxStu::Disassembler for disassembling [1/3]");
+    const auto disassembler = Disassembler::GetSingleton();
+
     logger->PrintInformation(RbxStu::RobloxManager, "Scanning for functions (Simple step)... [1/3]");
 
     for (const auto &[fName, fSignature]: RbxStu::StudioSignatures::s_signatureMap) {
@@ -306,39 +312,109 @@ void RobloxManager::Initialize() {
     logger->PrintInformation(RbxStu::RobloxManager, "Additional dumping step... [2/3]");
 
     {
-        logger->PrintInformation(RbxStu::RobloxManager, "Attempting to obtain ");
+        logger->PrintInformation(
+                RbxStu::RobloxManager,
+                "Attempting to obtain encryption for RBX::ScriptContext::getGlobalState's obfuscated pointer!");
         { // getglobalstate encryption dump, both functions' encryption match correctly.
 
             auto functionStart = this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"];
             const auto asm_0 = reinterpret_cast<std::uint8_t *>(reinterpret_cast<std::uintptr_t>(functionStart) + 0x56);
+            DisassemblyRequest request{};
+            request.bIgnorePageProtection = false;
+            request.pStartAddress = functionStart;
+            request.pEndAddress = disassembler->ObtainPossibleEndFromStart(functionStart);
 
-            switch (*asm_0) {
-                case 0x2B: // sub ecx, dword ptr [rax]
-                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is SUB");
-                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::SUB;
-                    break;
+            if (auto ret = disassembler->GetInstructions(request); !ret.has_value()) {
+                logger->PrintError(RbxStu::RobloxManager,
+                                     "Cannot dump RBX::ScriptContext::getGlobalState encryption. Disassembly failed.");
+            } else {
+                const auto chunk = std::move(ret.value());
 
-                case 0x3: // add ecx, dword ptr [rax]
-                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is ADD");
-                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::ADD;
-                    break;
 
-                case 0x33: // xor ecx, dword ptr [rax]
-                    logger->PrintInformation(RbxStu::RobloxManager, "Encryption is XOR");
-                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::XOR;
-                    break;
+                const auto isSub = chunk->ContainsInstruction("sub", ", dword ptr [rax", true);
+                const auto isAdd = chunk->ContainsInstruction("add", ", dword ptr [rax", true);
+                const auto isXor = chunk->ContainsInstruction("xor", ", dword ptr [rax", true);
 
-                default:
+                if (isSub) {
                     logger->PrintInformation(RbxStu::RobloxManager,
-                                             std::format("Encryption match failed found code: {}", *asm_0));
+                                         "Determined RBX::ScriptContext::getGlobalState encryption to be SUB!");
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::SUB;
+                } else if (isAdd) {
+                    logger->PrintInformation(RbxStu::RobloxManager,
+                                         "Determined RBX::ScriptContext::getGlobalState encryption to be ADD!");
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::ADD;
+                } else if (isXor) {
+                    logger->PrintInformation(RbxStu::RobloxManager,
+                                         "Determined RBX::ScriptContext::getGlobalState encryption to be XOR!");
+                    m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::XOR;
+                } else {
+                    logger->PrintWarning(
+                            RbxStu::RobloxManager,
+                            "Failed to determine RBX::ScriptContext::getGlobalState encryption! Dumping assembly! \n");
+                    for (const auto &insn: chunk->GetInstructions()) {
+                        printf("0x%" PRIx64 ":\t%s\t\t%s\n", insn.address, insn.mnemonic, insn.op_str);
+                    }
+                    printf("\n");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] =
-                            RbxStu::RbxPointerEncryptionType::UNDETERMINED;
-                    break;
+                            RBX::PointerEncryptionType::UNDETERMINED;
+                }
             }
         }
+    }
+
+    {
+        logger->PrintInformation(RbxStu::RobloxManager, "Scanning for possible registrations of fast variables...");
+        // We must find all functions which have flags in them, this signature
+        // CC 41 B8 ? ? ? ? 48 8D 15 ? ? ? ? 48 8D 0D ? ? ? ? E9 ? ? ? ? CC
+        // Will match functions which define such. The function is CLEARLY delimited by CC.
+        const auto __GenericFastVarDefineAob = SignatureByte::GetSignatureFromIDAString(
+                "CC CC 41 B8 ? ? ? ? 48 8D 15 ? ? ? ? 48 8D 0D ? ? ? ? E9 ? ? ? ? CC CC");
+
+        auto scanResult = scanner->Scan(__GenericFastVarDefineAob, GetModuleHandle(nullptr));
+
+        logger->PrintInformation(RbxStu::RobloxManager,
+                                 std::format("Found {} possible registrations in Studio.", scanResult.size()));
+        for (const auto &result: scanResult) {
+            auto request = DisassemblyRequest{};
+            request.bIgnorePageProtection = true;
+            request.pStartAddress = result;
+            request.pEndAddress = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(result) - 0x1b);
+            auto possibleInsns = disassembler->GetInstructions(request);
+
+            if (!possibleInsns.has_value()) {
+                logger->PrintWarning(
+                        RbxStu::RobloxManager,
+                        "Failed to disassemble flag function! The flag this function references may be unavailable");
+                continue;
+            }
+            const auto insns = std::move(possibleInsns.value());
+
+            const auto possibleLoadDataReference = insns->GetInstructionWhichMatches("lea", "rdx, [rip + ", true);
+            const auto possibleLoadFlagName = insns->GetInstructionWhichMatches("lea", "rcx, [rip + ", true);
+            if (!possibleLoadDataReference.has_value() || !possibleLoadFlagName.has_value()) {
+                logger->PrintWarning(RbxStu::RobloxManager, "Cannot find the required assembly without them being "
+                                                            "coupled! Function analysis may not continue.");
+
+                continue;
+            }
+            const auto loadNameInsn = possibleLoadFlagName.value();
+            const auto loadDataInsn = possibleLoadDataReference.value();
+
+            const auto flagNameReference = disassembler->TranslateRelativeLeaIntoRuntimeAddress(loadNameInsn);
+            const auto dataReference = disassembler->TranslateRelativeLeaIntoRuntimeAddress(loadDataInsn);
+
+            if (!dataReference.has_value() || !flagNameReference.has_value()) {
+                logger->PrintWarning(RbxStu::RobloxManager,
+                                     "Failed to translate the RIP-based offset into a memory address for any of the "
+                                     "LEA operations! This will result on bad things, thus, we cannot continue trying "
+                                     "to get this flag :(");
+                continue;
+            }
+            this->m_mapFastVariables[static_cast<const char *>(flagNameReference.value())] = dataReference.value();
+        }
+        logger->PrintInformation(RbxStu::RobloxManager,
+                                 std::format("Rebuilt fast variables. Fast Variables found in Studio: {}",
+                                             this->m_mapFastVariables.size()));
     }
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
@@ -364,9 +440,10 @@ void RobloxManager::Initialize() {
     MH_CreateHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"], rbx_rbxcrash, &this->m_mapHookMap["RBX::RBXCRASH"]);
     MH_EnableHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"]);
 
-    //this->m_mapHookMap["RBX::BasePart::getNetworkOwner"] = new void *();
-    //MH_CreateHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"], getNetworkOwner, &this->m_mapHookMap["RBX::BasePart::getNetworkOwner"]);
-    //MH_EnableHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"]);
+    // this->m_mapHookMap["RBX::BasePart::getNetworkOwner"] = new void *();
+    // MH_CreateHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"], getNetworkOwner,
+    // &this->m_mapHookMap["RBX::BasePart::getNetworkOwner"]);
+    // MH_EnableHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"]);
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initialization Completed. [3/3]");
     this->m_bInitialized = true;
@@ -538,7 +615,7 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
                        &threadRef, nret, false, nullptr);
     } catch (const std::exception &ex) {
         logger->PrintError(RbxStu::RobloxManager,
-                           std::format("An error occured whilst resuming the thread! Exception: {}", ex.what()));
+                           std::format("An error occurred whilst resuming the thread! Exception: {}", ex.what()));
     }
 
 
@@ -599,4 +676,20 @@ bool RobloxManager::IsDataModelValid(const RBX::DataModelType &type) const {
     }
 
     return false;
+}
+
+std::optional<void *> RobloxManager::GetFastVariable(const std::string &str) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager, "Cannot fetch Fast Variable! Reason: RobloxManager not initialized!");
+        return {};
+    }
+
+    if (this->m_mapFastVariables.contains(str))
+        return this->m_mapFastVariables[str];
+
+    logger->PrintWarning(RbxStu::RobloxManager,
+                         "Cannot fetch Fast Variable! Reason: Fast Variable was not found during scanning!");
+
+    return {};
 }

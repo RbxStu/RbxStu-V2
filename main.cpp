@@ -9,7 +9,7 @@
 
 #include <DbgHelp.h> // Must be positioned here because else include failure.
 
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "LuauManager.hpp"
 #include "RobloxManager.hpp"
 #include "Scanner.hpp"
@@ -101,7 +101,8 @@ long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
 
     // Clean up
     SymCleanup(GetCurrentProcess());
-    MessageBoxA(nullptr, ("Studio Crash"), ("RbxStu exception filter has been run! Stacktrace on Studio's CLI."), MB_OK);
+    MessageBoxA(nullptr, ("Studio Crash"), ("RbxStu exception filter has been run! Stacktrace on Studio's CLI."),
+                MB_OK);
     printf("Stack frames captured - Waiting for 30s before handing to executee... \r\n");
     Sleep(30000);
 

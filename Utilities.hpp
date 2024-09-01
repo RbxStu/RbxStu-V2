@@ -3,6 +3,8 @@
 //
 #pragma once
 #include <Windows.h>
+#include <cmake-build-debug/Dependencies/cryptopp-cmake/cryptopp/hex.h>
+#include <sha.h>
 #include <sstream>
 #include <string>
 #include <tlhelp32.h>
@@ -47,11 +49,11 @@ public:
         void SuspendThreads() {
             const auto logger = Logger::GetSingleton();
             if (this->state != RESUMED) {
-                logger->PrintWarning(RbxStu::ThreadManagement,
-                                     "Trying to suspend threads while they are already suspended!");
+                logger->PrintDebug(RbxStu::ThreadManagement,
+                                   "Trying to suspend threads while they are already suspended!");
                 return;
             }
-            logger->PrintInformation(RbxStu::ThreadManagement, "Pausing roblox threads!");
+            logger->PrintDebug(RbxStu::ThreadManagement, "Pausing roblox threads!");
             HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 
             if (hSnapshot == INVALID_HANDLE_VALUE || hSnapshot == nullptr) {
@@ -86,11 +88,11 @@ public:
         void ResumeThreads() {
             const auto logger = Logger::GetSingleton();
             if (this->state != SUSPENDED) {
-                logger->PrintWarning(RbxStu::ThreadManagement,
-                                     "Attempting to resume threads while they are already resumed!");
+                logger->PrintDebug(RbxStu::ThreadManagement,
+                                   "Attempting to resume threads while they are already resumed!");
                 return;
             }
-            logger->PrintInformation(RbxStu::ThreadManagement, "Resuming roblox threads!");
+            logger->PrintDebug(RbxStu::ThreadManagement, "Resuming roblox threads!");
             for (auto &[bWasSuspended, hThread]: this->threadInformation) {
                 ResumeThread(hThread);
             }
@@ -187,4 +189,32 @@ public:
 
         return true;
     }
+
+    __forceinline static std::optional<const std::string> GetHwid() {
+        auto logger = Logger::GetSingleton();
+        HW_PROFILE_INFO hwProfileInfo;
+        if (!GetCurrentHwProfileA(&hwProfileInfo)) {
+            logger->PrintError(RbxStu::Anonymous, "Failed to obtain Hardware Identifier from GetCurrentHwProfileA, returning empty!");
+            return {};
+        }
+
+        CryptoPP::SHA256 sha256;
+        unsigned char digest[CryptoPP::SHA256::DIGESTSIZE];
+        sha256.CalculateDigest(digest, reinterpret_cast<unsigned char *>(hwProfileInfo.szHwProfileGuid),
+                               sizeof(hwProfileInfo.szHwProfileGuid));
+
+        CryptoPP::HexEncoder encoder;
+        std::string output;
+        encoder.Attach(new CryptoPP::StringSink(output));
+        encoder.Put(digest, sizeof(digest));
+        encoder.MessageEnd();
+
+        return output;
+    }
 };
+
+// Concepts are virtually T : where ... in C#, type constraints on templates.
+namespace RbxStu::Concepts {
+    template<typename Derived, typename Base>
+    concept TypeConstraint = std::is_base_of_v<Base, Derived>;
+}

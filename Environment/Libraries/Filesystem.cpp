@@ -313,11 +313,11 @@ namespace RbxStu {
             lua_getglobal(L, "loadstring");
             lua_pushstring(L, codeContent);
             lua_pushstring(L, sectionName);
-            if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
-                lua_pushnil(L);
-                lua_pushvalue(L, -2);
+            if (lua_pcall(L, 2, 2, 0) != LUA_OK)
                 return 2;
-            }
+
+            lua_pop(L, 1); // Due to the possibility of having the two values, we know a success marks that we have
+                           // nothing on second return, but something on first, so we must pop.
 
             return 1;
         }
@@ -330,7 +330,7 @@ luaL_Reg *Filesystem::GetLibraryFunctions() {
     const auto logger = Logger::GetSingleton();
     auto currentDirectory = fs::path(GetDllDir());
     if (!currentDirectory.empty()) {
-        logger->PrintInformation(RbxStu::Env_Filesystem, std::format("Current path: {}", currentDirectory.string()));
+        logger->PrintDebug(RbxStu::Env_Filesystem, std::format("Current path: {}", currentDirectory.string()));
         canBeUsed = true;
 
         workspaceDir = currentDirectory / "workspace";

@@ -12,7 +12,6 @@
 #include "lua.h"
 
 namespace RbxStu {
-    enum RbxPointerEncryptionType { ADD, SUB, XOR, UNDETERMINED };
 
 #define MakeSignature_FromIDA(signatureName, idaSignature)                                                             \
     const static Signature signatureName = SignatureByte::GetSignatureFromIDAString(idaSignature)
@@ -41,12 +40,11 @@ namespace RbxStu {
         using r_RBX_ScriptContext_resume = void(__fastcall *)(void *scriptContext, std::int64_t unk[0x2],
                                                               RBX::Lua::WeakThreadRef **ppWeakThreadRef, int32_t nRet,
                                                               bool isError, char const *szErrorMessage);
-        using r_RBX_BasePart_getNetworkOwner = RBX::SystemAddress*(__fastcall *)(void* basePart, RBX::SystemAddress* returnSystemAddress);
-        using r_RBX_Player_findPlayerWithAddress = std::shared_ptr<void>*(__fastcall *)(
-            std::shared_ptr<void>* __return,
-            const RBX::SystemAddress* playerAddress,
-            const void* context
-        );
+        using r_RBX_BasePart_getNetworkOwner =
+                RBX::SystemAddress *(__fastcall *) (void *basePart, RBX::SystemAddress *returnSystemAddress);
+        using r_RBX_Player_findPlayerWithAddress =
+                std::shared_ptr<void> *(__fastcall *) (std::shared_ptr<void> *__return,
+                                                       const RBX::SystemAddress *playerAddress, const void *context);
 
     } // namespace StudioFunctionDefinitions
 
@@ -159,14 +157,11 @@ namespace RbxStu {
                 "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B D9 48 83 3A 00 74 5E 48 8B D1 48 8D 4C 24 ? "
                 "E8 ? ? ? ? 90 4C 8B 07 48 8D 54 24 ? 48 8B 4C 24 ? E8 ? ? ? ? 0F B6 F0 48 8B 4C 24 ? 48 85 C9 74 15");
 
-        MakeSignature_FromIDA(
-                RBX_BasePart_getNetworkOwner,
-                "48 8B 81 ? ? ? ? 8B 88 ? ? ? ? 48 8B C2 89 0A C3");
+        MakeSignature_FromIDA(RBX_BasePart_getNetworkOwner, "48 8B 81 ? ? ? ? 8B 88 ? ? ? ? 48 8B C2 89 0A C3");
 
-        MakeSignature_FromIDA(
-                RBX_Players_findPlayerWithAddress,
-                "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 4C 8B EA 4C 8B F9 4D 85 C0 0F 84 AE 02 00 ? 49 8B 78 ? 48 85 FF 74 13 48 8B 4F ? 48 85 C9 74 0D E8 ? ? ? ? 48 8B F8"
-        );
+        MakeSignature_FromIDA(RBX_Players_findPlayerWithAddress,
+                              "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 4C 8B EA 4C 8B F9 4D 85 C0 0F "
+                              "84 AE 02 00 ? 49 8B 78 ? 48 85 FF 74 13 48 8B 4F ? 48 85 C9 74 0D E8 ? ? ? ? 48 8B F8");
 
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
@@ -231,8 +226,11 @@ class RobloxManager final {
     /// @brief The map used to hold scanned data pointers.
     std::map<std::string, void *> m_mapDataPointersMap;
 
+    /// @brief The map used to hold the name and the reference that points to the fast variables in roblox.
+    std::map<std::string, void *> m_mapFastVariables;
+
     /// @brief The map used to hold the pointer's encryption type and the identifier.
-    std::map<std::string, RbxStu::RbxPointerEncryptionType> m_mapPointerEncryptionMap;
+    std::map<std::string, RBX::PointerEncryptionType> m_mapPointerEncryptionMap;
 
     /// @brief Initializes the RobloxManager instance, obtaining all functions from their respective signatures and
     /// establishing the initial hooks required for the manager to operate as expected.
@@ -262,6 +260,7 @@ public:
     std::optional<lua_CFunction> GetRobloxTaskSpawn();
 
     std::optional<void *> GetScriptContext(lua_State *L);
+
     std::optional<RBX::DataModel *> GetDataModelFromScriptContext(void *scriptContext);
 
     /// @brief Returns whether this instance of RobloxManager is initialized.
@@ -311,4 +310,5 @@ public:
     ///     - The pointer is on an allocated memory page.
     ///     - The DataModel has not been closed ((RBX::DataModel *)->m_bIsClosed).
     bool IsDataModelValid(const RBX::DataModelType &type) const;
+    std::optional<void *> GetFastVariable(const std::string &str);
 };

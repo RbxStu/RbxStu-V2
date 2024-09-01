@@ -86,20 +86,21 @@ namespace RbxStu {
             const auto security = Security::GetSingleton();
             security->SetThreadSecurity(L, newIdentity);
 
+            // WARNING: Doing this will break metamethod hooks and produces undefine behaviour on which are nested inside of others!
             // If calling closure is LClosure and is not base CI, set its capabilities too
-            if (L->base_ci != L->ci) {
-                auto callingClosure = (L->ci - 1)->func->value.gc->cl;
-                if (callingClosure.isC == 0) {
-                    security->SetLuaClosureSecurity(&callingClosure, newIdentity);
-                }
-            }
+            // if (L->base_ci != L->ci) {
+            //     auto callingClosure = (L->ci - 1)->func->value.gc->cl;
+            //     if (!callingClosure.isC) {
+            //         security->SetLuaClosureSecurity(&callingClosure, newIdentity);
+            //     }
+            // }
 
             // Capabilities and identity are applied next resumption cycle, we need to yield!
             const auto scheduler = Scheduler::GetSingleton();
             scheduler->ScheduleJob(SchedulerJob(
                     L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
                         *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
-                            Sleep(1);
+                            Sleep(16);  // FIXME: Crashes with "bad function call"!
                             return [](lua_State *L) { return 0; };
                         });
                     }));
@@ -111,7 +112,6 @@ namespace RbxStu {
         int getidentity(lua_State *L) {
             auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
             lua_pushinteger(L, plStateUd->identity);
-
             return 1;
         }
 
@@ -119,13 +119,12 @@ namespace RbxStu {
             auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
             const auto security = Security::GetSingleton();
             security->PrintCapabilities(plStateUd->capabilities);
-
             return 0;
         }
     } // namespace Script
 } // namespace RbxStu
 
-std::string Script::GetLibraryName() { return "script"; }
+std::string Script::GetLibraryName() { return "scriptlib"; }
 luaL_Reg *Script::GetLibraryFunctions() {
     auto reg = new luaL_Reg[]{{"getgc", RbxStu::Script::getgc},
                               {"getgenv", RbxStu::Script::getgenv},

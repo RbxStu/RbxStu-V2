@@ -4,9 +4,10 @@
 
 #include "EnvironmentManager.hpp"
 
+#include <cstdlib>
 #include <vector>
 
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "Libraries/Cache.hpp"
 #include "Libraries/Closures.hpp"
 #include "Libraries/Console.hpp"
@@ -58,16 +59,17 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "captureservice",
                                                    "corepackages",
                                                    "animationfromvideocreatorservice",
-                                                   "insertservice",
                                                    "safetyservice",
                                                    "appupdateservice",
                                                    "ugcvalidationservice",
-                                                   "avatareditorservice",
                                                    "accountservice",
                                                    "analyticsservice",
                                                    "ixpservice",
+                                                   "commerceservice",
                                                    "sessionservice",
-                                                   "platformcloudstorageservice"};
+                                                   "studioservice",
+                                                   "platformcloudstorageservice",
+                                                   "startpageservice"};
 
 static std::vector<std::string> blockedFunctions = {
         "openvideosfolder",
@@ -93,6 +95,7 @@ static std::vector<std::string> blockedFunctions = {
         "reportabuse", // Avoid bans. | Handles ReportAbuseV3
         "savescriptprofilingdata",
         "openurl",
+        "openinbrowser",
         "deletecapture",
         "deletecapturesasync",
         "promptbulkpurchase",
@@ -107,18 +110,26 @@ static std::vector<std::string> blockedFunctions = {
         "setpurchasepromptisshown",
         "addcorescriptlocal",
         "savescriptprofilingdata",
+        "installplugin",
+        "importfile",
+        "requestclose",
+        "plugininstalled",
+        "publishtoroblox",
         "setbaseurl",
         "requestinternal",
         "getasync",
         "requestasync",
         "postasync",
-        "load",
         "openscreenshotsfolder",
         "openvideosfolder",
         "takescreenshot",
         "togglerecording",
         "startplaying",
-        "sendrobloxevent"};
+        "getsecret",
+        "requestasync",
+        "sendrobloxevent",
+        "startsessionwithpath" // StartSessionWithPathAsync
+};
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
@@ -195,6 +206,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                         L,
                         [](lua_State *L) -> int {
                             luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+                            auto dataModel = lua_topointer(L, 1);
                             auto serviceName = luaL_checkstring(L, 2);
                             const auto svcName = Utilities::ToLower(serviceName);
                             for (const auto &func: blockedServices) {
@@ -210,18 +222,24 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                                     luaL_errorL(L, "This service has been blocked for security");
                                 }
                             }
+                            lua_pop(L, 1);
+                            L->top->value.p = L->ci->func->value.p;
+                            L->top->tt = lua_Type::LUA_TFUNCTION;
+                            L->top++;
+                            lua_getupvalue(L, -1, 1);
+                            lua_remove(L, 2);
+                            __index_game_original(L);
                             lua_pushvalue(L, 1);
-                            lua_pushstring(L, L->ci->func->value.gc->cl.c.upvals[0].value.gc->ts.data);
-                            return __index_game_original(L);
+                            lua_pushstring(L, serviceName);
+                            lua_pcall(L, 2, 1, 0);
+                            return 1;
                         },
                         nullptr, 1);
                 const auto cl = lua_toclosure(L, -1);
-                cl->c.upvals[0].tt = lua_Type::LUA_TSTRING;
-                cl->c.upvals[0].value.gc->ts = *luaS_newlstr(L, index, strlen(index));
-
+                lua_pushstring(L, index);
+                lua_setupvalue(L, -2, 1);
                 return 1;
             }
-
 
             if (loweredIndex.find("httpget") != std::string::npos ||
                 loweredIndex.find("httpgetasync") != std::string::npos) {
@@ -317,7 +335,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 lua_getglobal(L, "httpget");
                 lua_pushvalue(L, 2);
                 const auto err = lua_pcall(L, 1, 1, 0);
-                if (strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
+                if (lua_type(L, -1) == lua_Type::LUA_TSTRING &&
+                    strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
                     return lua_yield(L, 1);
 
                 if (err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
@@ -335,6 +354,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
                 if (err == LUA_YIELD)
                     return lua_yield(L, 1);
+
                 return 1;
             }
 
@@ -352,10 +372,14 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 local table_insert = clonefunction(table.insert)
 local getreg = clonefunction(getreg)
 local typeof = clonefunction(typeof)
+local error = clonefunction(error)
 local getfenv = clonefunction(getfenv)
 local getgc = clonefunction(getgc)
 local Instance_new = clonefunction(Instance.new)
 local rawget = clonefunction(rawget)
+local pcall = clonefunction(pcall)
+local setidentity = clonefunction(setidentity)
+local getidentity = clonefunction(getidentity)
 
 local instanceList = nil
 local getInstanceList = newcclosure(function()
@@ -452,6 +476,18 @@ getgenv().getrunningscripts = newcclosure(function()
 	end
 
 	return scripts
+end)
+
+local originalRequire = require
+getgenv().require = (function(module)
+    if typeof(module) ~= "Instance" then error("Attempted to call require with invalid argument(s).") end
+    if not module:IsA("ModuleScript") then error("Attempted to call require with invalid argument(s).") end
+    local originalIdentity = getidentity()
+    setidentity(2)
+    local success, result = pcall(originalRequire, module)
+    setidentity(originalIdentity)
+    if not success then error(result) end
+    return result
 end)
 )"));
 }

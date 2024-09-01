@@ -2,40 +2,50 @@ cmake_minimum_required(VERSION 3.26)
 project(Module)
 
 add_definitions(-DLUAI_GCMETRICS)   # Force GC metrics on Luau.
+
+option(CAPSTONE_X86_SUPPORT "Enable x86 capstone" ON)
+
 set(BUILD_SHARED_LIBS OFF)
 set(PROJECT_NAME Module)
 set(CMAKE_CXX_STANDARD 23)
 
 add_library(Module SHARED
         main.cpp
+
         Logger.cpp
         Logger.hpp
         Scanner.cpp
         Scanner.hpp
         Utilities.cpp
         Utilities.hpp
-        RobloxManager.cpp
-        RobloxManager.hpp
-        Roblox/TypeDefinitions.hpp
-        Roblox/TypeDefinitions.hpp
-        LuauManager.cpp
-        LuauManager.hpp
         Scheduler.hpp
         Scheduler.cpp
         Security.hpp
         Security.cpp
-        Communication.cpp
-        Communication.hpp
+
+        # Managers
+        RobloxManager.cpp
+        RobloxManager.hpp
+        LuauManager.cpp
+        LuauManager.hpp
+        ClosureManager.cpp
+        ClosureManager.hpp
+
+        # Roblox Definitions
+        Roblox/TypeDefinitions.hpp
+        Roblox/TypeDefinitions.hpp
+
+        # Environment
         Environment/EnvironmentManager.cpp
         Environment/EnvironmentManager.hpp
+
+        # Environment -> Libraries
         Environment/Libraries/Globals.cpp
         Environment/Libraries/Globals.hpp
         Environment/Libraries/Debug.cpp
         Environment/Libraries/Debug.hpp
         Environment/Libraries/Filesystem.cpp
         Environment/Libraries/Filesystem.hpp
-        ClosureManager.cpp
-        ClosureManager.hpp
         Environment/Libraries/Closures.cpp
         Environment/Libraries/Closures.hpp
         Environment/Libraries/Metatable.cpp
@@ -52,6 +62,29 @@ add_library(Module SHARED
         Environment/Libraries/Instance.hpp
         Environment/Libraries/Input.cpp
         Environment/Libraries/Input.hpp
+
+        # Disassembler abstraction
+        Disassembler/Disassembler.cpp
+        Disassembler/Disassembler.hpp
+        Disassembler/DisassemblyRequest.hpp
+        Disassembler/DisassembledChunk.cpp
+        Disassembler/DisassembledChunk.hpp
+
+        # Communication
+        Communication/Communication.cpp
+        Communication/Communication.hpp
+        Communication/CommunicationPacket.cpp
+        Communication/CommunicationPacket.hpp
+        Communication/PacketSerdes.cpp
+        Communication/PacketSerdes.hpp
+
+        # Communication -> Packets
+        Communication/Packets/PacketBase.hpp
+        Communication/Packets/SetSafeModePacket.hpp
+        Communication/Packets/SetFunctionBlockStatePacket.hpp
+        Communication/Packets/SetNativeCodeGenPacket.hpp
+        Communication/Packets/SetFastVariablePacket.hpp
+        Communication/Packets/SetRequestFingerprintPacket.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
@@ -83,6 +116,9 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/IXWebSocket")
 # cryptopp
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/cryptopp-cmake")
 
+# capstone
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Capstone")
+
 find_package(lz4 CONFIG REQUIRED)
 find_package(OpenSSL CONFIG REQUIRED)
 
@@ -102,12 +138,16 @@ target_link_libraries(${PROJECT_NAME}
         Luau.EqSat
         Luau.CodeGen
 
-        Dbghelp.lib
 
         ixwebsocket
 
         lz4::lz4
 
         cryptopp::cryptopp
+
+        capstone
+
+        Dbghelp.lib
+        Ws2_32.lib
 )
 

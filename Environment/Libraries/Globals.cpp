@@ -9,7 +9,7 @@
 #include <lz4.h>
 
 #include "ClosureManager.hpp"
-#include "Communication.hpp"
+#include "Communication/Communication.hpp"
 #include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
 #include "RobloxManager.hpp"
@@ -62,7 +62,7 @@ std::string Globals::GetLibraryName() { return "rbxstu"; }
 luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
     auto *reg = new luaL_Reg[]{{"isluau", RbxStu::isluau},
-                               {"require", RbxStu::require},
+                               //{"require", RbxStu::require}, Disabled for the require made in init script, DO NOT RE-ENABLE
                                {"decompile", RbxStu::decompile},
 
                                {nullptr, nullptr}};
