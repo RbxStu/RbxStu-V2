@@ -276,7 +276,9 @@ public:
     /// @brief Resumes a lua_State through the Roblox scheduler
     /// @param threadRef The thread reference representing the state of the thread for yielding
     /// @param nret The number of returns after yielding.
-    void ResumeScript(RBX::Lua::WeakThreadRef *threadRef, std::int32_t nret);
+    /// @param isError Whether the resumption is an error
+    /// @param szErrorMessage The message of the error; only applies when isError is true.
+    void ResumeScript(RBX::Lua::WeakThreadRef *threadRef, std::int32_t nret, bool isError, const char *szErrorMessage);
 
     /// @brief Obtains the original function given the function's name.
     /// @param functionName The name of the Roblox function to obtain the original from.

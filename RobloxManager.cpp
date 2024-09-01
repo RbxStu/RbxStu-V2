@@ -152,11 +152,9 @@ void *rbx__scriptcontext__resumeWaitingThreads(
         // Utilities::ResumeRobloxThreads(threadInformation);
         // Utilities::CleanUpThreadHandles(threadInformation);
     } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-        Utilities::RobloxThreadSuspension threadSuspension(true);
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
                                                      "initialized, resetting scheduler!");
         scheduler->ResetScheduler();
-        threadSuspension.ResumeThreads();
     }
 
     calledBeforeCount = 0;
@@ -326,7 +324,7 @@ void RobloxManager::Initialize() {
 
             if (auto ret = disassembler->GetInstructions(request); !ret.has_value()) {
                 logger->PrintError(RbxStu::RobloxManager,
-                                     "Cannot dump RBX::ScriptContext::getGlobalState encryption. Disassembly failed.");
+                                   "Cannot dump RBX::ScriptContext::getGlobalState encryption. Disassembly failed.");
             } else {
                 const auto chunk = std::move(ret.value());
 
@@ -337,15 +335,15 @@ void RobloxManager::Initialize() {
 
                 if (isSub) {
                     logger->PrintInformation(RbxStu::RobloxManager,
-                                         "Determined RBX::ScriptContext::getGlobalState encryption to be SUB!");
+                                             "Determined RBX::ScriptContext::getGlobalState encryption to be SUB!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::SUB;
                 } else if (isAdd) {
                     logger->PrintInformation(RbxStu::RobloxManager,
-                                         "Determined RBX::ScriptContext::getGlobalState encryption to be ADD!");
+                                             "Determined RBX::ScriptContext::getGlobalState encryption to be ADD!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::ADD;
                 } else if (isXor) {
                     logger->PrintInformation(RbxStu::RobloxManager,
-                                         "Determined RBX::ScriptContext::getGlobalState encryption to be XOR!");
+                                             "Determined RBX::ScriptContext::getGlobalState encryption to be XOR!");
                     m_mapPointerEncryptionMap["RBX::ScriptContext::globalState"] = RBX::PointerEncryptionType::XOR;
                 } else {
                     logger->PrintWarning(
@@ -581,7 +579,8 @@ void *RobloxManager::GetRobloxFunction(const std::string &functionName) {
     return nullptr;
 }
 
-void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::int32_t nret) {
+void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::int32_t nret, bool isError,
+                                 const char *szErrorMessage) {
     const auto logger = Logger::GetSingleton();
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager, "Cannot obtain resume. Reason: RobloxManager is not initialized.");
@@ -612,7 +611,7 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
 
     try {
         resumeFunction(reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(scriptContext) + 0x698), out,
-                       &threadRef, nret, false, nullptr);
+                       &threadRef, nret, isError, szErrorMessage);
     } catch (const std::exception &ex) {
         logger->PrintError(RbxStu::RobloxManager,
                            std::format("An error occurred whilst resuming the thread! Exception: {}", ex.what()));
