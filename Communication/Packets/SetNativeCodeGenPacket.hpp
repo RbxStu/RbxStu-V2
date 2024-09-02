@@ -6,6 +6,10 @@
 #include "PacketBase.hpp"
 
 struct SetNativeCodeGenPacket final : public PacketBase {
-public:
     bool bEnableNativeCodeGen;
+
+    SetNativeCodeGenPacket() {
+        this->ulPacketId = RbxStu::WebSocketCommunication::SetNativeCodeGenPacket;
+        this->bEnableNativeCodeGen = false;
+    }
 };

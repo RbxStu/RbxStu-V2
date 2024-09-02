@@ -3,9 +3,17 @@
 //
 
 #pragma once
+#include <cstring>
+
+
 #include "PacketBase.hpp"
 
 struct SetRequestFingerprintPacket final : public PacketBase {
-public:
-    const char szNewFingerprint[0xFF];
+    char szNewFingerprint[0xFF]{};
+
+    SetRequestFingerprintPacket() {
+        this->ulPacketId = RbxStu::WebSocketCommunication::SetRequestFingerprintPacket;
+        memset(this->szNewFingerprint, '1', sizeof(this->szNewFingerprint));
+        this->szNewFingerprint[0xFE] = 0;
+    }
 };

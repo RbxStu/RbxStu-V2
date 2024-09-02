@@ -3,10 +3,19 @@
 //
 
 #pragma once
+#include <cstring>
+
+
 #include "PacketBase.hpp"
 
 struct SetFunctionBlockStatePacket final : public PacketBase {
-public:
     bool bisFunctionBlocked;
-    const char szFunctionName[0xFF];
+    char szFunctionName[0xFF];
+
+    __forceinline SetFunctionBlockStatePacket() {
+        this->ulPacketId = RbxStu::WebSocketCommunication::SetFunctionBlockStatePacket;
+        memset(this->szFunctionName, '1', sizeof(this->szFunctionName));
+        this->szFunctionName[0xFE] = 0;
+        this->bisFunctionBlocked = false;
+    }
 };

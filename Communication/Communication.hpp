@@ -6,12 +6,15 @@
 #include <memory>
 #include <string>
 
+#include "Roblox/TypeDefinitions.hpp"
+
 class Communication final {
     static std::shared_ptr<Communication> pInstance;
     bool m_bIsUnsafe = false;
     bool m_bEnableCodeGen = false;
     bool m_bIsInitialized = false;
-    std::string m_szFingerprintHeader = "Solara-Fingerprint";   // Sorry quiving, imma steal it.
+    std::int32_t lCurrentExecutionDataModel;
+    std::string m_szFingerprintHeader = "Solara-Fingerprint"; // Sorry quiving, imma steal it.
 
 public:
     static std::shared_ptr<Communication> GetSingleton();
@@ -37,10 +40,16 @@ public:
 
     const std::string &GetFingerprintHeaderName();
 
+    void SetExecutionDataModel(RBX::DataModelType dataModelType);
+
+    const std::uint64_t GetExecutionDataModel();
+
     bool IsCodeGenerationEnabled() const;
     void SetCodeGenerationEnabled(bool enableCodeGen);
 
-    void NewCommunication();
+    /// @brief Swiftly handles the WebSocket used for advanced communication with RbxStu V2.
+    /// @param szRemoteHost The remote host that will handle the communication.
+    static void NewCommunication(const std::string &szRemoteHost);
 
     /// @brief Swiftly handles the pipe used for executing Luau code.
     /// @param szPipeName The name of the pipe as a constant std::string.

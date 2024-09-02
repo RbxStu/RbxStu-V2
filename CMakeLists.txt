@@ -89,6 +89,9 @@ add_library(Module SHARED
         Communication/Packets/SetNativeCodeGenPacket.hpp
         Communication/Packets/SetFastVariablePacket.hpp
         Communication/Packets/SetRequestFingerprintPacket.hpp
+        Communication/Packets/SetExecutionDataModelPacket.hpp
+        Communication/Packets/HelloPacket.hpp
+        Communication/Packets/ResponseStatusPacket.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")

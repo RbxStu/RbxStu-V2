@@ -6,6 +6,10 @@
 #include "PacketBase.hpp"
 
 struct SetSafeModePacket final : public PacketBase {
-public:
     bool bIsSafeMode;
+
+    __forceinline SetSafeModePacket() {
+        this->ulPacketId = RbxStu::WebSocketCommunication::SetSafeModePacket;
+        this->bIsSafeMode = false;
+    }
 };

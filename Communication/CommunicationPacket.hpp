@@ -12,5 +12,8 @@ template<typename T>
 struct CommunicationPacket {
     std::uint32_t ulPacketId;
     std::uint64_t ullPacketSize;
-    std::unique_ptr<T> vData;
+    T *vData;
+    ~CommunicationPacket() {
+        delete vData;
+    }
 };
