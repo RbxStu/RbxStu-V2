@@ -22,12 +22,28 @@ public:
 
     template<RbxStu::Concepts::TypeConstraint<PacketFunctions> T>
     __forceinline std::optional<T> DeserializeFromJson(const std::string &input) {
-        return T::Deserialize(nlohmann::json::parse(input));
+        try {
+            return T::Deserialize(nlohmann::json::parse(input));
+        } catch (const std::exception &ex) {
+            Logger::GetSingleton()->PrintError(RbxStu::PacketSerdes,
+                                               std::format("Failed to deserialize packet json! Structure Name: {}; "
+                                                           "Provided Input: \n\n{}\n\nerror.what(): {}",
+                                                           typeid(T).name(), input, ex.what()));
+            return {};
+        }
     }
 
     template<RbxStu::Concepts::TypeConstraint<PacketFunctions> T>
     __forceinline nlohmann::json SerializeFromStructure(const T &structure) {
-        return T::Serialize(structure);
+        try {
+            return T::Serialize(structure);
+        } catch (const std::exception &ex) {
+            Logger::GetSingleton()->PrintError(
+                    RbxStu::PacketSerdes,
+                    std::format("Failed to serialize packet structure! Structure Name : \n\n{}\n\nerror.what(): {}",
+                                typeid(T).name(), ex.what()));
+            return {};
+        }
     }
 
     template<RbxStu::Concepts::TypeConstraint<PacketBase> T>
