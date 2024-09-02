@@ -46,8 +46,8 @@ public:
     }
 
     template<RbxStu::Concepts::TypeConstraint<PacketBase> T>
-    __forceinline static bool ContainsFlag(CommunicationPacket<T> packet, std::uint64_t flag) {
-        return (packet.vData->ullPacketFlags & flag) == flag;
+    __forceinline static bool ContainsFlag(T packet, std::uint64_t flag) {
+        return (packet.ullPacketFlags & flag) == flag;
     }
 
     __forceinline std::int32_t ReadPacketIdentifier(const std::string &str) {
