@@ -133,6 +133,44 @@ static std::vector<std::string> blockedFunctions = {
         "startsessionwithpath" // StartSessionWithPathAsync
 };
 
+void EnvironmentManager::SetFunctionBlocked(const std::string &functionName, bool status) {
+    const auto loweredFunctionName = Utilities::ToLower(functionName);
+    if (status) {
+        for (auto &service: blockedFunctions) {
+            if (service == loweredFunctionName) {
+                return; // Already blocked.
+            }
+        }
+        blockedFunctions.push_back(loweredFunctionName);
+    } else {
+        for (int i = 0; i < blockedFunctions.size(); ++i) {
+            if (blockedFunctions[i] == loweredFunctionName) {
+                blockedFunctions.erase(blockedFunctions.begin() + i);
+                return; // Function was found and unblocked
+            }
+        }
+    }
+}
+
+void EnvironmentManager::SetServiceBlocked(const std::string &serviceName, bool status) {
+    const auto loweredServiceName = Utilities::ToLower(serviceName);
+    if (status) {
+        for (auto &service: blockedServices) {
+            if (service == loweredServiceName) {
+                return; // Already blocked.
+            }
+        }
+        blockedServices.push_back(loweredServiceName);
+    } else {
+        for (int i = 0; i < blockedServices.size(); ++i) {
+            if (blockedServices[i] == loweredServiceName) {
+                blockedServices.erase(blockedServices.begin() + i);
+                return; // Service was found and unblocked
+            }
+        }
+    }
+}
+
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
 

@@ -18,5 +18,9 @@ class EnvironmentManager final {
 
 public:
     static std::shared_ptr<EnvironmentManager> GetSingleton();
+
+    void SetFunctionBlocked(const std::string &functionName, bool status);
+    void SetServiceBlocked(const std::string &serviceName, bool status);
+
     void PushEnvironment(lua_State *L);
 };
