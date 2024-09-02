@@ -22,6 +22,14 @@ long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
     if (pExceptionPointers->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
         printf("Exception Identified: EXCEPTION_ACCESS_VIOLATION\r\n");
     }
+    try {
+        std::rethrow_exception(std::current_exception());
+    } catch (const std::exception &ex) {
+        printf("\nIntercepted C++/Cxx exception!\nError Reason: '%s'\n. Resuming SEH handler!\n", ex.what());
+    } catch (...) {
+        printf("\nNo current C++/Cxx exception? Resuming SEH handler!\n");
+    }
+
 
     printf("Exception Caught         @ %p\r\n", pExceptionPointers->ContextRecord->Rip);
     printf("Module.dll               @ %p\r\n", reinterpret_cast<std::uintptr_t>(GetModuleHandleA("Module.dll")));

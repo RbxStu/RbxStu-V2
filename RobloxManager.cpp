@@ -59,6 +59,13 @@ void rbx_rbxcrash(const char *crashType, const char *crashDescription) {
         }
     }
 
+    try {
+        std::rethrow_exception(std::current_exception());
+    } catch (const std::exception &ex) {
+        logger->PrintError(RbxStu::Hooked_RBXCrash,
+                           std::format("Roblox Studio has invoked RBXCRASH. CxxEx.what() -> '{}'", ex.what()));
+    }
+
     SymCleanup(GetCurrentProcess());
     MessageBoxA(nullptr, ("Studio Crash"), ("Execution suspended. RBXCRASH has been called."), MB_OK);
 
