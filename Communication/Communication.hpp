@@ -4,16 +4,25 @@
 #pragma once
 
 #include <memory>
+#include <queue>
 #include <string>
 
+#include "Packets/ScheduleLuauResponsePacket.hpp"
 #include "Roblox/TypeDefinitions.hpp"
+
+struct ExecutionStatus {
+    ScheduleLuauResponsePacketFlags Status;
+    std::string szOperationIdentifier;
+    std::string szErrorMessage;
+};
 
 class Communication final {
     static std::shared_ptr<Communication> pInstance;
     bool m_bIsUnsafe = false;
     bool m_bEnableCodeGen = false;
     bool m_bIsInitialized = false;
-    std::int32_t lCurrentExecutionDataModel;
+    std::queue<ExecutionStatus> m_qExecutionReportsQueue;
+    RBX::DataModelType lCurrentExecutionDataModel{};
     std::string m_szFingerprintHeader = "Solara-Fingerprint"; // Sorry quiving, imma steal it.
 
 public:
@@ -42,7 +51,7 @@ public:
 
     void SetExecutionDataModel(RBX::DataModelType dataModelType);
 
-    const std::uint64_t GetExecutionDataModel();
+    const RBX::DataModelType GetExecutionDataModel();
 
     bool IsCodeGenerationEnabled() const;
     void SetCodeGenerationEnabled(bool enableCodeGen);
@@ -54,4 +63,6 @@ public:
     /// @brief Swiftly handles the pipe used for executing Luau code.
     /// @param szPipeName The name of the pipe as a constant std::string.
     static void HandlePipe(const std::string &szPipeName);
+
+    void ReportExecutionStatus(const ExecutionStatus &execStatus);
 };

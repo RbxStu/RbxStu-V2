@@ -174,7 +174,7 @@ void Scheduler::StepScheduler(lua_State *runner) {
     // Here we will check if the DataModel obtained is correct, as in, our data model is successful!
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto logger = Logger::GetSingleton();
-    if (const auto dataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
+    if (const auto dataModel = robloxManager->GetCurrentDataModel(this->GetExecutionDataModel());
         !dataModel.has_value() || this->m_pClientDataModel != dataModel.value()) {
         logger->PrintWarning(RbxStu::Scheduler, "The task scheduler's internal state is out of date! Reason: DataModel "
                                                 "pointer is invalid! Executing reinitialization sub-routine!");
@@ -191,6 +191,12 @@ void Scheduler::StepScheduler(lua_State *runner) {
     // }
     auto job = this->GetSchedulerJob(false);
     this->GetSchedulerJob(this->ExecuteSchedulerJob(runner, &job));
+}
+
+void Scheduler::SetExecutionDataModel(RBX::DataModelType dataModel) {
+    this->m_lExecutionDataModel = dataModel;
+    Logger::GetSingleton()->PrintWarning(RbxStu::Scheduler, "Execution DataModel changed. Issuing Scheduler Reset!");
+    this->ResetScheduler();
 }
 
 void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *dataModel) {

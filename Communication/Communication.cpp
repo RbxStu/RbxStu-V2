@@ -6,11 +6,14 @@
 
 #include <HttpStatus.hpp>
 #include <Windows.h>
+#include "Environment/EnvironmentManager.hpp"
 #include "Logger.hpp"
 #include "PacketSerdes.hpp"
 #include "Packets/HelloPacket.hpp"
 #include "Packets/ResponseStatusPacket.hpp"
 #include "Packets/ScheduleLuauPacket.hpp"
+#include "Packets/SetExecutionDataModelPacket.hpp"
+#include "Packets/SetFunctionBlockStatePacket.hpp"
 #include "Packets/SetNativeCodeGenPacket.hpp"
 #include "Packets/SetRequestFingerprintPacket.hpp"
 #include "Packets/SetSafeModePacket.hpp"
@@ -32,11 +35,28 @@ std::shared_ptr<Communication> Communication::GetSingleton() {
 
 bool Communication::IsUnsafeMode() const { return this->m_bIsUnsafe; }
 
-void Communication::SetUnsafeMode(bool isUnsafe) {
-    this->m_bIsUnsafe = isUnsafe;
-    Logger::GetSingleton()->PrintWarning(
-            RbxStu::Communication, "WARNING! UNSAFE MODE IS ENABLED! THIS CAN HAVE CONSEQUENCES THAT GO HIGHER THAN "
-                                   "YOU THINK! IF YOU DO NOT KNOW WHAT YOU'RE DOING, TURN SAFE MODE BACK ON!");
+void Communication::SetUnsafeMode(const bool isUnsafe) {
+    const auto logger = Logger::GetSingleton();
+    if (isUnsafe) {
+        const auto ret = MessageBox(nullptr, "WARNING",
+                                    "An attempt has been made to disable RbxStu's Safe Mode! This may constitute a "
+                                    "malicious author "
+                                    "trying to lower the security of the execution environment to steal ROBUX or "
+                                    "other "
+                                    "valuables! If you did not allow this, press No, and Safe Mode will remain "
+                                    "active.",
+                                    MB_YESNO | MB_ICONHAND | MB_SYSTEMMODAL | MB_TOPMOST | MB_SETFOREGROUND);
+
+        if (ret == IDYES) {
+            logger->PrintWarning(RbxStu::Communication, "RbxStu's Safe Mode has been disabled!");
+            this->m_bIsUnsafe = isUnsafe;
+        } else if (ret == IDNO) {
+            logger->PrintWarning(RbxStu::Communication, "RbxStu's Safe Mode has not been disabled!");
+        }
+    } else {
+        logger->PrintWarning(RbxStu::Communication, "RbxStu's Safe Mode has been reactivated!");
+        this->m_bIsUnsafe = isUnsafe;
+    }
 }
 std::string Communication::SetFingerprintHeader(const std::string &header) {
     if (header.find("-Fingerprint") == std::string::npos)
@@ -47,6 +67,10 @@ std::string Communication::SetFingerprintHeader(const std::string &header) {
     return old;
 }
 const std::string &Communication::GetFingerprintHeaderName() { return this->m_szFingerprintHeader; }
+void Communication::SetExecutionDataModel(RBX::DataModelType dataModelType) {
+    this->lCurrentExecutionDataModel = dataModelType;
+}
+const RBX::DataModelType Communication::GetExecutionDataModel() { return this->lCurrentExecutionDataModel; }
 bool Communication::IsCodeGenerationEnabled() const { return this->m_bEnableCodeGen; }
 void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnableCodeGen = enableCodeGen; }
 
@@ -55,6 +79,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
     const auto scheduler = Scheduler::GetSingleton();
     const auto serializer = PacketSerdes::GetSingleton();
     const auto communication = Communication::GetSingleton();
+    const auto environmentManager = EnvironmentManager::GetSingleton();
 
     if (szRemoteHost.find("ws://") == std::string::npos && szRemoteHost.find("wss://") == std::string::npos) {
         logger->PrintError(RbxStu::Communication, "Cannot begin ix::WebSocket! ");
@@ -65,7 +90,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
     logger->PrintInformation(RbxStu::Communication, "Starting ix::WebSocket for communication!");
     const auto webSocket = std::make_unique<ix::WebSocket>();
     webSocket->setUrl(szRemoteHost);
-    webSocket->setOnMessageCallback([&scheduler, &communication, &serializer, &logger,
+    webSocket->setOnMessageCallback([&environmentManager, &scheduler, &communication, &serializer, &logger,
                                      &webSocket](const ix::WebSocketMessagePtr &message) {
         switch (message->type) {
             case ix::WebSocketMessageType::Message: {
@@ -76,7 +101,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                 }
 
                 auto responseStatus = ResponseStatusPacket{};
-                responseStatus.ullPacketFlags = ResponseStatusPacketFlags::Success;
+                responseStatus.ullPacketFlags = ResponseStatusPacketFlags::ResponseStatusSuccess;
 
                 auto sendResponseStatus = true;
                 auto wasSuccess = false;
@@ -103,10 +128,20 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         break;
                     case RbxStu::WebSocketCommunication::SetFunctionBlockStatePacket: {
                         if (const auto packet =
-                                    serializer->DeserializeFromJson<SetRequestFingerprintPacket>(message->str);
+                                    serializer->DeserializeFromJson<SetFunctionBlockStatePacket>(message->str);
                             packet.has_value()) {
-                            communication->m_szFingerprintHeader = std::string(packet->szNewFingerprint);
+                            environmentManager->SetFunctionBlocked(packet->szFunctionName,
+                                                                   packet->ullPacketFlags !=
+                                                                           SetFunctionBlockStatePacketFlags::Allow);
                             wasSuccess = true;
+                            logger->PrintWarning(
+                                    RbxStu::Communication,
+                                    std::format("The unsafe function list has been modified! Change "
+                                                "Set:\nFunction Name: '{}'\nIs Blocked: '{}'",
+                                                packet->szFunctionName,
+                                                packet->ullPacketFlags != SetFunctionBlockStatePacketFlags::Allow
+                                                        ? "Yes"
+                                                        : "No"));
                         } else {
                             logger->PrintWarning(
                                     RbxStu::Communication,
@@ -149,7 +184,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                     case RbxStu::WebSocketCommunication::SetSafeModePacket: {
                         if (const auto packet = serializer->DeserializeFromJson<SetSafeModePacket>(message->str);
                             packet.has_value()) {
-                            communication->m_bIsUnsafe = !packet->bIsSafeMode;
+                            communication->SetUnsafeMode(!packet.value().bIsSafeMode);
                             wasSuccess = true;
                         } else {
                             logger->PrintWarning(
@@ -161,7 +196,37 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
 
                         break;
                     }
+
                     case RbxStu::WebSocketCommunication::SetExecutionDataModelPacket:
+                        if (const auto packet =
+                                    serializer->DeserializeFromJson<SetExecutionDataModelPacket>(message->str);
+                            packet.has_value()) {
+
+                            switch (static_cast<SetExecutionDataModelPacketFlags>(packet.value().ullPacketFlags)) {
+                                case Edit:
+                                    scheduler->SetExecutionDataModel(RBX::DataModelType::DataModelType_Edit);
+                                    break;
+                                default:
+                                case Client:
+                                    scheduler->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayClient);
+                                    break;
+                                case Server:
+                                    scheduler->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayServer);
+                                    break;
+                                case Standalone:
+                                    scheduler->SetExecutionDataModel(
+                                            RBX::DataModelType::DataModelType_MainMenuStandalone);
+                                    break;
+                            }
+
+                            wasSuccess = true;
+                        } else {
+                            logger->PrintWarning(
+                                    RbxStu::Communication,
+                                    std::format(
+                                            "WARNING: Packet dropped due to serialization problems! PacketId: {:#x}",
+                                            static_cast<std::int32_t>(packetId)));
+                        }
                         break;
 
                     case RbxStu::WebSocketCommunication::ScheduleLuauPacket:
@@ -194,8 +259,8 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                 if (!sendResponseStatus)
                     break;
 
-                responseStatus.ullPacketFlags =
-                        wasSuccess ? ResponseStatusPacketFlags::Success : ResponseStatusPacketFlags::Failure;
+                responseStatus.ullPacketFlags = wasSuccess ? ResponseStatusPacketFlags::ResponseStatusSuccess
+                                                           : ResponseStatusPacketFlags::ResponseStatusFailure;
 
                 const auto generated = serializer->SerializeFromStructure(responseStatus);
                 webSocket->send(generated.dump(), false);
@@ -256,7 +321,19 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
         }
 
         while (webSocket->getReadyState() == ix::ReadyState::Open) {
-            _mm_pause();
+            if (!communication->m_qExecutionReportsQueue.empty()) {
+                auto [operationStatus, szOperationIdentifier, szErrorMessage] =
+                        communication->m_qExecutionReportsQueue.front();
+                communication->m_qExecutionReportsQueue.pop();
+                ScheduleLuauResponsePacket response{};
+                response.ullPacketFlags = operationStatus;
+                response.szText = szErrorMessage;
+                response.szOperationIdentifier = szOperationIdentifier;
+                webSocket->send(serializer->SerializeFromStructure(response), false);
+                std::this_thread::sleep_for(std::chrono::milliseconds{5});
+            } else {
+                _mm_pause();
+            }
         }
         logger->PrintWarning(RbxStu::Communication, "Websocket connection lost. Beginning reconnection!");
         std::this_thread::sleep_for(std::chrono::milliseconds{5000});
@@ -303,4 +380,7 @@ void Communication::HandlePipe(const std::string &szPipeName) {
         }
         Script.clear();
     }
+}
+void Communication::ReportExecutionStatus(const ExecutionStatus &execStatus) {
+    this->m_qExecutionReportsQueue.emplace(execStatus);
 }

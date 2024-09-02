@@ -116,9 +116,9 @@ void *rbx__scriptcontext__resumeWaitingThreads(
             logger->PrintWarning(RbxStu::HookedFunction, "Initialization of Scheduler may be unstable! Cannot "
                                                          "determine DataModel for the obtained ScriptContext!");
         } else {
-            const auto expectedDataModel = robloxManager->GetCurrentDataModel(RBX::DataModelType_PlayClient);
+            const auto expectedDataModel = robloxManager->GetCurrentDataModel(scheduler->GetExecutionDataModel());
             if (!expectedDataModel.has_value() || getDataModel(scriptContext) != expectedDataModel.value() ||
-                !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+                !robloxManager->IsDataModelValid(scheduler->GetExecutionDataModel())) {
                 goto __scriptContext_resumeWaitingThreads__cleanup;
             }
         }
@@ -141,7 +141,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
                                                                  reinterpret_cast<void *>(optionalrL.value())));
 
 
-        if (optionalrL.has_value() && robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+        if (optionalrL.has_value() && robloxManager->IsDataModelValid(scheduler->GetExecutionDataModel())) {
             const auto robloxL = optionalrL.value();
             lua_State *rL = lua_newthread(robloxL);
             lua_ref(robloxL, -1);
@@ -158,7 +158,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
 
         // Utilities::ResumeRobloxThreads(threadInformation);
         // Utilities::CleanUpThreadHandles(threadInformation);
-    } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
+    } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(scheduler->GetExecutionDataModel())) {
         logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
                                                      "initialized, resetting scheduler!");
         scheduler->ResetScheduler();

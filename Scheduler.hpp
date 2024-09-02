@@ -114,6 +114,9 @@ class Scheduler final {
     /// @brief Private, Static shared pointer into the instance.
     static std::shared_ptr<Scheduler> pInstance;
 
+    /// @brief The type of the DataModel RbxStu's Scheduler runs on.
+    RBX::DataModelType m_lExecutionDataModel{0};
+
     /// @brief A std::optional<lua_State *>, which represents a unique, non-array lua_State which RbxStu obtains its
     /// environment from.
     std::optional<lua_State *> m_lsInitialisedWith;
@@ -172,4 +175,8 @@ public:
     /// @remarks DO NOT CALL INSIDE ANY CODE THAT IS NOT SYNCHRONIZED WITH THE ROBLOX'S TASK SCHEDULER!!! THIS WILL
     /// RESULT IN UNDEFINED BEHAVIOUR!
     void StepScheduler(lua_State *runner);
+
+    void SetExecutionDataModel(RBX::DataModelType dataModel);
+
+    RBX::DataModelType GetExecutionDataModel() { return this->m_lExecutionDataModel; }
 };
