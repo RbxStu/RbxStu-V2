@@ -44,6 +44,9 @@ namespace RbxStu::WebSocketCommunication {
 
         /// @brief Schedules the given Luau code into the RbxStu V2 scheduler for execution.
         ScheduleLuauPacket = 0x8,
+
+        /// @brief Returned after a Scheduler job is completed.
+        ScheduleLuauResponsePacket = 0x9,
     };
 }; // namespace RbxStu::WebSocketCommunication
 
