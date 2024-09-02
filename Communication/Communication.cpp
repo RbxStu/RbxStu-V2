@@ -10,6 +10,7 @@
 #include "PacketSerdes.hpp"
 #include "Packets/HelloPacket.hpp"
 #include "Packets/ResponseStatusPacket.hpp"
+#include "Packets/ScheduleLuauPacket.hpp"
 #include "Packets/SetNativeCodeGenPacket.hpp"
 #include "Packets/SetRequestFingerprintPacket.hpp"
 #include "Packets/SetSafeModePacket.hpp"
@@ -64,12 +65,13 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
     logger->PrintInformation(RbxStu::Communication, "Starting ix::WebSocket for communication!");
     const auto webSocket = std::make_unique<ix::WebSocket>();
     webSocket->setUrl(szRemoteHost);
-    webSocket->setOnMessageCallback([&communication, &serializer, &logger,
+    webSocket->setOnMessageCallback([&scheduler, &communication, &serializer, &logger,
                                      &webSocket](const ix::WebSocketMessagePtr &message) {
         switch (message->type) {
             case ix::WebSocketMessageType::Message: {
-                if (!message->binary) {
-                    logger->PrintWarning(RbxStu::Communication, "RbxStu only supports binary inputs. Packet dropped.");
+                if (message->binary) {
+                    logger->PrintWarning(RbxStu::Communication,
+                                         "RbxStu only supports non-binary inputs. Packet dropped.");
                     return;
                 }
 
@@ -87,16 +89,13 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         logger->PrintInformation(RbxStu::Communication,
                                                  "Received HELLO. Re-Sending current configuration!");
                         auto hello = HelloPacket{};
-
-                        memcpy(hello.szFingerprintHeader, communication->m_szFingerprintHeader.c_str(),
-                               sizeof(hello.szFingerprintHeader));
-
+                        hello.szFingerprintHeader = communication->m_szFingerprintHeader;
                         hello.bIsSafeModeEnabled = !communication->m_bIsUnsafe;
                         hello.lCurrentExecutionDataModel = communication->lCurrentExecutionDataModel;
                         hello.bIsNativeCodeGenEnabled = communication->m_bEnableCodeGen;
 
-                        auto generated = serializer->SerializeFromStructure(hello);
-                        webSocket->send(std::string(generated.begin(), generated.end()), true);
+                        const auto generated = serializer->SerializeFromStructure<HelloPacket>(hello);
+                        webSocket->send(generated.dump(), false);
                         sendResponseStatus = false;
                         break;
                     }
@@ -104,9 +103,9 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         break;
                     case RbxStu::WebSocketCommunication::SetFunctionBlockStatePacket: {
                         if (const auto packet =
-                                    serializer->DeserializeFromString<SetRequestFingerprintPacket>(message->str);
+                                    serializer->DeserializeFromJson<SetRequestFingerprintPacket>(message->str);
                             packet.has_value()) {
-                            communication->m_szFingerprintHeader = std::string(packet->vData->szNewFingerprint);
+                            communication->m_szFingerprintHeader = std::string(packet->szNewFingerprint);
                             wasSuccess = true;
                         } else {
                             logger->PrintWarning(
@@ -118,9 +117,9 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         break;
                     }
                     case RbxStu::WebSocketCommunication::SetNativeCodeGenPacket: {
-                        if (const auto packet = serializer->DeserializeFromString<SetNativeCodeGenPacket>(message->str);
+                        if (const auto packet = serializer->DeserializeFromJson<SetNativeCodeGenPacket>(message->str);
                             packet.has_value()) {
-                            communication->m_bEnableCodeGen = packet->vData->bEnableNativeCodeGen;
+                            communication->m_bEnableCodeGen = packet->bEnableNativeCodeGen;
                             wasSuccess = true;
                         } else {
                             logger->PrintWarning(
@@ -134,9 +133,9 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                     }
                     case RbxStu::WebSocketCommunication::SetRequestFingerprintPacket: {
                         if (const auto packet =
-                                    serializer->DeserializeFromString<SetRequestFingerprintPacket>(message->str);
+                                    serializer->DeserializeFromJson<SetRequestFingerprintPacket>(message->str);
                             packet.has_value()) {
-                            communication->m_szFingerprintHeader = std::string(packet->vData->szNewFingerprint);
+                            communication->m_szFingerprintHeader = std::string(packet->szNewFingerprint);
                             wasSuccess = true;
                         } else {
                             logger->PrintWarning(
@@ -148,9 +147,9 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         break;
                     }
                     case RbxStu::WebSocketCommunication::SetSafeModePacket: {
-                        if (const auto packet = serializer->DeserializeFromString<SetSafeModePacket>(message->str);
+                        if (const auto packet = serializer->DeserializeFromJson<SetSafeModePacket>(message->str);
                             packet.has_value()) {
-                            communication->m_bIsUnsafe = !packet->vData->bIsSafeMode;
+                            communication->m_bIsUnsafe = !packet->bIsSafeMode;
                             wasSuccess = true;
                         } else {
                             logger->PrintWarning(
@@ -164,29 +163,55 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                     }
                     case RbxStu::WebSocketCommunication::SetExecutionDataModelPacket:
                         break;
+
+                    case RbxStu::WebSocketCommunication::ScheduleLuauPacket:
+                        if (const auto packet = serializer->DeserializeFromJson<ScheduleLuauPacket>(message->str);
+                            packet.has_value()) {
+                            if (scheduler->IsInitialized()) {
+                                logger->PrintInformation(RbxStu::Communication, "Luau code scheduled for execution.");
+                                scheduler->ScheduleJob(SchedulerJob(packet.value().szLuauCode));
+                            } else {
+                                logger->PrintWarning(
+                                        RbxStu::Communication,
+                                        "RbxStu::Scheduler is NOT initialized! Luau code NOT scheduled, please enter "
+                                        "into a "
+                                        "game to be able to enqueue jobs into the Scheduler for execution!");
+                            }
+
+                            wasSuccess = true;
+                        } else {
+                            logger->PrintWarning(
+                                    RbxStu::Communication,
+                                    std::format(
+                                            "WARNING: Packet dropped due to serialization problems! PacketId: {:#x}",
+                                            static_cast<std::int32_t>(packetId)));
+                        }
+
+                        break;
                     default:;
                 }
+
+                if (!sendResponseStatus)
+                    break;
+
                 responseStatus.ullPacketFlags =
                         wasSuccess ? ResponseStatusPacketFlags::Success : ResponseStatusPacketFlags::Failure;
-                auto generated = serializer->SerializeFromStructure(responseStatus);
 
-                webSocket->send(std::string(generated.begin(), generated.end()), true);
+                const auto generated = serializer->SerializeFromStructure(responseStatus);
+                webSocket->send(generated.dump(), false);
                 break;
             }
             case ix::WebSocketMessageType::Open: {
                 logger->PrintInformation(RbxStu::Communication,
                                          "Sending HELLO to UI with all of RbxStu's current configuration!");
                 auto hello = HelloPacket{};
-
-                memcpy(hello.szFingerprintHeader, communication->m_szFingerprintHeader.c_str(),
-                       sizeof(hello.szFingerprintHeader));
-
+                hello.szFingerprintHeader = communication->m_szFingerprintHeader;
                 hello.bIsSafeModeEnabled = !communication->m_bIsUnsafe;
                 hello.lCurrentExecutionDataModel = communication->lCurrentExecutionDataModel;
                 hello.bIsNativeCodeGenEnabled = communication->m_bEnableCodeGen;
 
-                auto generated = serializer->SerializeFromStructure(hello);
-                webSocket->send(std::string(generated.begin(), generated.end()), true);
+                const auto generated = serializer->SerializeFromStructure(hello);
+                webSocket->send(generated.dump(), false);
                 break;
             }
             case ix::WebSocketMessageType::Close:
@@ -209,16 +234,17 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
         }
     });
 
-    while (true) {
-        auto status = webSocket->connect(10);
+    auto attemptCount = 0;
+    while (attemptCount <= 3) {
 
-        if (!status.success) {
+        if (auto status = webSocket->connect(10); !status.success) {
             logger->PrintWarning(RbxStu::Communication,
                                  std::format("WebSocket connection failed! Status Code: '{}' (HTTP {}). ix::WebSocket "
                                              "error: '{}'. Reattempting in 5 seconds.",
                                              HttpStatus::ReasonPhrase(status.http_status), status.http_status,
                                              status.errorStr));
             std::this_thread::sleep_for(std::chrono::milliseconds{5000});
+            attemptCount++;
             continue;
         } else {
             logger->PrintInformation(
@@ -226,6 +252,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                     std::format("WebSocket connection successful! Status Code: '{}' (HTTP {})! Launching handler task!",
                                 HttpStatus::ReasonPhrase(status.http_status), status.http_status));
             webSocket->start();
+            attemptCount = 0;
         }
 
         while (webSocket->getReadyState() == ix::ReadyState::Open) {
@@ -234,6 +261,9 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
         logger->PrintWarning(RbxStu::Communication, "Websocket connection lost. Beginning reconnection!");
         std::this_thread::sleep_for(std::chrono::milliseconds{5000});
     }
+
+    logger->PrintError(RbxStu::Communication,
+                       "WebSocket communication attempts ceased, only Pipe connection will remain online.");
 }
 
 void Communication::HandlePipe(const std::string &szPipeName) {

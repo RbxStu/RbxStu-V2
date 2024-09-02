@@ -10,9 +10,22 @@ enum ResponseStatusPacketFlags {
     Success = 0b1,
 };
 
-struct ResponseStatusPacket final : public PacketBase {
+class ResponseStatusPacket final : public PacketBase {
+public:
     __forceinline ResponseStatusPacket() {
         this->ulPacketId = RbxStu::WebSocketCommunication::ResponseStatusPacket;
         this->ullPacketFlags = ResponseStatusPacketFlags::Failure;
+    }
+
+    static nlohmann::json Serialize(const ResponseStatusPacket &packet) { return PacketBase::Serialize(packet); }
+
+
+    static ResponseStatusPacket Deserialize(const nlohmann::json &json) {
+        auto result = ResponseStatusPacket{};
+
+        json.at("packet_id").get_to(result.ulPacketId);
+        json.at("packet_flags").get_to(result.ullPacketFlags);
+
+        return result;
     }
 };

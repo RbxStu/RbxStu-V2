@@ -92,6 +92,7 @@ add_library(Module SHARED
         Communication/Packets/SetExecutionDataModelPacket.hpp
         Communication/Packets/HelloPacket.hpp
         Communication/Packets/ResponseStatusPacket.hpp
+        Communication/Packets/ScheduleLuauPacket.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
@@ -128,6 +129,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/Capstone")
 
 find_package(lz4 CONFIG REQUIRED)
 find_package(OpenSSL CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
@@ -153,6 +155,8 @@ target_link_libraries(${PROJECT_NAME}
         cryptopp::cryptopp
 
         capstone
+
+        nlohmann_json::nlohmann_json
 
         Dbghelp.lib
         Ws2_32.lib

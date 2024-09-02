@@ -5,7 +5,8 @@
 #pragma once
 #include <cstdint>
 
-struct PacketBase;
+#include "Utilities.hpp"
+
 namespace RbxStu::WebSocketCommunication {
     /// @brief Used to document and keep track of RbxStu V2 packets
     enum PacketIdentifier : std::uint32_t {
@@ -40,15 +41,41 @@ namespace RbxStu::WebSocketCommunication {
         /// @brief Returned by every WebSocket protocol operation by RbxStu V2.
         /// @remarks This packet uses PacketFlags.
         ResponseStatusPacket = 0x7,
+
+        /// @brief Schedules the given Luau code into the RbxStu V2 scheduler for execution.
+        ScheduleLuauPacket = 0x8,
     };
 }; // namespace RbxStu::WebSocketCommunication
 
-struct PacketBase {
+class PacketFunctions abstract {
+public:
+    static nlohmann::json Serialize(const PacketFunctions &packet);
+    static PacketFunctions Deserialize(const nlohmann::json &json);
+};
+
+class PacketBase : public PacketFunctions {
+public:
+    virtual ~PacketBase() = default;
+
     RbxStu::WebSocketCommunication::PacketIdentifier ulPacketId;
     std::uint64_t ullPacketFlags{0};
 
     PacketBase() {
         ulPacketId = static_cast<RbxStu::WebSocketCommunication::PacketIdentifier>(0);
         ullPacketFlags = 0;
+    }
+
+    static nlohmann::json Serialize(const PacketBase &packet) {
+        return {{"packet_id", packet.ulPacketId}, {"packet_flags", packet.ullPacketFlags}};
+    }
+
+
+    static PacketBase Deserialize(nlohmann::json json) {
+        auto result = PacketBase{};
+
+        json.at("packet_id").get_to(result.ulPacketId);
+        json.at("packet_flags").get_to(result.ullPacketFlags);
+
+        return result;
     }
 };
