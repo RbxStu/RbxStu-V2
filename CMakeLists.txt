@@ -77,8 +77,6 @@ add_library(Module SHARED
         # Communication
         Communication/Communication.cpp
         Communication/Communication.hpp
-        Communication/CommunicationPacket.cpp
-        Communication/CommunicationPacket.hpp
         Communication/PacketSerdes.cpp
         Communication/PacketSerdes.hpp
 
