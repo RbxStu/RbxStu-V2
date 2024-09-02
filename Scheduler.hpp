@@ -44,6 +44,15 @@ public:
         this->bIsYieldingJob = false;
         this->luaJob = {};
         this->luaJob.szluaCode = luaCode;
+        this->luaJob.szOperationIdentifier = "Anonymous";
+    }
+
+    explicit SchedulerJob(const std::string &luaCode, const std::string &jobIdentifier) {
+        this->bIsLuaCode = true;
+        this->bIsYieldingJob = false;
+        this->luaJob = {};
+        this->luaJob.szluaCode = luaCode;
+        this->luaJob.szOperationIdentifier = jobIdentifier;
     }
 
     /// @brief The callback that is executed once the yield is completed to push the results into the lua stack for

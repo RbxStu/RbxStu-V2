@@ -197,7 +197,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         break;
                     }
 
-                    case RbxStu::WebSocketCommunication::SetExecutionDataModelPacket:
+                    case RbxStu::WebSocketCommunication::SetExecutionDataModelPacket: {
                         if (const auto packet =
                                     serializer->DeserializeFromJson<SetExecutionDataModelPacket>(message->str);
                             packet.has_value()) {
@@ -228,13 +228,16 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                                             static_cast<std::int32_t>(packetId)));
                         }
                         break;
-
-                    case RbxStu::WebSocketCommunication::ScheduleLuauPacket:
+                    }
+                    case RbxStu::WebSocketCommunication::ScheduleLuauPacket: {
                         if (const auto packet = serializer->DeserializeFromJson<ScheduleLuauPacket>(message->str);
                             packet.has_value()) {
                             if (scheduler->IsInitialized()) {
-                                logger->PrintInformation(RbxStu::Communication, "Luau code scheduled for execution.");
-                                scheduler->ScheduleJob(SchedulerJob(packet.value().szLuauCode));
+                                logger->PrintInformation(RbxStu::Communication,
+                                                         std::format("Luau code scheduled for execution; JobID: '{}'",
+                                                                     packet.value().szOperationIdentifier));
+                                scheduler->ScheduleJob(
+                                        SchedulerJob(packet.value().szLuauCode, packet.value().szOperationIdentifier));
                             } else {
                                 logger->PrintWarning(
                                         RbxStu::Communication,
@@ -253,7 +256,10 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         }
 
                         break;
-                    default:;
+                    }
+                    default:
+                        logger->PrintWarning(RbxStu::Communication,
+                                             std::format("Unhandled PacketID! PacketID: {:#x}", packetId));
                 }
 
                 if (!sendResponseStatus)
