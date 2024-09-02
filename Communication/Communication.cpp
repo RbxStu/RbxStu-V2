@@ -203,18 +203,27 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                             packet.has_value()) {
 
                             switch (static_cast<SetExecutionDataModelPacketFlags>(packet.value().ullPacketFlags)) {
-                                case Edit:
-                                    scheduler->SetExecutionDataModel(RBX::DataModelType::DataModelType_Edit);
+                                case SetExecutionDataModelPacketFlags::Edit:
+                                    logger->PrintWarning(RbxStu::Scheduler,
+                                                         "WARNING: The execution DataModel has been changed to Edit "
+                                                         "mode. This may allow for things like complete saveinstance "
+                                                         "into a remote server. This is dangerous!");
+                                    communication->SetExecutionDataModel(RBX::DataModelType::DataModelType_Edit);
                                     break;
                                 default:
-                                case Client:
-                                    scheduler->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayClient);
+                                case SetExecutionDataModelPacketFlags::Client:
+                                    communication->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayClient);
                                     break;
-                                case Server:
-                                    scheduler->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayServer);
+                                case SetExecutionDataModelPacketFlags::Server:
+                                    communication->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayServer);
                                     break;
-                                case Standalone:
-                                    scheduler->SetExecutionDataModel(
+                                case SetExecutionDataModelPacketFlags::Standalone:
+                                    logger->PrintWarning(
+                                            RbxStu::Scheduler,
+                                            "WARNING: The execution DataModel has been changed to Standalone "
+                                            "mode. This may result in unknown behaviour or security risks.");
+
+                                    communication->SetExecutionDataModel(
                                             RBX::DataModelType::DataModelType_MainMenuStandalone);
                                     break;
                             }
@@ -292,7 +301,6 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                 break;
             case ix::WebSocketMessageType::Ping:
                 break;
-
             case ix::WebSocketMessageType::Pong:
                 break;
 

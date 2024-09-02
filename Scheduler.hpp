@@ -8,6 +8,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include "Communication/Communication.hpp"
 #include "Logger.hpp"
 #include "Utilities.hpp"
 #include "lstate.h"
@@ -123,9 +124,6 @@ class Scheduler final {
     /// @brief Private, Static shared pointer into the instance.
     static std::shared_ptr<Scheduler> pInstance;
 
-    /// @brief The type of the DataModel RbxStu's Scheduler runs on.
-    RBX::DataModelType m_lExecutionDataModel{0};
-
     /// @brief A std::optional<lua_State *>, which represents a unique, non-array lua_State which RbxStu obtains its
     /// environment from.
     std::optional<lua_State *> m_lsInitialisedWith;
@@ -187,5 +185,5 @@ public:
 
     void SetExecutionDataModel(RBX::DataModelType dataModel);
 
-    RBX::DataModelType GetExecutionDataModel() { return this->m_lExecutionDataModel; }
+    RBX::DataModelType GetExecutionDataModel();
 };

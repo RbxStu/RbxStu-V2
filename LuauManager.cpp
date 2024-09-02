@@ -124,12 +124,10 @@ static void *luaE__newthread(lua_State *on) {
     return newLuaThread;
 }
 
-static std::shared_mutex __luaumanager_initmutex;
+static std::shared_mutex __luaumanager__singletonmutex;
 std::shared_ptr<LuauManager> LuauManager::pInstance;
 
 void LuauManager::Initialize() {
-    std::lock_guard lock{__luaumanager_initmutex};
-
     const auto logger = Logger::GetSingleton();
     if (this->m_bIsInitialized) {
         logger->PrintWarning(RbxStu::LuauManager, "This instance is already initialized!");
@@ -285,6 +283,7 @@ void LuauManager::Initialize() {
 }
 
 std::shared_ptr<LuauManager> LuauManager::GetSingleton() {
+    std::lock_guard lock{__luaumanager__singletonmutex};
     if (LuauManager::pInstance == nullptr)
         LuauManager::pInstance = std::make_shared<LuauManager>();
 

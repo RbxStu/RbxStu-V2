@@ -94,6 +94,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
                                          // seems.
 
     const auto robloxManager = RobloxManager::GetSingleton();
+    const auto luauManager = LuauManager::GetSingleton();
     const auto logger = Logger::GetSingleton();
     const auto scheduler = Scheduler::GetSingleton();
     const auto security = Security::GetSingleton();
@@ -109,7 +110,7 @@ void *rbx__scriptcontext__resumeWaitingThreads(
     // logger->PrintInformation(RbxStu::HookedFunction,
     //                         std::format("ScriptContext::resumeWaitingThreads. ScriptContext: {:#x}", ScriptContext));
 
-    if (!scheduler->IsInitialized()) { // !scheduler->is_initialized()
+    if (!scheduler->IsInitialized() && luauManager->IsInitialized()) { // !scheduler->is_initialized()
         auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getDataModel>(
                 robloxManager->GetRobloxFunction("RBX::ScriptContext::getDataModel"));
         if (getDataModel == nullptr) {

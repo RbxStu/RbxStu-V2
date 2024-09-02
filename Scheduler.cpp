@@ -194,10 +194,12 @@ void Scheduler::StepScheduler(lua_State *runner) {
 }
 
 void Scheduler::SetExecutionDataModel(RBX::DataModelType dataModel) {
-    this->m_lExecutionDataModel = dataModel;
+    Communication::GetSingleton()->SetExecutionDataModel(dataModel);
     Logger::GetSingleton()->PrintWarning(RbxStu::Scheduler, "Execution DataModel changed. Issuing Scheduler Reset!");
     this->ResetScheduler();
 }
+
+RBX::DataModelType Scheduler::GetExecutionDataModel() { return Communication::GetSingleton()->GetExecutionDataModel(); }
 
 void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *dataModel) {
     std::lock_guard g{__scheduler_init};

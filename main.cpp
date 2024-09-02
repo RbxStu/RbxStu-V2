@@ -138,8 +138,7 @@ int main() {
 
     const auto robloxPrint = robloxManager->GetRobloxPrint().value();
 
-    robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Waiting for client DataModel...");
-    logger->PrintInformation(RbxStu::MainThread, "Waiting for the client DataModel...");
+    logger->PrintInformation(RbxStu::MainThread, "Main Thread will now close, as all initialization has been completed.");
 
     const auto scheduler = Scheduler::GetSingleton();
     while (true) {

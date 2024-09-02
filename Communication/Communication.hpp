@@ -22,7 +22,7 @@ class Communication final {
     bool m_bEnableCodeGen = false;
     bool m_bIsInitialized = false;
     std::queue<ExecutionStatus> m_qExecutionReportsQueue;
-    RBX::DataModelType lCurrentExecutionDataModel{};
+    RBX::DataModelType lCurrentExecutionDataModel = RBX::DataModelType_PlayClient;
     std::string m_szFingerprintHeader = "Solara-Fingerprint"; // Sorry quiving, imma steal it.
 
 public:
