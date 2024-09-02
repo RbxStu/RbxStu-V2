@@ -258,8 +258,8 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         break;
                     }
                     default:
-                        logger->PrintWarning(RbxStu::Communication,
-                                             std::format("Unhandled PacketID! PacketID: {:#x}", packetId));
+                        logger->PrintWarning(RbxStu::Communication, std::format("Unhandled PacketID! PacketID: {:#x}",
+                                                                                static_cast<std::int32_t>(packetId)));
                 }
 
                 if (!sendResponseStatus)
