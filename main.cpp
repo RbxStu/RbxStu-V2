@@ -133,6 +133,7 @@ int main() {
     const auto luauManager = LuauManager::GetSingleton();
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing Communication...");
 
+    std::thread(Communication::NewCommunication, "ws://localhost:8523").detach();
     std::thread(Communication::HandlePipe, "CommunicationPipe").detach();
 
     const auto robloxPrint = robloxManager->GetRobloxPrint().value();
