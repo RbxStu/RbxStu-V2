@@ -8,7 +8,6 @@
 #include <string>
 
 #include <nlohmann/json.hpp>
-#include "CommunicationPacket.hpp"
 #include "Packets/PacketBase.hpp"
 #include "Utilities.hpp"
 
