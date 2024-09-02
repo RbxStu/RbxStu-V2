@@ -93,6 +93,7 @@ add_library(Module SHARED
         Communication/Packets/HelloPacket.hpp
         Communication/Packets/ResponseStatusPacket.hpp
         Communication/Packets/ScheduleLuauPacket.hpp
+        Communication/Packets/ScheduleLuauResponsePacket.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
