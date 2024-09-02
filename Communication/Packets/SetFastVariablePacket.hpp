@@ -14,14 +14,12 @@ enum SetFastVariablePacketFlag { Boolean = 0b0, Integer = 0b1, String = 0b10, Un
 
 class SetFastVariablePacket final : public PacketBase {
 public:
-    union {
-        std::string szNewValue;
-        int lNewValue;
-        bool bNewValue;
-    } newValue;
+    std::string szNewValue;
+    int lNewValue;
+    bool bNewValue;
     std::string szFastVariableName;
 
-    __forceinline SetFastVariablePacket() : newValue() {
+    __forceinline SetFastVariablePacket() {
         this->ulPacketId = RbxStu::WebSocketCommunication::SetFastVariablePacket;
         this->ullPacketFlags = SetFastVariablePacketFlag::Unassigned;
     }
@@ -35,13 +33,13 @@ public:
 
         switch (packet.ullPacketFlags) {
             case SetFastVariablePacketFlag::Boolean:
-                json["fast_variable"] = packet.newValue.bNewValue;
+                json["fast_variable"] = packet.bNewValue;
                 break;
             case SetFastVariablePacketFlag::Integer:
-                json["fast_variable"] = packet.newValue.lNewValue;
+                json["fast_variable"] = packet.lNewValue;
                 break;
             case SetFastVariablePacketFlag::String:
-                json["fast_variable"] = packet.newValue.szNewValue;
+                json["fast_variable"] = packet.szNewValue;
                 break;
             case SetFastVariablePacketFlag::Unassigned:
             default:
@@ -61,17 +59,19 @@ public:
         json.at("fast_variable_name").get_to(result.szFastVariableName);
         switch (result.ullPacketFlags) {
             case SetFastVariablePacketFlag::Boolean:
-                json.at("fast_variable").get_to(result.newValue.bNewValue);
+                json.at("fast_variable").get_to(result.bNewValue);
                 break;
             case SetFastVariablePacketFlag::Integer:
-                json.at("fast_variable").get_to(result.newValue.lNewValue);
+                json.at("fast_variable").get_to(result.lNewValue);
                 break;
             case SetFastVariablePacketFlag::String:
-                json.at("fast_variable").get_to(result.newValue.szNewValue);
+                json.at("fast_variable").get_to(result.szNewValue);
                 break;
             case SetFastVariablePacketFlag::Unassigned:
             default:
-                result.newValue.szNewValue = "???";
+                result.szNewValue = "???";
+                result.lNewValue = -1;
+                result.bNewValue = false;
                 break;
         }
 

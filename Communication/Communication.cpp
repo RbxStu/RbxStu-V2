@@ -13,10 +13,12 @@
 #include "Packets/ResponseStatusPacket.hpp"
 #include "Packets/ScheduleLuauPacket.hpp"
 #include "Packets/SetExecutionDataModelPacket.hpp"
+#include "Packets/SetFastVariablePacket.hpp"
 #include "Packets/SetFunctionBlockStatePacket.hpp"
 #include "Packets/SetNativeCodeGenPacket.hpp"
 #include "Packets/SetRequestFingerprintPacket.hpp"
 #include "Packets/SetSafeModePacket.hpp"
+#include "RobloxManager.hpp"
 #include "Scheduler.hpp"
 
 #include "ixwebsocket/IXWebSocket.h"
@@ -80,6 +82,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
     const auto serializer = PacketSerdes::GetSingleton();
     const auto communication = Communication::GetSingleton();
     const auto environmentManager = EnvironmentManager::GetSingleton();
+    const auto robloxManager = RobloxManager::GetSingleton();
 
     if (szRemoteHost.find("ws://") == std::string::npos && szRemoteHost.find("wss://") == std::string::npos) {
         logger->PrintError(RbxStu::Communication, "Cannot begin ix::WebSocket! ");
@@ -90,8 +93,8 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
     logger->PrintInformation(RbxStu::Communication, "Starting ix::WebSocket for communication!");
     const auto webSocket = std::make_unique<ix::WebSocket>();
     webSocket->setUrl(szRemoteHost);
-    webSocket->setOnMessageCallback([&environmentManager, &scheduler, &communication, &serializer, &logger,
-                                     &webSocket](const ix::WebSocketMessagePtr &message) {
+    webSocket->setOnMessageCallback([&robloxManager, &environmentManager, &scheduler, &communication, &serializer,
+                                     &logger, &webSocket](const ix::WebSocketMessagePtr &message) {
         switch (message->type) {
             case ix::WebSocketMessageType::Message: {
                 if (message->binary) {
@@ -124,8 +127,68 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         sendResponseStatus = false;
                         break;
                     }
-                    case RbxStu::WebSocketCommunication::SetFastVariablePacket:
+
+                    case RbxStu::WebSocketCommunication::SetFastVariablePacket: {
+                        if (const auto packet = serializer->DeserializeFromJson<SetFastVariablePacket>(message->str);
+                            packet.has_value()) {
+                            const auto variableName = packet->szFastVariableName;
+
+                            if (const auto fastVar = robloxManager->GetFastVariable(variableName);
+                                fastVar.has_value()) {
+                                wasSuccess = true;
+                                void *dataSegmentPointer = fastVar.value();
+                                logger->PrintInformation(RbxStu::Communication,
+                                                         std::format("Fast Variable modified: {}. Writing value to "
+                                                                     "pointer -> '{}'. Packet Flag: {:#x}",
+                                                                     packet->szFastVariableName, dataSegmentPointer,
+                                                                     packet->ullPacketFlags));
+
+
+                                switch (static_cast<SetFastVariablePacketFlag>(packet->ullPacketFlags)) {
+                                    case SetFastVariablePacketFlag::Boolean: {
+                                        *static_cast<bool *>(dataSegmentPointer) = packet->bNewValue;
+                                        break;
+                                    }
+                                    case SetFastVariablePacketFlag::Integer: {
+                                        *static_cast<std::int32_t *>(dataSegmentPointer) = packet->lNewValue;
+                                        break;
+                                    }
+                                    case SetFastVariablePacketFlag::String: {
+                                        // Swap pointers.
+                                        auto oldString = *static_cast<char **>(dataSegmentPointer);
+                                        auto s = new char[packet->szNewValue.size() + 1];
+                                        memcpy(s, packet->szNewValue.c_str(), packet->szNewValue.size());
+                                        s[packet->szNewValue.size()] = 0;
+                                        *static_cast<char **>(dataSegmentPointer) = s;
+                                        delete[] oldString;
+                                        break;
+                                    }
+                                    default: {
+                                        logger->PrintError(
+                                                RbxStu::Communication,
+                                                "Cannot mutate Fast Variable, as the value that it contains is "
+                                                "unknown, and manipulating it could constitute data-loss or memory "
+                                                "corruption! Validate your packet flags.");
+                                        wasSuccess = false;
+                                        break;
+                                    }
+                                }
+                            } else {
+                                logger->PrintWarning(RbxStu::Communication,
+                                                     std::format("Failed to change Fast Variable with name '{}' as "
+                                                                 "RobloxManager was unable to track it down.",
+                                                                 variableName));
+                            }
+                        } else {
+                            logger->PrintWarning(
+                                    RbxStu::Communication,
+                                    std::format(
+                                            "WARNING: Packet dropped due to serialization problems! PacketId: {:#x}",
+                                            static_cast<std::int32_t>(packetId)));
+                        }
                         break;
+                    }
+
                     case RbxStu::WebSocketCommunication::SetFunctionBlockStatePacket: {
                         if (const auto packet =
                                     serializer->DeserializeFromJson<SetFunctionBlockStatePacket>(message->str);
@@ -151,6 +214,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         }
                         break;
                     }
+
                     case RbxStu::WebSocketCommunication::SetNativeCodeGenPacket: {
                         if (const auto packet = serializer->DeserializeFromJson<SetNativeCodeGenPacket>(message->str);
                             packet.has_value()) {
@@ -166,6 +230,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
 
                         break;
                     }
+
                     case RbxStu::WebSocketCommunication::SetRequestFingerprintPacket: {
                         if (const auto packet =
                                     serializer->DeserializeFromJson<SetRequestFingerprintPacket>(message->str);
@@ -181,6 +246,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         }
                         break;
                     }
+
                     case RbxStu::WebSocketCommunication::SetSafeModePacket: {
                         if (const auto packet = serializer->DeserializeFromJson<SetSafeModePacket>(message->str);
                             packet.has_value()) {
@@ -238,6 +304,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                         }
                         break;
                     }
+
                     case RbxStu::WebSocketCommunication::ScheduleLuauPacket: {
                         if (const auto packet = serializer->DeserializeFromJson<ScheduleLuauPacket>(message->str);
                             packet.has_value()) {
@@ -266,6 +333,7 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
 
                         break;
                     }
+
                     default:
                         logger->PrintWarning(RbxStu::Communication, std::format("Unhandled PacketID! PacketID: {:#x}",
                                                                                 static_cast<std::int32_t>(packetId)));
