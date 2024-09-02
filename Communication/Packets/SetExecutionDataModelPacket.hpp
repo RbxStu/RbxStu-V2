@@ -10,10 +10,10 @@
 #include "PacketBase.hpp"
 
 enum SetExecutionDataModelPacketFlags {
-    Standalone = 0b0,
-    EditMode = 0b1,
-    Client = 0b10,
-    Server = 0b100,
+    Edit = 0b0,
+    Client = 0b1,
+    Server = 0b10,
+    Standalone = 0b100,
 };
 
 struct SetExecutionDataModelPacket final : public PacketBase {
