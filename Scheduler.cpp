@@ -69,10 +69,16 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         security->SetThreadSecurity(L, 8);
 
-        if (luau_load(L, "RbxStuV2", bytecode.c_str(), bytecode.size(), 0) != LUA_OK) {
+        if (luau_load(L, std::format("RbxStuV2__{}", job->luaJob.szOperationIdentifier).c_str(), bytecode.c_str(),
+                      bytecode.size(), 0) != LUA_OK) {
             const char *err = lua_tostring(L, -1);
             logger->PrintError(RbxStu::Scheduler, err);
             lua_pop(L, 1);
+            ExecutionStatus status{};
+            status.Status = ScheduleLuauResponsePacketFlags::Failure;
+            status.szOperationIdentifier = job->luaJob.szOperationIdentifier;
+            status.szErrorMessage = err;
+            Communication::GetSingleton()->ReportExecutionStatus(status);
             return true;
         }
         logger->PrintWarning(RbxStu::Scheduler,
@@ -103,6 +109,10 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
             throw std::exception("Cannot run Scheduler job!");
         }
 
+        ExecutionStatus status{};
+        status.Status = ScheduleLuauResponsePacketFlags::Success;
+        status.szOperationIdentifier = job->luaJob.szOperationIdentifier;
+        Communication::GetSingleton()->ReportExecutionStatus(status);
         return true;
     } else if (job->bIsYieldingJob) {
         if (job->IsJobCompleted()) {
@@ -128,6 +138,7 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
                 logger->PrintError(RbxStu::Scheduler,
                                    "Callback has no value despite the job being marked as completed!");
             }
+
             return true;
         } else {
             // Due to the nature of this architecture, when we have only one job left, we will just start calling it

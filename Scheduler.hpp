@@ -16,6 +16,7 @@
 class SchedulerJob {
 public:
     struct lJob {
+        std::string szOperationIdentifier;
         std::string szluaCode;
     } luaJob;
     struct yJob {
