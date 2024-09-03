@@ -108,9 +108,10 @@ public:
     bool SetLuaClosureSecurity(Closure *lClosure, std::uint32_t identity);
 
     /// @brief Removes key information from a lua closure prototype.
+    /// @param L The lua state the lClosure belongs to.
     /// @param lClosure The closure to wipe information from
     /// @remarks This function ONLY accepts lua closures, and it will modify the Closure *, beware of this.
-    void WipeClosurePrototype(Closure *lClosure);
+    void WipeClosurePrototype(lua_State *L, const Closure *lClosure);
 };
 
 static_assert(sizeof(RBX::Lua::ExtraSpace) == 0x98,

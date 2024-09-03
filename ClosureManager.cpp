@@ -70,7 +70,7 @@ int ClosureManager::hookfunction(lua_State *L) {
     auto hookWith = lua_toclosure(L, 2);
 
     if (!hookWith->isC)
-        Security::GetSingleton()->WipeClosurePrototype(hookWith);
+        Security::GetSingleton()->WipeClosurePrototype(L, hookWith);
 
     /*
      *  Supported hooks:

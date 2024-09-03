@@ -9,6 +9,7 @@
 
 #include "RobloxManager.hpp"
 #include "Utilities.hpp"
+#include "lstring.h"
 
 // Capability Name, Capability, IsUsingBITTESTQ?
 std::unordered_map<std::string, std::pair<std::uint64_t, bool>> allCapabilities = {{"Plugin", {0x1, false}},
@@ -145,7 +146,8 @@ bool Security::IsOurThread(lua_State *L) {
     /// This way, we can set the bit 47th, used to describe NOTHING, to set it as
     /// our thread. Then we & it to validate it is present on the integer with an AND, which it shouldn't be ever if
     /// its anything normal, but we aren't normal!
-    /// When doing the bit shift, in C by default numbers are int32_t, we must use int64_t, thus we must post-fix the the number with 'll'
+    /// When doing the bit shift, in C by default numbers are int32_t, we must use int64_t, thus we must post-fix the
+    /// the number with 'll'
     const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     const auto logger = Logger::GetSingleton();
     const auto passed = (extraSpace->capabilities & (1ll << 46ll)) == (1ll << 46ll);
@@ -164,10 +166,18 @@ bool Security::SetLuaClosureSecurity(Closure *lClosure, std::uint32_t identity) 
     return true;
 }
 
-void Security::WipeClosurePrototype(Closure *lClosure) {
+void walk_proto_wipe(lua_State *L, Proto *proto) {
+    proto->debugname = nullptr;
+    proto->source = luaS_new(L, "");
+    proto->linedefined = -1;
+    for (int i = 0; i < proto->sizep; i++) {
+        walk_proto_wipe(L, proto->p[i]);
+    }
+}
+
+void Security::WipeClosurePrototype(lua_State *L, const Closure *lClosure) {
     if (lClosure->isC)
         return;
-    auto proto = lClosure->l.p;
-    proto->debugname = nullptr;
-    proto->linedefined = -1;
+
+    walk_proto_wipe(L, lClosure->l.p);
 }
