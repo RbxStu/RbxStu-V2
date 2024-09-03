@@ -34,7 +34,6 @@ namespace RbxStu {
 
         int invalidate(lua_State *L) {
             Utilities::checkInstance(L, 1, "ANY");
-            Utilities::checkInstance(L, 2, "ANY");
 
             const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
             const auto robloxManager = RobloxManager::GetSingleton();
@@ -51,7 +50,6 @@ namespace RbxStu {
 
         int replace(lua_State *L) {
             Utilities::checkInstance(L, 1, "ANY");
-            Utilities::checkInstance(L, 2, "ANY");
 
             const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
             const auto robloxManager = RobloxManager::GetSingleton();
