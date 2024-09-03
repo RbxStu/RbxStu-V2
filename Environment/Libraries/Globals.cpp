@@ -45,16 +45,6 @@ namespace RbxStu {
         return 1;
     }
 
-    int decompile(lua_State *L) {
-        // Since we can access original source, we will just return that
-        Utilities::checkInstance(L, 1, "LuaSourceContainer");
-
-        lua_pushvalue(L, 1);
-        lua_getfield(L, -1, "Source");
-        return 1;
-    }
-
-
 } // namespace RbxStu
 
 
@@ -64,7 +54,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
     const auto reg = new luaL_Reg[]{
             {"isluau", RbxStu::isluau},
             //{"require", RbxStu::require}, Disabled for the require made in init script, DO NOT RE-ENABLE
-            {"decompile", RbxStu::decompile},
+            // {"decompile", RbxStu::decompile}, // Stripped for the reasons of security.
 
             {nullptr, nullptr}};
 
