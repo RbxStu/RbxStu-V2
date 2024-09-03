@@ -348,9 +348,12 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             }
 
             if (loweredNamecall.find("getobjects") != std::string::npos) {
-                lua_pushvalue(L, 2);
                 lua_getglobal(L, "GetObjects");
+                lua_pushvalue(L, 2);
                 const auto err = lua_pcall(L, 1, 1, 0);
+                if (lua_type(L, -1) == lua_Type::LUA_TSTRING &&
+                    strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
+                    return lua_yield(L, 1);
                 if (err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
                     lua_error(L);
 
@@ -371,6 +374,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
     Scheduler::GetSingleton()->ScheduleJob(SchedulerJob(
             R"(
+local insertservice_LoadLocalAsset = clonefunction(cloneref(game.GetService(game, "InsertService")).LoadLocalAsset)
 local table_insert = clonefunction(table.insert)
 local getreg = clonefunction(getreg)
 local typeof = clonefunction(typeof)
@@ -481,7 +485,7 @@ getgenv().getrunningscripts = newcclosure(function()
 end)
 
 local originalRequire = require
-getgenv().require = (function(module)
+getgenv().require = function(module)
     if typeof(module) ~= "Instance" then error("Attempted to call require with invalid argument(s).") end
     if not module:IsA("ModuleScript") then error("Attempted to call require with invalid argument(s).") end
     local originalIdentity = getidentity()
@@ -490,6 +494,14 @@ getgenv().require = (function(module)
     setidentity(originalIdentity)
     if not success then error(result) end
     return result
-end)
+end
+
+getgenv().GetObjects = function(assetId)
+	local oldId = getidentity()
+	setidentity(8)
+	local obj = { insertservice_LoadLocalAsset(cloneref(game:GetService("InsertService")), assetId) }
+	setIdentity_c(oldId)
+	return obj
+end
 )"));
 }
