@@ -127,6 +127,7 @@ int main() {
     logger->PrintInformation(RbxStu::MainThread,
                              std::format("-- RbxStu Base: {}", static_cast<void *>(GetModuleHandle("Module.dll"))));
     logger->PrintInformation(RbxStu::MainThread, "Initializing RbxStu V2");
+    SetConsoleTitleA("-- RbxStu V2 --");
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
     const auto robloxManager = RobloxManager::GetSingleton();
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing LuauManager...");
@@ -138,7 +139,8 @@ int main() {
 
     const auto robloxPrint = robloxManager->GetRobloxPrint().value();
 
-    logger->PrintInformation(RbxStu::MainThread, "Main Thread will now close, as all initialization has been completed.");
+    logger->PrintInformation(RbxStu::MainThread,
+                             "Main Thread will now close, as all initialization has been completed.");
 
     const auto scheduler = Scheduler::GetSingleton();
     while (true) {
@@ -166,6 +168,7 @@ BOOL WINAPI DllMain(const HINSTANCE hModule, const DWORD fdwReason, const LPVOID
     // Perform actions based on the reason for calling.
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
+            DisableThreadLibraryCalls(hModule);
             CreateThread(nullptr, 0x1000, reinterpret_cast<LPTHREAD_START_ROUTINE>(main), nullptr, 0, nullptr);
             break;
 
@@ -185,6 +188,8 @@ BOOL WINAPI DllMain(const HINSTANCE hModule, const DWORD fdwReason, const LPVOID
 
             // Perform any necessary cleanup.
             break;
+        default:
+            ;
     }
     return true;
 }
