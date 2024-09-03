@@ -12,24 +12,41 @@
 
 namespace RbxStu {
     namespace Console {
+        HWND CreateIfNotCreated() {
+            if (const auto hWnd = GetConsoleWindow(); !hWnd || hWnd == INVALID_HANDLE_VALUE) {
+                AllocConsole();
+                Logger::GetSingleton()->OpenStandard();
+                SetConsoleTitleA("-- RbxStu V2 --");
+                Logger::GetSingleton()->PrintInformation(RbxStu::Anonymous, "-- roblox console created --");
+            }
+
+            return GetConsoleWindow();
+        }
+
         int rconsolecreate(lua_State *L) {
-            AllocConsole();
+            CreateIfNotCreated();
             return 0;
         }
 
         int rconsoledestroy(lua_State *L) {
-            FreeConsole();
+            if (const auto hWnd = GetConsoleWindow(); hWnd && hWnd != INVALID_HANDLE_VALUE) {
+                ShowWindow(hWnd, 0);
+                FreeConsole();
+            }
+
             return 0;
         }
 
         int rconsolesettitle(lua_State *L) {
-            auto wndName = luaL_checkstring(L, 1);
-            SetWindowTextA(GetConsoleWindow(), wndName);
+            CreateIfNotCreated();
+            const auto wndName = luaL_checkstring(L, 1);
+            SetConsoleTitleA(wndName);
             return 0;
         }
 
         int rconsoleprint(lua_State *L) {
-            auto argc = lua_gettop(L);
+            CreateIfNotCreated();
+            const auto argc = lua_gettop(L);
             std::stringstream strStream;
             strStream << "[rconsoleprint] ";
             for (int i = 0; i <= argc - 1; i++) {
@@ -42,7 +59,8 @@ namespace RbxStu {
         }
 
         int rconsolewarn(lua_State *L) {
-            auto argc = lua_gettop(L);
+            CreateIfNotCreated();
+            const auto argc = lua_gettop(L);
             std::stringstream strStream;
             strStream << "[rconsolewarn] ";
             for (int i = 0; i <= argc - 1; i++) {
@@ -55,7 +73,8 @@ namespace RbxStu {
         }
 
         int rconsoleerror(lua_State *L) {
-            auto argc = lua_gettop(L);
+            CreateIfNotCreated();
+            const auto argc = lua_gettop(L);
             std::stringstream strStream;
             strStream << "[rconsoleerror] ";
             for (int i = 0; i <= argc - 1; i++) {
