@@ -21,7 +21,11 @@ std::shared_ptr<Logger> Logger::GetSingleton() {
 
     return Logger::pInstance;
 }
-
+void Logger::OpenStandard() {
+    freopen_s(reinterpret_cast<FILE **>(stdout), "CONOUT$", "w", stdout);
+    freopen_s(reinterpret_cast<FILE **>(stdin), "CONIN$", "r", stdin);
+    freopen_s(reinterpret_cast<FILE **>(stderr), "CONOUT$", "w", stderr);
+}
 
 void Logger::Flush(const RBX::Console::MessageType messageType) {
     // TODO: Implement flushing to file.
@@ -55,9 +59,7 @@ void Logger::Initialize(const bool bInstantFlush) {
     if (this->m_bInitialized)
         return;
 
-    freopen_s(reinterpret_cast<FILE **>(stdout), "CONOUT$", "w", stdout);
-    freopen_s(reinterpret_cast<FILE **>(stdin), "CONIN$", "r", stdin);
-    freopen_s(reinterpret_cast<FILE **>(stderr), "CONOUT$", "w", stderr);
+    this->OpenStandard();
     this->m_dwBufferSize = 0xffff;
     this->m_szMessageBuffer = std::string("");
     this->m_szMessageBuffer.reserve(this->m_dwBufferSize);

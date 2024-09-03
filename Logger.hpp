@@ -33,6 +33,7 @@ public:
     /// @return Returns a shared pointer to the global Logger singleton instance.
     static std::shared_ptr<Logger> GetSingleton();
 
+    void OpenStandard();
     /// @brief Initializes the Logger instance by opening the standard pipes, setting up the buffer and its size.
     /// @param bInstantFlush Whether the logger should keep no buffer, and let the underlying implementation for stdio
     /// and files handle it.
