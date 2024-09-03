@@ -11,7 +11,7 @@ namespace RbxStu {
         int cloneref(lua_State *L) {
             Utilities::checkInstance(L, 1, "ANY");
 
-            const auto userdata = lua_touserdata(L, -1);
+            const auto userdata = lua_touserdata(L, 1);
             const auto rawUserdata = *static_cast<void **>(userdata);
             const auto robloxManager = RobloxManager::GetSingleton();
             lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
@@ -29,6 +29,56 @@ namespace RbxStu {
             lua_pushlightuserdata(L, rawUserdata);
             lua_pushvalue(L, -3);
             lua_rawset(L, -5);
+            return 1;
+        }
+
+        int invalidate(lua_State *L) {
+            Utilities::checkInstance(L, 1, "ANY");
+            Utilities::checkInstance(L, 2, "ANY");
+
+            const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
+            const auto robloxManager = RobloxManager::GetSingleton();
+
+            lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
+            lua_gettable(L, LUA_REGISTRYINDEX);
+
+            lua_pushlightuserdata(L, reinterpret_cast<void *>(rawUserdata));
+            lua_pushnil(L);
+            lua_settable(L, -3);
+
+            return 0;
+        }
+
+        int replace(lua_State *L) {
+            Utilities::checkInstance(L, 1, "ANY");
+            Utilities::checkInstance(L, 2, "ANY");
+
+            const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
+            const auto robloxManager = RobloxManager::GetSingleton();
+
+            lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
+            lua_gettable(L, LUA_REGISTRYINDEX);
+
+            lua_pushlightuserdata(L, rawUserdata);
+            lua_pushvalue(L, 2);
+            lua_settable(L, -3);
+
+            return 0;
+        }
+
+        int iscached(lua_State *L) {
+            Utilities::checkInstance(L, 1, "ANY");
+
+            const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
+            const auto robloxManager = RobloxManager::GetSingleton();
+
+            lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
+            lua_gettable(L, LUA_REGISTRYINDEX);
+
+            lua_pushlightuserdata(L, rawUserdata);
+            lua_gettable(L, -2);
+
+            lua_pushboolean(L, !lua_isnil(L, -1));
             return 1;
         }
 
@@ -50,8 +100,9 @@ namespace RbxStu {
 std::string Cache::GetLibraryName() { return "cache"; };
 luaL_Reg *Cache::GetLibraryFunctions() {
     const auto reg = new luaL_Reg[]{{"cloneref", RbxStu::Cache::cloneref},
-                                    {"invalidate", RbxStu::Cache::cloneref},
-
+                                    {"invalidate", RbxStu::Cache::invalidate},
+                                    {"iscached", RbxStu::Cache::iscached},
+                                    {"replace", RbxStu::Cache::replace},
                                     {"compareinstances", RbxStu::Cache::compareinstances},
 
                                     {nullptr, nullptr}};
