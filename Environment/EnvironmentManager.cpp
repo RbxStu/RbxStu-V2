@@ -201,6 +201,12 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
+            if (loweredIndex.find("source") != std::string::npos) {
+                Utilities::checkInstance(L, 1, "LuaSourceContainer");
+                lua_pushstring(L, "");
+                return 1;
+            }
+
             if (loweredIndex.find("getservice") != std::string::npos ||
                 loweredIndex.find("findservice") != std::string::npos) {
                 // getservice / findservice
