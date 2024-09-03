@@ -76,7 +76,7 @@ namespace RbxStu {
             lua_pushlightuserdata(L, rawUserdata);
             lua_gettable(L, -2);
 
-            lua_pushboolean(L, !lua_isnil(L, -1));
+            lua_pushboolean(L, lua_type(L, -1) != LUA_TNIL);
             return 1;
         }
 
@@ -89,9 +89,6 @@ namespace RbxStu {
 
             return 1;
         }
-
-        // TODO: Make cache.replace, cache.iscached, cache.invalidate (Name them here just "replace", "iscached",
-        // "invalidate")
     } // namespace Cache
 } // namespace RbxStu
 
