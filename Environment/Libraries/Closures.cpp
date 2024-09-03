@@ -22,13 +22,12 @@ namespace RbxStu {
         }
 
         int getcallingscript(lua_State *L) {
-            auto base = clvalue(L->base_ci->func);
-            L->top->tt = lua_Type::LUA_TTABLE;
-            L->top->value.p = base->env;
-            L->top++;
+            try {
+                lua_getglobal(L, "script");
+            } catch (...) {
+                lua_pushnil(L);
+            }
 
-            lua_getfield(L, -1, "script");
-            lua_remove(L, -2);
             return 1;
         }
 
