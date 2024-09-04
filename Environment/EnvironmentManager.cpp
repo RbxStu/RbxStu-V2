@@ -71,7 +71,8 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "sessionservice",
                                                    "studioservice",
                                                    "platformcloudstorageservice",
-                                                   "startpageservice"};
+                                                   "startpageservice",
+                                                   "scripteditorservice"};
 
 static std::vector<std::string> blockedFunctions = {
         "openvideosfolder", "openscreenshotsfolder", "getrobuxbalance",
@@ -201,7 +202,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
-            if (!Communication::GetSingleton()->CanAccessScriptSource() && loweredIndex.find("source") != std::string::npos) {
+            if (!Communication::GetSingleton()->CanAccessScriptSource() &&
+                loweredIndex.find("source") != std::string::npos) {
                 Utilities::checkInstance(L, 1, "LuaSourceContainer");
                 lua_pushstring(L, "");
                 return 1;
@@ -381,8 +383,10 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     Scheduler::GetSingleton()->ScheduleJob(SchedulerJob(
             R"(
 local insertservice_LoadLocalAsset = clonefunction(cloneref(game.GetService(game, "InsertService")).LoadLocalAsset)
+local insertservice_LoadAsset = clonefunction(cloneref(game.GetService(game, "InsertService")).LoadAsset)
 local table_insert = clonefunction(table.insert)
 local getreg = clonefunction(getreg)
+local string_gsub = clonefunction(string.gsub)
 local typeof = clonefunction(typeof)
 local error = clonefunction(error)
 local getfenv = clonefunction(getfenv)
@@ -505,7 +509,12 @@ end
 getgenv().GetObjects = function(assetId)
 	local oldId = getidentity()
 	setidentity(8)
-	local obj = { insertservice_LoadLocalAsset(cloneref(game:GetService("InsertService")), assetId) }
+    local obj = {}
+    if (game:GetService("RunService"):IsClient()) then
+	    obj = { insertservice_LoadLocalAsset(cloneref(game:GetService("InsertService")), assetId) }
+    else
+        obj = { insertservice_LoadAsset(cloneref(game:GetService("InsertService")), string_gsub(assetId, "rbxassetid://", "")) }
+    end
 	setIdentity_c(oldId)
 	return obj
 end

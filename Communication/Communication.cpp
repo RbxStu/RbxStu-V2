@@ -358,13 +358,16 @@ bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptS
                                     logger->PrintWarning(RbxStu::Communication,
                                                          "Access to .Source on scripts has been allowed.!");
                                     communication->m_bAllowScriptSourceAccess = sourceAccess;
+                                    environmentManager->SetServiceBlocked("ScriptEditorService", false);
                                 } else if (ret == IDNO) {
                                     logger->PrintWarning(RbxStu::Communication,
                                                          "Access to .Source on scripts has been kept disabled!");
+                                    environmentManager->SetServiceBlocked("ScriptEditorService", true);
                                 }
                             } else {
                                 logger->PrintWarning(RbxStu::Communication, "Access to .Source has been disabled");
                                 communication->m_bAllowScriptSourceAccess = sourceAccess;
+                                environmentManager->SetServiceBlocked("ScriptEditorService", true);
                             }
 
                             wasSuccess = true;
