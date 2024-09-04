@@ -423,6 +423,41 @@ void RobloxManager::Initialize() {
                                              this->m_mapFastVariables.size()));
     }
 
+    {
+        logger->PrintInformation(
+                RbxStu::RobloxManager,
+                "Scanning for pointer offsets (Offsets used by callers to functions, de-offsetted at callee)...");
+
+        DisassemblyRequest request{};
+        request.pStartAddress = this->m_mapRobloxFunctions["RBX::ScriptContext::resume"];
+        request.pEndAddress = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(request.pStartAddress) - 0xFF);
+        request.bIgnorePageProtection = false;
+
+        auto insns = disassembler->GetInstructions(request);
+
+        if (insns.has_value()) {
+            auto instructions = std::move(insns.value());
+            if (!instructions->ContainsInstruction("lea", "rbx, [rdi -", true)) {
+                logger->PrintError(RbxStu::RobloxManager, "Failed to match instruction lea rbx, [rdi -... !");
+                throw std::exception(
+                        "Cannot proceed: Failed to dump pointer offset for RBX::ScriptContext! (Required)");
+            }
+            auto insn = instructions->GetInstructionWhichMatches("lea", "rbx, [rdi -", true);
+            auto instruction = insn.value();
+            logger->PrintInformation(RbxStu::RobloxManager,
+                                     std::format("Found pointer offset for RBX::ScriptContext as {:#x}",
+                                                 instruction.detail->x86.operands[1].mem.disp));
+
+            auto disp = instruction.detail->x86.operands[1].mem.disp;
+
+            this->m_mapPointerOffsetEncryption["RBX::ScriptContext"] = {
+                    -disp, disp < 0 ? RBX::PointerEncryptionType::SUB : RBX::PointerEncryptionType::ADD};
+        } else {
+            logger->PrintError(RbxStu::RobloxManager, "Cannot get instructions for RBX::ScriptContext::resume!");
+            throw std::exception("Cannot proceed: Failed to dump pointer offset for RBX::ScriptContext! (Required)");
+        }
+        // this->m_mapPointerOffsetEncryption["RBX::ScriptContext"]
+    }
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
 
     this->m_mapHookMap["RBX::ScriptContext::resumeDelayedThreads"] = new void *();
@@ -617,9 +652,12 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
     /// address), by 0x698. This is done as a "Facet Check", ugly stuff, but if we don't do it, we will cause an access
     /// violation, this offset can be updated by searching for xrefs to "[FLog::ScriptContext] Resuming script: %p"
 
+    const auto frag = this->m_mapPointerOffsetEncryption["RBX::ScriptContext"];
+    auto scriptContextOffset = RBX::PointerOffsetEncryption<void *>{scriptContext, frag.first};
+
     try {
-        resumeFunction(reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(scriptContext) + 0x698), out,
-                       &threadRef, nret, isError, szErrorMessage);
+        resumeFunction(scriptContextOffset.DecodePointerWithOffsetEncryption(frag.second), out, &threadRef, nret,
+                       isError, szErrorMessage);
     } catch (const std::exception &ex) {
         logger->PrintError(RbxStu::RobloxManager,
                            std::format("An error occurred whilst resuming the thread! Exception: {}", ex.what()));

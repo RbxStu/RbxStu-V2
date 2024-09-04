@@ -62,6 +62,7 @@ namespace RbxStu {
                 RBX_ScriptContext_openStateImpl,
                 "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? "
                 "? ? 41 8B F1 45 8B E0 4C 8B EA 4C 8B F9 33 FF 89 7C 24 ? 33 D2 48 8D 0D ? ? ? ? E8 ? ? ? ?");
+
         MakeSignature_FromIDA(
                 RBX_ExtraSpace_initializeFrom,
                 "48 89 4C 24 ? 53 55 56 57 41 56 41 57 48 83 EC ? 48 8B D9 45 33 FF 4C 89 39 4C 89 79 ? 4C 89 79 ? 4C "
@@ -69,9 +70,8 @@ namespace RbxStu {
                 "48 8B 42 ? 48 89 41 ? 48 85 C0 74 03 F0 FF 00 0F 10 42 ? 0F 11 41 ? F2 0F 10 4A ? F2 0F 11 49 ? 48 8B "
                 "42 ? 48 89 41 ? 4C 89 79 ? 4C 89 79 ? 48 83 7A 58 00 74 14");
         /**
-         *  @brief ScriptContext's GetGlobalState. This function will return the mainthread executing Luau code on the
-         * given ScriptContext. The return of this function is "encrypted", a wrapper exists within RobloxManager to
-         * decrypt it with the current method, if the method does not work, the AOB likely will not either.
+         *  @brief ScriptContext's GetGlobalState. This function will return the L->global->mainthread executing Luau
+         *code on the given ScriptContext. The return of this function is decrypted on call.
          **/
         MakeSignature_FromIDA(RBX_ScriptContext_getGlobalState,
                               "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F8 48 8B F2 48 8B D9 80 ?? ?? ?? ?? ?? "
@@ -111,10 +111,12 @@ namespace RbxStu {
                               "48 8B C4 48 89 50 ? 4C 89 40 ? 4C 89 48 ? 53 48 83 EC ? 8B D9 4C 8D 40 ? 48 8D 48 ? E8 "
                               "? ? ? ? 90 33 C0 48 89 44 24 ? 48 C7 44 24 ? ? ? ? ? 48 89 44 24 ? 88 44 24 ?s");
 
-        /*
-         * Search for "GameStateType" and search the if statement chain that makes numbers to strings. Search for callers, one of them will be a direct call to getStudioGameStateType.
-         *  - Dottik, leaving this here because Roblox decided to change DataModel once. Thank you roblox for making me miserable.
-         */
+        /**
+         *  @brief Search for "GameStateType" (_Edit, _PlayClient, ...) and search the if statement chain that makes
+         *numbers to strings. Look at xrefs, one of them will be a direct call to getStudioGameStateType.
+         *
+         *  @remarks This function does not seem to require DataModels' pointer encryption.
+         **/
         MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8B 81 68 04 00 00 C3 CC CC CC CC");
 
         MakeSignature_FromIDA(RBX_DataModel_doDataModelClose,
@@ -235,6 +237,9 @@ class RobloxManager final {
 
     /// @brief The map used to hold the pointer's encryption type and the identifier.
     std::map<std::string, RBX::PointerEncryptionType> m_mapPointerEncryptionMap;
+
+    /// @brief The map used to hold the pointer's encryption and offset.
+    std::map<std::string, std::pair<std::uintptr_t, RBX::PointerEncryptionType>> m_mapPointerOffsetEncryption;
 
     /// @brief Initializes the RobloxManager instance, obtaining all functions from their respective signatures and
     /// establishing the initial hooks required for the manager to operate as expected.
