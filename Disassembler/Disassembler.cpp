@@ -34,6 +34,8 @@ void Disassembler::Initialize() {
         throw std::exception("cannot initialize disassembler. Reason: capstone couldn't be initialized!");
     }
 
+    cs_option(this->m_pCapstoneHandle, CS_OPT_DETAIL, CS_OPT_ON);
+
     logger->PrintInformation(RbxStu::Disassembler,
                              std::format("Capstone initialized successfully. Capstone Context: {}",
                                          reinterpret_cast<void *>(&this->m_pCapstoneHandle)));
