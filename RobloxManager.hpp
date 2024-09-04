@@ -111,7 +111,11 @@ namespace RbxStu {
                               "48 8B C4 48 89 50 ? 4C 89 40 ? 4C 89 48 ? 53 48 83 EC ? 8B D9 4C 8D 40 ? 48 8D 48 ? E8 "
                               "? ? ? ? 90 33 C0 48 89 44 24 ? 48 C7 44 24 ? ? ? ? ? 48 89 44 24 ? 88 44 24 ?s");
 
-        MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8b 81 60 04 00 00 C3 CC CC CC CC");
+        /*
+         * Search for "GameStateType" and search the if statement chain that makes numbers to strings. Search for callers, one of them will be a direct call to getStudioGameStateType.
+         *  - Dottik, leaving this here because Roblox decided to change DataModel once. Thank you roblox for making me miserable.
+         */
+        MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8B 81 68 04 00 00 C3 CC CC CC CC");
 
         MakeSignature_FromIDA(RBX_DataModel_doDataModelClose,
                               "40 53 48 83 ec ?? 80 3D ?? ?? ?? ?? 00 48 8b d9 74 ?? 80 3d ?? ?? ?? ?? 00 74 ?? 48 8B "
