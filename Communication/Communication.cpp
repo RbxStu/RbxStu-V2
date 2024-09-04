@@ -18,6 +18,7 @@
 #include "Packets/SetNativeCodeGenPacket.hpp"
 #include "Packets/SetRequestFingerprintPacket.hpp"
 #include "Packets/SetSafeModePacket.hpp"
+#include "Packets/SetScriptSourceAccessPacket.hpp"
 #include "RobloxManager.hpp"
 #include "Scheduler.hpp"
 
@@ -74,7 +75,8 @@ void Communication::SetExecutionDataModel(RBX::DataModelType dataModelType) {
 }
 const RBX::DataModelType Communication::GetExecutionDataModel() { return this->lCurrentExecutionDataModel; }
 bool Communication::IsCodeGenerationEnabled() const { return this->m_bEnableCodeGen; }
-void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnableCodeGen = enableCodeGen; }
+void Communication::SetCodeGenerationEnabled(const bool enableCodeGen) { this->m_bEnableCodeGen = enableCodeGen; }
+bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptSourceAccess; }
 
 [[noreturn]] void Communication::NewCommunication(const std::string &szRemoteHost) {
     const auto logger = Logger::GetSingleton();
@@ -331,6 +333,48 @@ void Communication::SetCodeGenerationEnabled(bool enableCodeGen) { this->m_bEnab
                                             static_cast<std::int32_t>(packetId)));
                         }
 
+                        break;
+                    }
+
+                    case RbxStu::WebSocketCommunication::SetScriptSourceAccessPacket: {
+                        if (const auto packet =
+                                    serializer->DeserializeFromJson<SetScriptSourceAccessPacket>(message->str);
+                            packet.has_value()) {
+                            const auto sourceAccess = packet.value().ullPacketFlags ==
+                                                      SetScriptSourceAccessPacketFlags::AllowSourceAccess;
+                            if (sourceAccess) {
+                                const auto ret = MessageBox(
+                                        nullptr, "WARNING",
+                                        "An attempt enable .Source access to executed scripts! This may lead to your "
+                                        "entire game being at risk of being dumped by malicious actors who recognize "
+                                        "the RbxStu V2 environment. This is the ONLY warning you will receive, this is "
+                                        "considered a security risk, as it may lead to the opposite of the purpose of "
+                                        "RbxStu, which is to contribute to stopping cheats/improve developer "
+                                        "experience. Only allow .Source access when you trust the script "
+                                        "provider/author!",
+                                        MB_YESNO | MB_ICONHAND | MB_SYSTEMMODAL | MB_TOPMOST | MB_SETFOREGROUND);
+
+                                if (ret == IDYES) {
+                                    logger->PrintWarning(RbxStu::Communication,
+                                                         "Access to .Source on scripts has been allowed.!");
+                                    communication->m_bAllowScriptSourceAccess = sourceAccess;
+                                } else if (ret == IDNO) {
+                                    logger->PrintWarning(RbxStu::Communication,
+                                                         "Access to .Source on scripts has been kept disabled!");
+                                }
+                            } else {
+                                logger->PrintWarning(RbxStu::Communication, "Access to .Source has been disabled");
+                                communication->m_bAllowScriptSourceAccess = sourceAccess;
+                            }
+
+                            wasSuccess = true;
+                        } else {
+                            logger->PrintWarning(
+                                    RbxStu::Communication,
+                                    std::format(
+                                            "WARNING: Packet dropped due to serialization problems! PacketId: {:#x}",
+                                            static_cast<std::int32_t>(packetId)));
+                        }
                         break;
                     }
 

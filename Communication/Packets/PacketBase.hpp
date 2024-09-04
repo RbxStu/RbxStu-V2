@@ -47,6 +47,11 @@ namespace RbxStu::WebSocketCommunication {
 
         /// @brief Returned after a Scheduler job is completed.
         ScheduleLuauResponsePacket = 0x9,
+
+        /// @brief Allows to toggle access to the .Source property of LuaSourceContainer inheritors
+        /// (LocalScript, Script, ModuleScript, ...)
+        /// @remarks This packet uses PacketFlags.
+        SetScriptSourceAccessPacket = 0xA,
     };
 }; // namespace RbxStu::WebSocketCommunication
 

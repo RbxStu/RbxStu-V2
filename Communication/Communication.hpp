@@ -18,12 +18,18 @@ struct ExecutionStatus {
 
 class Communication final {
     static std::shared_ptr<Communication> pInstance;
+
     bool m_bIsUnsafe = false;
     bool m_bEnableCodeGen = false;
     bool m_bIsInitialized = false;
+    bool m_bAllowScriptSourceAccess = false;
+
     std::queue<ExecutionStatus> m_qExecutionReportsQueue;
+
     RBX::DataModelType lCurrentExecutionDataModel = RBX::DataModelType_PlayClient;
+
     std::string m_szFingerprintHeader = "Solara-Fingerprint"; // Sorry quiving, imma steal it.
+
 
 public:
     static std::shared_ptr<Communication> GetSingleton();
@@ -55,6 +61,7 @@ public:
 
     bool IsCodeGenerationEnabled() const;
     void SetCodeGenerationEnabled(bool enableCodeGen);
+    bool CanAccessScriptSource() const;
 
     /// @brief Swiftly handles the WebSocket used for advanced communication with RbxStu V2.
     /// @param szRemoteHost The remote host that will handle the communication.

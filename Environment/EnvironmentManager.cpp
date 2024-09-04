@@ -201,7 +201,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
-            if (loweredIndex.find("source") != std::string::npos) {
+            if (!Communication::GetSingleton()->CanAccessScriptSource() && loweredIndex.find("source") != std::string::npos) {
                 Utilities::checkInstance(L, 1, "LuaSourceContainer");
                 lua_pushstring(L, "");
                 return 1;
