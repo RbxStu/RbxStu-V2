@@ -26,7 +26,7 @@ class Communication final {
 
     std::queue<ExecutionStatus> m_qExecutionReportsQueue;
 
-    RBX::DataModelType lCurrentExecutionDataModel = RBX::DataModelType_Edit; // RBX::DataModelType_PlayClient;
+    RBX::DataModelType lCurrentExecutionDataModel = RBX::DataModelType_PlayClient;
 
     std::string m_szFingerprintHeader = "Solara-Fingerprint"; // Sorry quiving, imma steal it.
 
