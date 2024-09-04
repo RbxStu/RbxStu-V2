@@ -27,7 +27,7 @@ namespace RbxStu {
             const auto pszCompressedBuffer = new char[iMaxCompressedSize];
             memset(pszCompressedBuffer, 0, iMaxCompressedSize);
 
-            LZ4_compress(data, pszCompressedBuffer, strlen(data));
+            LZ4_compress_default(data, pszCompressedBuffer, strlen(data), iMaxCompressedSize);
             lua_pushlstring(L, pszCompressedBuffer, iMaxCompressedSize);
             return 1;
         }
@@ -43,7 +43,7 @@ namespace RbxStu {
 
             memset(pszUncompressedBuffer, 0, data_size);
 
-            LZ4_uncompress(data, pszUncompressedBuffer, data_size);
+            LZ4_decompress_safe(data, pszUncompressedBuffer, strlen(data), data_size);
             lua_pushlstring(L, pszUncompressedBuffer, data_size);
             return 1;
         }
@@ -414,25 +414,25 @@ namespace RbxStu {
 std::string Misc::GetLibraryName() { return "misc"; }
 luaL_Reg *Misc::GetLibraryFunctions() {
     const auto reg = new luaL_Reg[]{{"identifyexecutor", RbxStu::Misc::identifyexecutor},
-                              {"getexecutorname", RbxStu::Misc::identifyexecutor},
+                                    {"getexecutorname", RbxStu::Misc::identifyexecutor},
 
-                              {"lz4compress", RbxStu::Misc::lz4compress},
-                              {"lz4decompress", RbxStu::Misc::lz4decompress},
+                                    {"lz4compress", RbxStu::Misc::lz4compress},
+                                    {"lz4decompress", RbxStu::Misc::lz4decompress},
 
-                              {"messagebox", RbxStu::Misc::messagebox},
-                              {"getfpscap", RbxStu::Misc::getfpscap},
-                              {"setfpscap", RbxStu::Misc::setfpscap},
+                                    {"messagebox", RbxStu::Misc::messagebox},
+                                    {"getfpscap", RbxStu::Misc::getfpscap},
+                                    {"setfpscap", RbxStu::Misc::setfpscap},
 
-                              {"setclipboard", RbxStu::Misc::setclipboard},
-                              {"toclipboard", RbxStu::Misc::setclipboard},
-                              {"getclipboard", RbxStu::Misc::getclipboard},
-                              {"emptyclipboard", RbxStu::Misc::emptyclipboard},
+                                    {"setclipboard", RbxStu::Misc::setclipboard},
+                                    {"toclipboard", RbxStu::Misc::setclipboard},
+                                    {"getclipboard", RbxStu::Misc::getclipboard},
+                                    {"emptyclipboard", RbxStu::Misc::emptyclipboard},
 
-                              {"httpget", RbxStu::Misc::httpget},
-                              {"request", RbxStu::Misc::request},
-                              {"http_request", RbxStu::Misc::request},
+                                    {"httpget", RbxStu::Misc::httpget},
+                                    {"request", RbxStu::Misc::request},
+                                    {"http_request", RbxStu::Misc::request},
 
-                              {nullptr, nullptr}};
+                                    {nullptr, nullptr}};
 
     return reg;
 }
