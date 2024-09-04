@@ -450,8 +450,8 @@ void RobloxManager::Initialize() {
 
             auto disp = instruction.detail->x86.operands[1].mem.disp;
 
-            this->m_mapPointerOffsetEncryption["RBX::ScriptContext"] = {
-                    -disp, disp < 0 ? RBX::PointerEncryptionType::SUB : RBX::PointerEncryptionType::ADD};
+            this->m_mapPointerOffsetEncryption["RBX::ScriptContext"] = {    // We must invert the pointer, why? Because it's the contrary operation for the caller that the callee does.
+                    disp, disp < 0 ? RBX::PointerEncryptionType::SUB : RBX::PointerEncryptionType::ADD};
         } else {
             logger->PrintError(RbxStu::RobloxManager, "Cannot get instructions for RBX::ScriptContext::resume!");
             throw std::exception("Cannot proceed: Failed to dump pointer offset for RBX::ScriptContext! (Required)");
@@ -653,7 +653,7 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
     /// violation, this offset can be updated by searching for xrefs to "[FLog::ScriptContext] Resuming script: %p"
 
     const auto frag = this->m_mapPointerOffsetEncryption["RBX::ScriptContext"];
-    auto scriptContextOffset = RBX::PointerOffsetEncryption<void *>{scriptContext, frag.first};
+    auto scriptContextOffset = RBX::PointerOffsetEncryption<void>{scriptContext, frag.first};
 
     try {
         resumeFunction(scriptContextOffset.DecodePointerWithOffsetEncryption(frag.second), out, &threadRef, nret,
