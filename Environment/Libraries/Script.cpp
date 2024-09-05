@@ -30,7 +30,7 @@ namespace RbxStu {
                 const auto pCtx = static_cast<GCOContext *>(ctx);
                 const auto ctxL = pCtx->pLua;
 
-                if (iswhite(pGcObj))
+                if (!iswhite(pGcObj))
                     return false; // The object is being collected/checked. Skip it.
 
                 if (const auto gcObjType = pGcObj->gch.tt;
