@@ -17,18 +17,18 @@ namespace fs = std::filesystem;
 
 bool canBeUsed = false;
 std::filesystem::path workspaceDir;
-std::unordered_set<std::string> blacklistedExtensions = {".exe", ".dll", ".bat", ".cmd", ".scr", ".vbs",
-                                                         ".js",  ".ts",  ".wsf", ".msi", ".com", ".lnk",
-                                                         ".ps1", ".py",  ".py3", ".pyc", ".pyw"};
+std::unordered_set<std::string> blacklistedExtensions = {".exe", ".dll", ".bat", ".cmd", ".scr", ".vbs", ".js",
+                                                         ".ts",  ".wsf", ".msi", ".com", ".lnk", ".ps1", ".py",
+                                                         ".py3", ".pyc", ".pyw", ".scr", ".msi", ".html"};
 
 std::string GetDllDir() {
     char path[MAX_PATH];
     HMODULE hModule = NULL;
 
     if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                          (LPCSTR) &GetDllDir, &hModule)) {
+                          reinterpret_cast<LPCSTR>(&GetDllDir), &hModule)) {
         if (GetModuleFileNameA(hModule, path, sizeof(path))) {
-            std::filesystem::path fullPath(path);
+            const std::filesystem::path fullPath(path);
             return fullPath.parent_path().string();
         }
     }
@@ -36,41 +36,37 @@ std::string GetDllDir() {
 }
 
 bool IsPathSafe(const std::string &relativePath) {
-    fs::path base = fs::absolute(workspaceDir);
-    fs::path combined = base / relativePath;
+    const fs::path base = fs::absolute(workspaceDir);
+    const fs::path combined = base / relativePath;
 
-    fs::path normalizedBase = base.lexically_normal();
-    fs::path normalizedCombined = combined.lexically_normal();
+    const fs::path normalizedBase = base.lexically_normal();
+    const fs::path normalizedCombined = combined.lexically_normal();
 
-    auto baseStr = normalizedBase.string();
-    auto combinedStr = normalizedCombined.string();
+    const auto baseStr = normalizedBase.string();
+    const auto combinedStr = normalizedCombined.string();
 
-    if (combinedStr.compare(0, baseStr.length(), baseStr) != 0) {
+    if (combinedStr.compare(0, baseStr.length(), baseStr) != 0)
         return false;
-    }
 
     std::string lowerRelativePath = relativePath;
-    std::transform(lowerRelativePath.begin(), lowerRelativePath.end(), lowerRelativePath.begin(), ::tolower);
+    std::ranges::transform(lowerRelativePath, lowerRelativePath.begin(), ::tolower);
 
-    if (lowerRelativePath.find("..") != std::string::npos) {
+    if (lowerRelativePath.find("..") != std::string::npos)
         return false;
-    }
 
     return true;
 }
 
-void CanBeUsed(lua_State *L) {
-    if (!canBeUsed) {
+__forceinline void CanBeUsed(lua_State *L) {
+    if (!canBeUsed)
         luaG_runerror(L, "Filesystem functions are disabled!");
-    }
 }
 
-std::filesystem::path CheckPath(lua_State *L) {
-    auto relativePath = lua_tostring(L, 1);
+__forceinline std::filesystem::path CheckPath(lua_State *L) {
+    const auto relativePath = lua_tostring(L, 1);
 
-    if (!IsPathSafe(relativePath)) {
+    if (!IsPathSafe(relativePath))
         luaG_runerror(L, "This path is unsafe!");
-    }
 
     return workspaceDir / relativePath;
 }
