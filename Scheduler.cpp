@@ -73,12 +73,12 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
                       bytecode.size(), 0) != LUA_OK) {
             const char *err = lua_tostring(L, -1);
             logger->PrintError(RbxStu::Scheduler, err);
-            lua_pop(L, 1);
             ExecutionStatus status{};
             status.Status = ScheduleLuauResponsePacketFlags::Failure;
             status.szOperationIdentifier = job->luaJob.szOperationIdentifier;
             status.szErrorMessage = err;
             Communication::GetSingleton()->ReportExecutionStatus(status);
+            lua_xmove(L, runOn, 1); // Move error to rL.
             return true;
         }
         logger->PrintWarning(RbxStu::Scheduler,
@@ -191,6 +191,11 @@ void Scheduler::StepScheduler(lua_State *runner) {
     // }
     auto job = this->GetSchedulerJob(false);
     this->GetSchedulerJob(this->ExecuteSchedulerJob(runner, &job));
+
+    if (lua_type(runner, -1) == lua_Type::LUA_TSTRING) {
+        logger->PrintWarning(RbxStu::Scheduler, "Dispatching compilation error into Roblox Studio!");
+        lua_error(runner);
+    }
 }
 
 void Scheduler::SetExecutionDataModel(RBX::DataModelType dataModel) {
