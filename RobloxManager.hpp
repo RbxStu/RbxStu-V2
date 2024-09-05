@@ -54,10 +54,13 @@ namespace RbxStu {
                 "48 89 5C 24 ? 48 89 7C 24 ? 48 89 4C 24 ? 55 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B FA 48 8B D9 "
                 "48 8B 05 ? ? ? ? 48 85 C0 74 0A FF D0 84 C0 0F 84 D0 04 00 ? E8 ? ? ? ? 85 C0 0F 84 C3 04 00 ?");
 
+        /**
+         *  @brief Search for "Script Start".
+         **/
         MakeSignature_FromIDA(RBX_ScriptContext_scriptStart,
-                              "48 89 54 24 ? 48 89 4C 24 ? 53 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 8B FA "
-                              "4C 8B E9 0F 57 C0 66 0F 7F 44 24 ? 48 8B 42 ? 48 85 C0 74 08 F0 FF 40 ? 48 8B 42 ? 48 "
-                              "8B 0A 48 89 4C 24 ? 48 89 44 24 ? 48 85 C9 74 4D");
+                              "48 89 54 24 ? 48 89 4C 24 ? 53 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 8B ? "
+                              "4C 8B ? 0F 57 C0 66 0F 7F 44 24 ? 48 8B 42 ? 48 85 C0 74 08 F0 FF 40 ? 48 8B 42 ? 48 8B "
+                              "0A 48 89 4C 24 ? 48 89 44 24 ? 48 85 C9 74 4D");
         MakeSignature_FromIDA(
                 RBX_ScriptContext_openStateImpl,
                 "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? "
@@ -71,7 +74,7 @@ namespace RbxStu {
                 "42 ? 48 89 41 ? 4C 89 79 ? 4C 89 79 ? 48 83 7A 58 00 74 14");
         /**
          *  @brief ScriptContext's GetGlobalState. This function will return the L->global->mainthread executing Luau
-         *code on the given ScriptContext. The return of this function is decrypted on call.
+         *  code on the given ScriptContext. The return of this function is decrypted on call.
          **/
         MakeSignature_FromIDA(RBX_ScriptContext_getGlobalState,
                               "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F8 48 8B F2 48 8B D9 80 ?? ?? ?? ?? ?? "
@@ -128,20 +131,15 @@ namespace RbxStu {
                               "48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B 41 ? 48 85 C0 74 70 66 66 0F 1F 84 00 00 00 "
                               "00 00 48 8B 48 ? 48 8B 59 ? 48 85 DB 74 08");
 
-        MakeSignature_FromIDA(
-                RBX_Instance_remove,
-                "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 "
-                "41 05 00 00 00 75 12 48 8B 0D ? ? ? ? 48 85 C9 74 06 48 8B 01 FF 50 ? 48 8B 7B ? 48 85 FF 74 08");
+        /**
+         *  @brief First function call in `RBX::Instance::removeAllChildren`.
+         **/
+        MakeSignature_FromIDA(RBX_Instance_remove, "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B "
+                                                   "D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 49 05 00 00 00 75 12");
 
-        MakeSignature_FromIDA(
-                RBX_DataModel_clearContents,
-                "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 0F 29 B4 24 ? ? ? ? 4C 8B "
-                "E9 48 8D 81 ? ? ? ? 48 89 44 24 ? 48 8B C8 E8 ? ? ? ? 48 8B 18 48 85 DB 74 56");
-
-        MakeSignature_FromIDA(
-                RBX_ScriptContext_setThreadIdentityAndSandbox,
-                "48 89 5C 24 ? 55 56 41 54 41 56 41 57 48 83 EC ? 45 33 F6 4D 8B F8 44 38 35 1A E9 C3 06 4C 8B E2 48 "
-                "8B D9 44 89 B4 24 90 00 00 ? 41 8D 76 ? 74 07");
+        MakeSignature_FromIDA(RBX_ScriptContext_setThreadIdentityAndSandbox,
+                              "48 89 5C 24 ? 55 56 41 54 41 56 41 57 48 83 EC ? 45 33 F6 4D 8B F8 44 38 35 ? ? ? 06 "
+                              "4C 8B E2 48 8B D9 44 89 B4 24 90 00 00 ? 41 8D 76 ? 74 07");
 
         MakeSignature_FromIDA(LuaVM_Load, "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D ? ? ? 48 81 EC ? ? ? "
                                           "? 4D 8B E1 49 8B D8 4C 8B EA");
@@ -169,6 +167,9 @@ namespace RbxStu {
                               "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 4C 8B EA 4C 8B F9 4D 85 C0 0F "
                               "84 AE 02 00 ? 49 8B 78 ? 48 85 FF 74 13 48 8B 4F ? 48 85 C9 74 0D E8 ? ? ? ? 48 8B F8");
 
+        MakeSignature_FromIDA(RBX_Instance_getTopAncestor,
+                              "48 8B 41 ? 48 85 C0 74 08 48 8B C8 E9 EF FF FF FF 48 8B C1 C3 CC CC");
+
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
@@ -194,11 +195,11 @@ namespace RbxStu {
                 {"RBX::Instance::removeAllChildren", RBX_Instance_removeAllChildren},
                 {"RBX::Instance::remove", RBX_Instance_remove},
                 {"RBX::Instance::pushInstance", RBX_Instance_pushInstance},
+                {"RBX::Instance::getTopAncestor", RBX_Instance_getTopAncestor},
 
                 {"RBX::BasePart::getNetworkOwner", RBX_BasePart_getNetworkOwner},
                 {"RBX::Players::findPlayerWithAddress", RBX_Players_findPlayerWithAddress},
 
-                {"RBX::DataModel::clearContents", RBX_DataModel_clearContents},
                 {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose},
                 {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},
 
@@ -268,7 +269,7 @@ public:
 
     std::optional<lua_CFunction> GetRobloxTaskSpawn();
 
-    std::optional<void *> GetScriptContext(lua_State *L);
+    std::optional<void *> GetScriptContext(const lua_State *L) const;
 
     std::optional<RBX::DataModel *> GetDataModelFromScriptContext(void *scriptContext);
 

@@ -58,8 +58,7 @@ namespace RbxStu {
 
         _MakeSignature_FromIDA(
                 _luaV_gettable,
-                "48 89 5C 24 ? 55 41 54 41 55 41 56 41 57 48 83 EC ? 48 89 74 24 ? 4C 8D 2D EA 8D 62 03 48 89 7C 24 ? "
-                "4D 8B E1 4D 8B F8 48 8B DA 4C 8B F1 33 ED 83 7B 0C 06 75 76 48 8B 33 49 8B D7 48 8B CE E8 ? ? ? ?");
+                "48 89 5C 24 ? 55 41 54 41 55 41 56 41 57 48 83 EC ? 48 89 74 24 ? 4C 8D 2D ? ? ? ? 48 89 7C 24 ? 4D 8B E1 4D 8B F8 48 8B DA 4C 8B F1 33 ED 83 7B 0C 06 75 76");
         const static std::map<std::string, Signature> s_luauSignatureMap = {
                 {"luaV_settable", _luaV_settable}, {"luaV_gettable", _luaV_gettable},
                 {"luaD_throw", _luaD_throw},       {"luau_execute", _luau_execute},

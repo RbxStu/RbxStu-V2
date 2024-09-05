@@ -433,31 +433,31 @@ void RobloxManager::Initialize() {
         request.pEndAddress = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(request.pStartAddress) - 0xFF);
         request.bIgnorePageProtection = false;
 
-        auto insns = disassembler->GetInstructions(request);
-
-        if (insns.has_value()) {
+        if (auto insns = disassembler->GetInstructions(request); insns.has_value()) {
             auto instructions = std::move(insns.value());
             if (!instructions->ContainsInstruction("lea", "rbx, [rdi -", true)) {
                 logger->PrintError(RbxStu::RobloxManager, "Failed to match instruction lea rbx, [rdi -... !");
                 throw std::exception(
                         "Cannot proceed: Failed to dump pointer offset for RBX::ScriptContext! (Required)");
             }
-            auto insn = instructions->GetInstructionWhichMatches("lea", "rbx, [rdi -", true);
-            auto instruction = insn.value();
+            const auto insn = instructions->GetInstructionWhichMatches("lea", "rbx, [rdi -", true);
+            const auto instruction = insn.value();
             logger->PrintInformation(RbxStu::RobloxManager,
                                      std::format("Found pointer offset for RBX::ScriptContext as {:#x}",
                                                  instruction.detail->x86.operands[1].mem.disp));
 
-            auto disp = instruction.detail->x86.operands[1].mem.disp;
+            const auto disposition = instruction.detail->x86.operands[1].mem.disp;
 
-            this->m_mapPointerOffsetEncryption["RBX::ScriptContext"] = {    // We must invert the pointer, why? Because it's the contrary operation for the caller that the callee does.
-                    disp, disp < 0 ? RBX::PointerEncryptionType::SUB : RBX::PointerEncryptionType::ADD};
+            this->m_mapPointerOffsetEncryption["RBX::ScriptContext"] = {
+                    // We must invert the pointer, why? Because it's the contrary operation for the caller that the
+                    // callee does.
+                    disposition, disposition < 0 ? RBX::PointerEncryptionType::SUB : RBX::PointerEncryptionType::ADD};
         } else {
             logger->PrintError(RbxStu::RobloxManager, "Cannot get instructions for RBX::ScriptContext::resume!");
             throw std::exception("Cannot proceed: Failed to dump pointer offset for RBX::ScriptContext! (Required)");
         }
-        // this->m_mapPointerOffsetEncryption["RBX::ScriptContext"]
     }
+
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
 
     this->m_mapHookMap["RBX::ScriptContext::resumeDelayedThreads"] = new void *();
@@ -579,17 +579,18 @@ std::optional<lua_CFunction> RobloxManager::GetRobloxTaskSpawn() {
 
     return reinterpret_cast<lua_CFunction>(this->m_mapRobloxFunctions["RBX::ScriptContext::task_spawn"]);
 }
-std::optional<void *> RobloxManager::GetScriptContext(lua_State *L) {
+std::optional<void *> RobloxManager::GetScriptContext(const lua_State *L) const {
     const auto logger = Logger::GetSingleton();
     if (!this->m_bInitialized) {
-        logger->PrintError(RbxStu::RobloxManager, "Cannot obtain resume. Reason: RobloxManager is not initialized.");
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Cannot get ScriptContext. Reason: RobloxManager is not initialized.");
         return {};
     }
 
     const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
-    if (L->userdata == nullptr) {
-        logger->PrintWarning(RbxStu::RobloxManager,
-                             "Failed to retrieve ScriptContext from lua_State*! L->userdata == nullptr");
+    if (!Utilities::IsPointerValid(extraSpace) || !Utilities::IsPointerValid(extraSpace->sharedExtraSpace)) {
+        logger->PrintWarning(RbxStu::RobloxManager, "Failed to retrieve ScriptContext from lua_State*! L->userdata is "
+                                                    "invalid || L->userdata->sharedExtraSpace is invalid");
         return {};
     }
     const auto scriptContext = extraSpace->sharedExtraSpace->scriptContext;
@@ -649,8 +650,10 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
 
 
     /// Roblox has decided to make our lifes more annoying. ScriptContext, when calling resume, must be offset (its
-    /// address), by 0x698. This is done as a "Facet Check", ugly stuff, but if we don't do it, we will cause an access
-    /// violation, this offset can be updated by searching for xrefs to "[FLog::ScriptContext] Resuming script: %p"
+    /// address), by 0x6A8 (As the editing of this comment @ 4/9/2024, as this has been modified to be dynamically
+    /// dumped by RbxStu V2). This is done as a "Facet Check", ugly stuff, but if we don't do it, we will cause an
+    /// access violation, this offset can be updated by searching for xrefs to "[FLog::ScriptContext] Resuming script:
+    /// %p"
 
     const auto frag = this->m_mapPointerOffsetEncryption["RBX::ScriptContext"];
     auto scriptContextOffset = RBX::PointerOffsetEncryption<void>{scriptContext, frag.first};
