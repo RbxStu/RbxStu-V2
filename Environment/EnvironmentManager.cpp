@@ -137,12 +137,13 @@ void EnvironmentManager::SetServiceBlocked(const std::string &serviceName, bool 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
 
-    lua_pushvalue(L, LUA_GLOBALSINDEX);
-    lua_setglobal(L, "_G");
+    // Don't replace renv globals.
+    // lua_pushvalue(L, LUA_GLOBALSINDEX);
+    // lua_setglobal(L, "_G");
+    // lua_pushvalue(L, LUA_GLOBALSINDEX);
+    // lua_setglobal(L, "shared");
     lua_pushvalue(L, LUA_GLOBALSINDEX);
     lua_setglobal(L, "_ENV");
-    lua_pushvalue(L, LUA_GLOBALSINDEX);
-    lua_setglobal(L, "shared");
 
     for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem(), new Closures(),
                                                  new Metatable(), new Cache(), new Console(), new Script(), new Misc(),
