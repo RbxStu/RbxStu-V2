@@ -173,7 +173,6 @@ namespace RbxStu {
         }
 
         int httpget(lua_State *L) {
-
             std::string url;
             if (!lua_isstring(L, 1)) {
                 // We might be called as namecall, try second one

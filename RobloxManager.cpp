@@ -322,7 +322,6 @@ void RobloxManager::Initialize() {
                 RbxStu::RobloxManager,
                 "Attempting to obtain encryption for RBX::ScriptContext::getGlobalState's obfuscated pointer!");
         { // getglobalstate encryption dump, both functions' encryption match correctly.
-
             auto functionStart = this->m_mapRobloxFunctions["RBX::ScriptContext::getGlobalState"];
             const auto asm_0 = reinterpret_cast<std::uint8_t *>(reinterpret_cast<std::uintptr_t>(functionStart) + 0x56);
             DisassemblyRequest request{};

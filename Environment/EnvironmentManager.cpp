@@ -159,7 +159,6 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             lua_pushvalue(L, LUA_GLOBALSINDEX);
             luaL_register(L, nullptr, envGlobals);
             lua_pop(L, 1);
-
         } catch (const std::exception &ex) {
             logger->PrintError(RbxStu::EnvironmentManager,
                                std::format("Failed to initialize {} for RbxStu. Error from Lua: {}",
@@ -174,7 +173,6 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                              "Installing meta method hooks (for security and extra behaviour)!");
 
     try {
-
         lua_getglobal(L, "game");
         // auto game = static_cast<void **>(lua_touserdata(L, -1));
         lua_getmetatable(L, -1);

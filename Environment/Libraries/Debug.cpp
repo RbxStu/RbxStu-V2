@@ -582,7 +582,6 @@ namespace RbxStu {
         }
 
         int debug_getupvalues(lua_State *L) {
-
             if (lua_isfunction(L, 1) == false && lua_isnumber(L, 1) == false)
                 luaL_typeerror(L, 1, "function or level expected");
 

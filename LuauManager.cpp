@@ -211,7 +211,6 @@ void LuauManager::Initialize() {
     lua_State *luaState = luaL_newstate();
 
     {
-
         if (this->m_mapLuauFunctions["lua_pushvalue"] == nullptr) {
             logger->PrintError(RbxStu::LuauManager, "Failed to obtain lua_pushvalue, cannot resolve luaO_nilobject!");
 

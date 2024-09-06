@@ -10,7 +10,6 @@
 namespace RbxStu::WebSocketCommunication {
     /// @brief Used to document and keep track of RbxStu V2 packets
     enum PacketIdentifier : std::uint32_t {
-
         /// @brief Sends the settings of RbxStu V2, sent when the communication begins.
         /// @remarks This packet will not always return the default data, if, for example, it were to reconnect to the
         /// UI.
