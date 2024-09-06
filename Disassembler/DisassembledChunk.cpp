@@ -36,6 +36,8 @@ bool DisassembledChunk::ContainsInstruction(const char *szMnemonic, const char *
             return true;
         }
     }
+
+    return false;
 }
 std::optional<const cs_insn> DisassembledChunk::GetInstructionWhichMatches(const char *szMnemonic,
                                                                            const char *szOperationAsString,
@@ -58,10 +60,12 @@ std::optional<const cs_insn> DisassembledChunk::GetInstructionWhichMatches(const
 std::vector<cs_insn> DisassembledChunk::GetInstructions() { return this->vInstructionsvec; }
 std::string DisassembledChunk::RenderInstructions() {
     std::stringstream strstream{};
+
     for (const auto &insn: this->GetInstructions()) {
         strstream << std::format("{}"
                                  ":\t{}\t\t{}\n",
                                  reinterpret_cast<void *>(insn.address), insn.mnemonic, insn.op_str);
     }
+
     return strstream.str();
 }
