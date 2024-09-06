@@ -246,10 +246,11 @@ int ClosureManager::unhookfunction(lua_State *L) {
 int ClosureManager::newcclosure(lua_State *L) {
     // Using relative offsets, since this function may be called by other functions! (hookfunc)
     luaL_checktype(L, -1, LUA_TFUNCTION);
+    const auto functionName = luaL_optstring(L, 2, nullptr);
     const auto clManager = ClosureManager::GetSingleton();
     const auto closure = lua_toclosure(L, -1);
     l_setbit(closure->marked, FIXEDBIT);
-    lua_pushcclosurek(L, ClosureManager::newcclosure_handler, nullptr, 0, nullptr);
+    lua_pushcclosurek(L, ClosureManager::newcclosure_handler, functionName, 0, nullptr);
     const auto cclosure = lua_toclosure(L, -1);
     clManager->m_newcclosureMap[cclosure] = closure;
     lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
