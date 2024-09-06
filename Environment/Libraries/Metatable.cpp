@@ -85,6 +85,22 @@ namespace RbxStu {
 
             return 1;
         }
+
+        int setuntouched(lua_State *L) {
+            luaL_checktype(L, 1, lua_Type::LUA_TTABLE);
+            luaL_checktype(L, 2, lua_Type::LUA_TBOOLEAN);
+
+            lua_setsafeenv(L, 1, lua_toboolean(L, 2));
+            return 0;
+        }
+
+
+        int isuntouched(lua_State *L) {
+            luaL_checktype(L, 1, lua_Type::LUA_TTABLE);
+            lua_pushboolean(L, static_cast<const Table *>(lua_topointer(L, 1))->safeenv);
+
+            return 1;
+        }
     } // namespace Metatable
 } // namespace RbxStu
 
@@ -99,6 +115,9 @@ luaL_Reg *Metatable::GetLibraryFunctions() {
 
                                     {"isreadonly", RbxStu::Metatable::isreadonly},
                                     {"setreadonly", RbxStu::Metatable::setreadonly},
+
+                                    {"setuntouched", RbxStu::Metatable::setuntouched},
+                                    {"isuntouched", RbxStu::Metatable::isuntouched},
 
                                     {nullptr, nullptr}};
 

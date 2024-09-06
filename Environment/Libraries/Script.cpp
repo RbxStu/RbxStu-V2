@@ -4,6 +4,7 @@
 
 #include "Script.hpp"
 
+#include "ClosureManager.hpp"
 #include "Scheduler.hpp"
 #include "Security.hpp"
 #include "lgc.h"
@@ -86,9 +87,9 @@ namespace RbxStu {
             const auto security = Security::GetSingleton();
             security->SetThreadSecurity(L, newIdentity);
 
-            // WARNING: Doing this will break metamethod hooks and produces undefine behaviour on which are nested inside of others!
-            // If calling closure is LClosure and is not base CI, set its capabilities too
-            // if (L->base_ci != L->ci) {
+            // WARNING: Doing this will break metamethod hooks and produces undefine behaviour on which are nested
+            // inside of others! If calling closure is LClosure and is not base CI, set its capabilities too if
+            // (L->base_ci != L->ci) {
             //     auto callingClosure = (L->ci - 1)->func->value.gc->cl;
             //     if (!callingClosure.isC) {
             //         security->SetLuaClosureSecurity(&callingClosure, newIdentity);
@@ -100,7 +101,7 @@ namespace RbxStu {
             scheduler->ScheduleJob(SchedulerJob(
                     L, [](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
                         *callbackToExecute = std::async(std::launch::async, [L]() -> std::function<int(lua_State *)> {
-                            Sleep(16);  // FIXME: Crashes with "bad function call"!
+                            Sleep(16); // FIXME: Crashes with "bad function call"!
                             return [](lua_State *L) { return 0; };
                         });
                     }));
@@ -121,28 +122,58 @@ namespace RbxStu {
             security->PrintCapabilities(plStateUd->capabilities);
             return 0;
         }
+
+        int checkcallstack(lua_State *L) {
+            if (!Security::GetSingleton()->IsOurThread(L)) {
+                lua_pushboolean(L, false);
+                return 1;
+            }
+
+            auto currentCi = L->base_ci;
+            while (currentCi < L->ci) {
+                if (const auto pClosure = lua_toclosure(L, 1);
+                    pClosure->isC && (pClosure->c.debugname != nullptr ||
+                                      !ClosureManager::GetSingleton()->IsWrappedCClosure(pClosure))) {
+                    lua_pushboolean(L, false);
+                    return 1;
+                } else {
+                    if (pClosure->l.p->linedefined != -1) {
+                        lua_pushboolean(L, false);
+                        return 1;
+                    }
+                }
+
+                currentCi++;
+            }
+
+            lua_pushboolean(L, true);
+            return 1;
+        }
+
     } // namespace Script
 } // namespace RbxStu
 
 std::string Script::GetLibraryName() { return "scriptlib"; }
 luaL_Reg *Script::GetLibraryFunctions() {
     const auto reg = new luaL_Reg[]{{"getgc", RbxStu::Script::getgc},
-                              {"getgenv", RbxStu::Script::getgenv},
-                              {"getrenv", RbxStu::Script::getrenv},
-                              {"getreg", RbxStu::Script::getreg},
-                              {"gettenv", RbxStu::Script::gettenv},
+                                    {"getgenv", RbxStu::Script::getgenv},
+                                    {"getrenv", RbxStu::Script::getrenv},
+                                    {"getreg", RbxStu::Script::getreg},
+                                    {"gettenv", RbxStu::Script::gettenv},
 
-                              {"getidentity", RbxStu::Script::getidentity},
-                              {"getthreadidentity", RbxStu::Script::getidentity},
-                              {"getthreadcontext", RbxStu::Script::getidentity},
+                                    {"getidentity", RbxStu::Script::getidentity},
+                                    {"getthreadidentity", RbxStu::Script::getidentity},
+                                    {"getthreadcontext", RbxStu::Script::getidentity},
 
-                              {"setidentity", RbxStu::Script::setidentity},
-                              {"setthreadcontext", RbxStu::Script::setidentity},
-                              {"setthreadidentity", RbxStu::Script::setidentity},
+                                    {"setidentity", RbxStu::Script::setidentity},
+                                    {"setthreadcontext", RbxStu::Script::setidentity},
+                                    {"setthreadidentity", RbxStu::Script::setidentity},
 
-                              {"printcaps", RbxStu::Script::printcaps},
+                                    {"checkcallstack", RbxStu::Script::checkcallstack},
 
-                              {nullptr, nullptr}};
+                                    {"printcaps", RbxStu::Script::printcaps},
+
+                                    {nullptr, nullptr}};
 
     return reg;
 }
