@@ -275,7 +275,7 @@ int ClosureManager::newlclosure(lua_State *L) {
     auto code = "return abcdefg(...)";
 
     constexpr auto compileOpts = Luau::CompileOptions{2, 2};
-    auto bytecode = Luau::compile(code, compileOpts);
+    const auto bytecode = Luau::compile(code, compileOpts);
     luau_load(L, "lclosurewrapper", bytecode.c_str(), bytecode.size(), -1);
 
     if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
