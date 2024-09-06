@@ -258,7 +258,7 @@ int ClosureManager::newcclosure(lua_State *L) {
 
 int ClosureManager::newlclosure(lua_State *L) {
     luaL_checktype(L, -1, LUA_TFUNCTION);
-    lua_ref(L, -1);
+    l_setbit((L->top - 1)->value.gc->cl.marked, FIXEDBIT);
     lua_newtable(L); // t
     lua_newtable(L); // Meta
 
