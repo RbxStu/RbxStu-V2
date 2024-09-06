@@ -54,7 +54,7 @@ public:
                 return;
             }
             logger->PrintDebug(RbxStu::ThreadManagement, "Pausing roblox threads!");
-            HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+            const HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 
             if (hSnapshot == INVALID_HANDLE_VALUE || hSnapshot == nullptr) {
                 throw std::exception("PauseRobloxThreads failed: Snapshot creation failed!");
@@ -67,7 +67,7 @@ public:
                 CloseHandle(hSnapshot);
                 throw std::exception("PauseRobloxThreads failed: Thread32First failed!");
             }
-            auto currentPid = GetCurrentProcessId();
+            const auto currentPid = GetCurrentProcessId();
             std::vector<ThreadInformation> thInfo;
             do {
                 if (te.th32ThreadID != GetCurrentThreadId() && te.th32OwnerProcessID == currentPid) {
