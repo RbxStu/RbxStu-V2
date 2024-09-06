@@ -269,7 +269,6 @@ bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptS
                         if (const auto packet =
                                     serializer->DeserializeFromJson<SetExecutionDataModelPacket>(message->str);
                             packet.has_value()) {
-
                             switch (static_cast<SetExecutionDataModelPacketFlags>(packet.value().ullPacketFlags)) {
                                 case SetExecutionDataModelPacketFlags::Edit:
                                     logger->PrintWarning(RbxStu::Scheduler,
@@ -430,7 +429,6 @@ bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptS
 
     auto attemptCount = 0;
     while (attemptCount <= 3) {
-
         if (auto status = webSocket->connect(10); !status.success) {
             logger->PrintWarning(RbxStu::Communication,
                                  std::format("WebSocket connection failed! Status Code: '{}' (HTTP {}). ix::WebSocket "
