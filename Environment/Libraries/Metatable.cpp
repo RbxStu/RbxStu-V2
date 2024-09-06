@@ -4,6 +4,8 @@
 
 #include "Metatable.hpp"
 
+#include "lstring.h"
+
 namespace RbxStu {
     namespace Metatable {
         int getrawmetatable(lua_State *L) {
@@ -18,11 +20,10 @@ namespace RbxStu {
         int getnamecallmethod(lua_State *L) {
             const auto szNamecall = lua_namecallatom(L, nullptr);
 
-            if (szNamecall == nullptr) {
+            if (szNamecall == nullptr)
                 lua_pushnil(L);
-            } else {
+            else
                 lua_pushstring(L, szNamecall);
-            }
 
             return 1;
         }
@@ -30,7 +31,7 @@ namespace RbxStu {
         int setnamecallmethod(lua_State *L) {
             luaL_checkstring(L, 1);
             if (L->namecall != nullptr)
-                L->namecall = &L->top->value.gc->ts;
+                L->namecall = luaS_new(L, luaL_checkstring(L, 2));
 
             return 0;
         }
@@ -90,16 +91,16 @@ namespace RbxStu {
 std::string Metatable::GetLibraryName() { return "metatable"; }
 luaL_Reg *Metatable::GetLibraryFunctions() {
     const auto reg = new luaL_Reg[]{{"getrawmetatable", RbxStu::Metatable::getrawmetatable},
-                                     {"setrawmetatable", RbxStu::Metatable::setrawmetatable},
+                                    {"setrawmetatable", RbxStu::Metatable::setrawmetatable},
 
-                                     {"hookmetamethod", RbxStu::Metatable::hookmetamethod},
-                                     {"getnamecallmethod", RbxStu::Metatable::getnamecallmethod},
-                                     {"setnamecallmethod", RbxStu::Metatable::setnamecallmethod},
+                                    {"hookmetamethod", RbxStu::Metatable::hookmetamethod},
+                                    {"getnamecallmethod", RbxStu::Metatable::getnamecallmethod},
+                                    {"setnamecallmethod", RbxStu::Metatable::setnamecallmethod},
 
-                                     {"isreadonly", RbxStu::Metatable::isreadonly},
-                                     {"setreadonly", RbxStu::Metatable::setreadonly},
+                                    {"isreadonly", RbxStu::Metatable::isreadonly},
+                                    {"setreadonly", RbxStu::Metatable::setreadonly},
 
-                                     {nullptr, nullptr}};
+                                    {nullptr, nullptr}};
 
     return reg;
 }
