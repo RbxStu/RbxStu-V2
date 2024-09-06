@@ -15,6 +15,18 @@
 #include "Scanner.hpp"
 #include "Scheduler.hpp"
 
+#include <obfus.h>
+
+static void watermark() {
+    WATERMARK(R"(/***)", R"( *      ____  _          ____  _          __     ______  )",
+              R"( *     |  _ \| |____  __/ ___|| |_ _   _  \ \   / /___ \ )",
+              R"( *     | |_) | '_ \ \/ /\___ \| __| | | |  \ \ / /  __) |)",
+              R"( *     |  _ <| |_) >  <  ___) | |_| |_| |   \ V /  / __/ )",
+              R"( *     |_| \_\_.__/_/\_\|____/ \__|\__,_|    \_/  |_____|)",
+              R"( *)"
+              R"( */ )");
+}
+
 long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
     const auto *pContext = pExceptionPointers->ContextRecord;
     printf("\r\n-- WARNING: Exception handler caught an exception\r\n");
@@ -118,6 +130,7 @@ long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
 }
 
 int main() {
+    watermark();
     SetUnhandledExceptionFilter(exception_filter);
     AllocConsole();
     const auto logger = Logger::GetSingleton();
@@ -188,8 +201,7 @@ BOOL WINAPI DllMain(const HINSTANCE hModule, const DWORD fdwReason, const LPVOID
 
             // Perform any necessary cleanup.
             break;
-        default:
-            ;
+        default:;
     }
     return true;
 }
