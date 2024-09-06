@@ -28,7 +28,7 @@ class Communication final {
 
     RBX::DataModelType lCurrentExecutionDataModel = RBX::DataModelType_PlayClient;
 
-    std::string m_szFingerprintHeader = "Solara-Fingerprint"; // Sorry quiving, imma steal it.
+    std::string m_szFingerprintHeader = "RbxStu-Fingerprint";
 
 
 public:
