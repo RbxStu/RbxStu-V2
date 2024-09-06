@@ -185,9 +185,6 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
             auto index = lua_tostring(L, 2);
 
-            if (!Security::GetSingleton()->IsOurThread(L) || index == nullptr)
-                return __index_game_original(L);
-
             const auto loweredIndex = Utilities::ToLower(index);
             for (const auto &func: blockedFunctions) {
                 if (loweredIndex.find(func) != std::string::npos) {
@@ -201,8 +198,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
-            if (!Communication::GetSingleton()->CanAccessScriptSource() &&
-                loweredIndex.find("source") != std::string::npos) {
+            if (!Communication::GetSingleton()->CanAccessScriptSource() && strcmp(index, "Source") == 0) {
                 Utilities::checkInstance(L, 1, "LuaSourceContainer");
                 lua_pushstring(L, "");
                 return 1;
@@ -250,6 +246,9 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 return 1;
             }
 
+            if (!Security::GetSingleton()->IsOurThread(L) || index == nullptr)
+                return __index_game_original(L);
+
             if (loweredIndex.find("httpget") != std::string::npos ||
                 loweredIndex.find("httpgetasync") != std::string::npos) {
                 lua_getglobal(L, "httpget");
@@ -287,9 +286,6 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
             auto namecall = L->namecall->data;
 
-            if (!Security::GetSingleton()->IsOurThread(L) || namecall == nullptr)
-                return __namecall_game_original(L);
-
             const auto loweredNamecall = Utilities::ToLower(namecall);
             for (const auto &func: blockedFunctions) {
                 if (loweredNamecall.find(func) != std::string::npos) {
@@ -314,6 +310,9 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
                 luaL_errorL(L, "This service/function has been blocked for security");
             }
+
+            if (!Security::GetSingleton()->IsOurThread(L) || namecall == nullptr)
+                return __namecall_game_original(L);
 
             if (loweredNamecall.find("getservice") != std::string::npos ||
                 loweredNamecall.find("findservice") != std::string::npos) {
