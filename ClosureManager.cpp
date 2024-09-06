@@ -23,23 +23,24 @@ std::shared_ptr<ClosureManager> ClosureManager::GetSingleton() {
     return ClosureManager::pInstance;
 }
 
+void ClosureManager::ResetManager() {
+    this->m_newcclosureMap.clear();
+    this->m_hookMap.clear();
+}
+
 int ClosureManager::newcclosure_handler(lua_State *L) {
     const auto argc = lua_gettop(L);
     const auto clManager = ClosureManager::GetSingleton();
     if (!clManager->m_newcclosureMap.contains(clvalue(L->ci->func)))
         luaL_error(L, "call resolution failed"); // using key based indexing will insert it into the map, that is wrong.
 
-    const int closureRef = clManager->m_newcclosureMap.at(clvalue(L->ci->func));
-    lua_getref(L, closureRef);
-    const auto realClosure = lua_toclosure(L, -1);
-    if (realClosure == nullptr)
-        return 0;
+    Closure *closure = clManager->m_newcclosureMap.at(clvalue(L->ci->func));
+
+    L->top->value.p = closure;
+    L->top->tt = lua_Type::LUA_TFUNCTION;
+    L->top++;
 
     luaC_threadbarrier(L);
-    lua_pop(L, 1);
-    L->top->value.p = realClosure;
-    L->top->tt = LUA_TFUNCTION;
-    L->top++; // Increase top
 
     lua_insert(L, 1);
 
@@ -71,6 +72,8 @@ int ClosureManager::hookfunction(lua_State *L) {
 
     if (!hookWith->isC)
         Security::GetSingleton()->WipeClosurePrototype(L, hookWith);
+
+    l_setbit(hookWith->marked, FIXEDBIT); // Mark hookWith to not be collected by the lgc.
 
     /*
      *  Supported hooks:
@@ -134,8 +137,7 @@ int ClosureManager::hookfunction(lua_State *L) {
                 clManager->m_newcclosureMap[hookTarget]; // We must substitute the refs on original to point to the new,
                                                          // but we must keep the clones'.
 
-        clManager->m_newcclosureMap[hookTarget] = lua_ref(L, 2);
-
+        clManager->m_newcclosureMap[hookTarget] = hookWith;
         L->top->value.p = cl;
         L->top->tt = LUA_TFUNCTION;
         L->top++;
@@ -173,16 +175,10 @@ int ClosureManager::hookfunction(lua_State *L) {
         auto wrappedHookWith = hookWith;
 
         if (hookWith->isC) {
-            lua_ref(L, 2);
             lua_pushvalue(L, 2);
             ClosureManager::newlclosure(L);
             wrappedHookWith = lua_toclosure(L, -1); // Wrap NC/C into L for hooking.
-        } else {
-            L->top->value.p = cl;
-            L->top->tt = LUA_TFUNCTION;
-            L->top++;
-            lua_ref(L, -1);
-            L->top--;
+            l_setbit(wrappedHookWith->marked, FIXEDBIT);
         }
 
         hookTarget->env = wrappedHookWith->env;
@@ -251,10 +247,11 @@ int ClosureManager::newcclosure(lua_State *L) {
     // Using relative offsets, since this function may be called by other functions! (hookfunc)
     luaL_checktype(L, -1, LUA_TFUNCTION);
     const auto clManager = ClosureManager::GetSingleton();
-    const auto clReference = lua_ref(L, -1);
+    const auto closure = lua_toclosure(L, -1);
+    l_setbit(closure->marked, FIXEDBIT);
     lua_pushcclosurek(L, ClosureManager::newcclosure_handler, nullptr, 0, nullptr);
     const auto cclosure = lua_toclosure(L, -1);
-    clManager->m_newcclosureMap[cclosure] = clReference;
+    clManager->m_newcclosureMap[cclosure] = closure;
     lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
     return 1;
 }

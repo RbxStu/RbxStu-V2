@@ -24,13 +24,15 @@ class ClosureManager final {
     static std::shared_ptr<ClosureManager> pInstance;
 
     std::map<Closure *, LuauHookInformation> m_hookMap;
-    std::map<Closure *, int> m_newcclosureMap;
+    std::map<Closure *, Closure *> m_newcclosureMap;
 
     /// @brief Handles a newcclosure call.
     static int newcclosure_handler(lua_State *L);
 
 public:
     static std::shared_ptr<ClosureManager> GetSingleton();
+
+    void ResetManager();
 
     bool IsWrappedCClosure(Closure *cl) const;
 

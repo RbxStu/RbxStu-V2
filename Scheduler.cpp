@@ -3,6 +3,7 @@
 #include <iostream>
 #include <shared_mutex>
 
+#include "ClosureManager.hpp"
 #include "Communication/Communication.hpp"
 #include "Environment/EnvironmentManager.hpp"
 #include "Luau/CodeGen/include/Luau/CodeGen.h"
@@ -307,8 +308,12 @@ void Scheduler::ResetScheduler() {
         this->m_qSchedulerJobs.pop();
     }
 
-    logger->PrintWarning(RbxStu::Scheduler, "Applying environment side effects!");
+    logger->PrintInformation(RbxStu::Scheduler, "Applying environment side effects!");
+    logger->PrintInformation(RbxStu::Scheduler, "Clearing Luau WebSockets...");
     Websocket::ResetWebsockets(); // Reset websockets
+
+    logger->PrintInformation(RbxStu::Scheduler, "Resetting ClosureManager...");
+    ClosureManager::GetSingleton()->ResetManager();
 
     logger->PrintInformation(RbxStu::Scheduler, "Scheduler reset completed. All fields set to no value.");
 }
