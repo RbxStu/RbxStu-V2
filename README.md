@@ -1,5 +1,7 @@
 # RbxStu V2
 
+[![CodeFactor](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2/badge)](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2)
+
 The Roblox Studio Executor.
 
 This is a rewrite of the original [RbxStu](https://github.com/RbxStu/RbxStu). This version has many improvements and it
