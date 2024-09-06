@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.29)
 project(Module)
 
 add_definitions(-DLUAI_GCMETRICS)   # Force GC metrics on Luau.
