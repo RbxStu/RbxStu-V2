@@ -7,6 +7,7 @@
 #include "ClosureManager.hpp"
 #include "Communication/Communication.hpp"
 #include "Environment/EnvironmentManager.hpp"
+#include "Environment/Libraries/Globals.hpp"
 #include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
 #include "Luau/Compiler/src/Builtins.h"
@@ -205,7 +206,6 @@ void Scheduler::StepScheduler(lua_State *runner) {
         lua_error(runner);
     }
     STR_ENCRYPT_END;
-
 }
 
 void Scheduler::SetExecutionDataModel(RBX::DataModelType dataModel) {
@@ -325,6 +325,9 @@ void Scheduler::ResetScheduler() {
 
     logger->PrintInformation(RbxStu::Scheduler, "Resetting ClosureManager...");
     ClosureManager::GetSingleton()->ResetManager();
+
+    logger->PrintInformation(RbxStu::Scheduler, "Cleaning reference map...");
+    RbxStu::s_mRefsMap.clear();
 
     logger->PrintInformation(RbxStu::Scheduler, "Scheduler reset completed. All fields set to no value.");
 }
