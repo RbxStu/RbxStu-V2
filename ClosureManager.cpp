@@ -36,6 +36,8 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     if (!clManager->m_newcclosureMap.contains(clvalue(L->ci->func)))
         luaL_error(L, "call resolution failed"); // using key based indexing will insert it into the map, that is wrong.
 
+    // Due to the nature of the Lua Registry, our closures can be replaced with complete garbage.
+    // Thus we must be careful, and validate that the Lua Registry ref IS present.
     Closure *closure = clManager->m_newcclosureMap.at(clvalue(L->ci->func));
 
     luaC_threadbarrier(L);
@@ -44,6 +46,14 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     L->top->tt = lua_Type::LUA_TFUNCTION;
     L->top++;
 
+    lua_getref(L, RbxStu::s_mRefsMap[closure]);
+    if (lua_type(L, -1) == LUA_TFUNCTION && lua_toclosure(L, -1) == closure) {
+        lua_pop(L, 1);
+    } else {
+        luaL_error(L, "call resolution failed, invalid ref."); // If the pointers aren't the same, and the lua type isn't
+                                                 // correct either, this MUST mean this is the work on the devil, but we
+                                                 // don't have a crucifix to remove him, so just crash.
+    }
     lua_insert(L, 1);
 
     const auto callResult = lua_pcall(L, argc, LUA_MULTRET, 0);
@@ -253,8 +263,8 @@ void ClosureManager::FixClosure(lua_State *L, Closure *closure) {
     L->top->value.p = closure;
     L->top->tt = LUA_TFUNCTION;
     L->top++;
-    if (!RbxStu::s_mRefsMap.contains(L->top - 1))
-        RbxStu::s_mRefsMap[L->top - 1] = lua_ref(L, -1);
+    if (!RbxStu::s_mRefsMap.contains(closure))
+        RbxStu::s_mRefsMap[closure] = lua_ref(L, -1);
     lua_pop(L, 1);
     // Push to the ref list.
 }

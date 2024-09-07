@@ -30,7 +30,7 @@ namespace RbxStu {
     int makeuncollectable(lua_State *L) {
         luaL_checkany(L, 1);
         luaC_threadbarrier(L);
-        s_mRefsMap[luaA_toobject(L, 1)] = lua_ref(L, 1);
+        s_mRefsMap[luaA_toobject(L, 1)->value.p] = lua_ref(L, 1);
         return 0;
     }
 
@@ -54,9 +54,9 @@ namespace RbxStu {
 
         // If an object was referenced in the Lua Registry, we must find it, and unref it to allow it to be collected
         // Which steps aside from making it white (refer to luaC_init).
-        if (s_mRefsMap.contains(luaA_toobject(L, 1))) {
-            lua_unref(L, s_mRefsMap.at(luaA_toobject(L, 1)));
-            s_mRefsMap.erase(luaA_toobject(L, 1));
+        if (s_mRefsMap.contains(luaA_toobject(L, 1)->value.p)) {
+            lua_unref(L, s_mRefsMap.at(luaA_toobject(L, 1)->value.p));
+            s_mRefsMap.erase(luaA_toobject(L, 1)->value.p);
         }
 
         obj->value.gc->gch.marked = luaC_white(L->global);
