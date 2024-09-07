@@ -29,9 +29,8 @@ namespace RbxStu {
         }
 
         int setnamecallmethod(lua_State *L) {
-            luaL_checkstring(L, 1);
             if (L->namecall != nullptr)
-                L->namecall = luaS_new(L, luaL_checkstring(L, 2));
+                L->namecall = luaS_new(L, luaL_checkstring(L, 1));
 
             return 0;
         }
