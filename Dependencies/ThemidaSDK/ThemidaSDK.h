@@ -17,7 +17,8 @@
 #define DLL_IMPORT extern
 #define STDCALL_CONVENTION
 #else
-#define DLL_IMPORT // __declspec(dllimport)
+#define IGNORE_DLL_IMPORT
+#define DLL_IMPORT static // __declspec(dllimport)
 #define STDCALL_CONVENTION __stdcall
 #endif
 
@@ -74,7 +75,7 @@
 // ***********************************************
 
 #ifdef PLATFORM_X64
-#pragma comment(lib, "SecureEngineSDK64.lib")
+// #pragma comment(lib, "SecureEngineSDK64.lib")
 #else
 #pragma comment(lib, "SecureEngineSDK32.lib")
 #endif
@@ -89,166 +90,193 @@ extern "C" {
 #endif
 
 DLL_IMPORT void STDCALL_CONVENTION VMStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION VMEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION CodeReplaceStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION CodeReplaceEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION RegisteredStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION RegisteredEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION EncodeStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION EncodeEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION ClearStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION ClearEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION MutateStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION MutateEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION StrEncryptStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION StrEncryptEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION StrEncryptWStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION StrEncryptWEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION UnregisteredStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION UnregisteredEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION RegisteredVMStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION RegisteredVMEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION UnprotectedStart(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION UnprotectedEnd(void)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION SECheckProtection(int *user_var, int user_value)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION SECheckCodeIntegrity(int *user_var, int user_value)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION SECheckRegistration(int *user_var, int user_value)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION SECheckVirtualPC(int *user_var, int user_value)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 DLL_IMPORT void STDCALL_CONVENTION SECheckDebugger(int *user_var, int user_value)
-#ifdef DLL_IMPORT
-;
+#ifndef IGNORE_DLL_IMPORT
+        ;
 #else
-{}
+{
+}
 #endif
 #ifdef __cplusplus
 }

@@ -12,6 +12,7 @@
 #include "lapi.h"
 #include "lfunc.h"
 #include "lgc.h"
+#include "lstring.h"
 #include "lualib.h"
 
 std::shared_ptr<ClosureManager> ClosureManager::pInstance;
@@ -36,11 +37,11 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
 
     Closure *closure = clManager->m_newcclosureMap.at(clvalue(L->ci->func));
 
+    luaC_threadbarrier(L);
+
     L->top->value.p = closure;
     L->top->tt = lua_Type::LUA_TFUNCTION;
     L->top++;
-
-    luaC_threadbarrier(L);
 
     lua_insert(L, 1);
 
@@ -73,7 +74,7 @@ int ClosureManager::hookfunction(lua_State *L) {
     if (!hookWith->isC)
         Security::GetSingleton()->WipeClosurePrototype(L, hookWith);
 
-    l_setbit(hookWith->marked, FIXEDBIT); // Mark hookWith to not be collected by the lgc.
+    luaS_fix(hookWith); // Mark hookWith to not be collected by the lgc.
 
     /*
      *  Supported hooks:
@@ -245,13 +246,21 @@ int ClosureManager::unhookfunction(lua_State *L) {
 
 int ClosureManager::newcclosure(lua_State *L) {
     // Using relative offsets, since this function may be called by other functions! (hookfunc)
-    luaL_checktype(L, -1, LUA_TFUNCTION);
-    const auto functionName = luaL_optstring(L, 2, nullptr);
+    auto closureIndex = -1;
+    if (lua_type(L, -1) == LUA_TSTRING)
+        closureIndex--;
+
+    luaL_checktype(L, closureIndex, LUA_TFUNCTION);
+    const char *functionName = nullptr;
+    if (lua_type(L, -1) == LUA_TSTRING)
+        functionName = luaL_optstring(L, -1, nullptr);
+
     const auto clManager = ClosureManager::GetSingleton();
-    const auto closure = lua_toclosure(L, -1);
-    l_setbit(closure->marked, FIXEDBIT);
+    const auto closure = lua_toclosure(L, closureIndex);
+    luaS_fix(closure);
     lua_pushcclosurek(L, ClosureManager::newcclosure_handler, functionName, 0, nullptr);
-    const auto cclosure = lua_toclosure(L, -1);
+    const auto cclosure = lua_toclosure(L, closureIndex);
+    luaS_fix(cclosure);
     clManager->m_newcclosureMap[cclosure] = closure;
     lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
     return 1;
@@ -259,7 +268,7 @@ int ClosureManager::newcclosure(lua_State *L) {
 
 int ClosureManager::newlclosure(lua_State *L) {
     luaL_checktype(L, -1, LUA_TFUNCTION);
-    l_setbit((L->top - 1)->value.gc->cl.marked, FIXEDBIT);
+    luaS_fix(&(L->top - 1)->value.gc->cl);
     lua_newtable(L); // t
     lua_newtable(L); // Meta
 
@@ -293,6 +302,7 @@ int ClosureManager::clonefunction(lua_State *L) {
     if (const auto originalCl = lua_toclosure(L, -1); originalCl->isC) {
         const auto clManager = ClosureManager::GetSingleton();
         Closure *newcl = luaF_newCclosure(L, originalCl->nupvalues, originalCl->env);
+        luaS_fix(newcl);
 
         if (originalCl->c.debugname != nullptr)
             newcl->c.debugname = originalCl->c.debugname;
@@ -317,6 +327,7 @@ int ClosureManager::clonefunction(lua_State *L) {
     } else {
         setclvalue(L, L->top, originalCl) L->top++;
         lua_clonefunction(L, -1);
+        luaS_fix(lua_toclosure(L, -1));
         lua_remove(L, lua_gettop(L) - 1);
 
         Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1),

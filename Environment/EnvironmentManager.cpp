@@ -281,9 +281,6 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
         auto __namecall = lua_toclosure(L, -1);
         __namecall_game_original = __namecall->c.f;
         __namecall->c.f = [](lua_State *L) -> int {
-            if (lua_type(L, 2) != lua_Type::LUA_TSTRING)
-                return __namecall_game_original(L);
-
             auto namecall = L->namecall->data;
 
             const auto loweredNamecall = Utilities::ToLower(namecall);

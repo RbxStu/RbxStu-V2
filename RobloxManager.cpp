@@ -10,13 +10,13 @@
 
 #include <DbgHelp.h>
 
+#include <ThemidaSDK.h>
 #include "Disassembler/Disassembler.hpp"
 #include "Disassembler/DisassemblyRequest.hpp"
 #include "LuauManager.hpp"
 #include "Scanner.hpp"
 #include "Scheduler.hpp"
 #include "Security.hpp"
-#include <ThemidaSDK.h>
 
 std::shared_mutex __robloxmanager__singleton__lock;
 

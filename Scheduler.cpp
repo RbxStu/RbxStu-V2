@@ -306,7 +306,7 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     lua_pop(rL, lua_gettop(rL));
 
     lua_setsafeenv(rL, LUA_GLOBALSINDEX, true);
-    lua_setsafeenv(L, LUA_GLOBALSINDEX, true);
+    // lua_setsafeenv(L, LUA_GLOBALSINDEX, true);
 }
 
 void Scheduler::ResetScheduler() {

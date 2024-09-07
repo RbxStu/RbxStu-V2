@@ -136,6 +136,7 @@ set_target_properties(ThemidaSDK PROPERTIES
         IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/ThemidaSDK/lib/SecureEngineSDK64.lib"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/ThemidaSDK"
 )
+target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/ThemidaSDK")
 
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
@@ -164,7 +165,7 @@ target_link_libraries(${PROJECT_NAME}
 
         nlohmann_json::nlohmann_json
 
-        ThemidaSDK
+        # ThemidaSDK
 
         Dbghelp.lib
         Ws2_32.lib
