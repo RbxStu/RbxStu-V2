@@ -125,7 +125,6 @@ namespace RbxStu {
 
         int checkcallstack(lua_State *L) {
             if (!Security::GetSingleton()->IsOurThread(L)) {
-                printf("Not our thread\n");
                 lua_pushboolean(L, false);
                 return 1;
             }
@@ -135,13 +134,11 @@ namespace RbxStu {
                 if (const auto pClosure = static_cast<Closure *>(currentCi->func->value.p); pClosure->isC) {
                     if (pClosure->c.debugname != nullptr &&
                         !ClosureManager::GetSingleton()->IsWrappedCClosure(pClosure)) {
-                        printf("C closure check failed.\n");
                         lua_pushboolean(L, false);
                         return 1;
                     }
                 } else {
                     if (pClosure->l.p->linedefined != -1) {
-                        printf("L closure check failed.\n");
                         lua_pushboolean(L, false);
                         return 1;
                     }
