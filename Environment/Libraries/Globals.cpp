@@ -29,11 +29,8 @@ namespace RbxStu {
 
     int makeuncollectable(lua_State *L) {
         luaL_checkany(L, 1);
-        const auto *const obj = luaA_toobject(L, 1);
-
         luaC_threadbarrier(L);
-        obj->value.gc->gch.marked = luaC_white(L->global);
-        luaS_fix(&obj->value.gc->gch);
+        s_mRefsMap[luaA_toobject(L, 1)] = lua_ref(L, 1);
         return 0;
     }
 
@@ -42,7 +39,7 @@ namespace RbxStu {
         const auto *const obj = luaA_toobject(L, 1);
 
         if (obj->tt == lua_Type::LUA_TFUNCTION && obj->value.gc->cl.isC) { // This could have dire consequences...
-            luaL_argerror(L, 1, "C closures cannot be made collectable");
+            luaL_error(L, "C closures cannot be made collectable");
         } else if (obj->tt == lua_Type::LUA_TFUNCTION &&
                    !obj->value.gc->cl.isC) { // This could have dire consequences...
             // We must check if this closure is part of a Wrapped C Closure, if so, we cannot make it collectable, else
@@ -54,6 +51,14 @@ namespace RbxStu {
         }
 
         luaC_threadbarrier(L);
+
+        // If an object was referenced in the Lua Registry, we must find it, and unref it to allow it to be collected
+        // Which steps aside from making it white (refer to luaC_init).
+        if (s_mRefsMap.contains(luaA_toobject(L, 1))) {
+            lua_unref(L, s_mRefsMap.at(luaA_toobject(L, 1)));
+            s_mRefsMap.erase(luaA_toobject(L, 1));
+        }
+
         obj->value.gc->gch.marked = luaC_white(L->global);
         return 0;
     }

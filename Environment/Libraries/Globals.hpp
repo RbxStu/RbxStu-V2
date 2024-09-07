@@ -4,6 +4,9 @@
 #pragma once
 #include "Environment/EnvironmentManager.hpp"
 
+namespace RbxStu {
+    static std::map<const lua_TValue *, int> s_mRefsMap;
+}
 
 class Globals final : public Library {
 public:
