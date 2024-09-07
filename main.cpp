@@ -9,6 +9,7 @@
 
 #include <DbgHelp.h> // Must be positioned here because else include failure.
 
+#include <ThemidaSDK/ThemidaSDK.h>
 #include "Communication/Communication.hpp"
 #include "LuauManager.hpp"
 #include "RobloxManager.hpp"
@@ -135,8 +136,7 @@ int main() {
     AllocConsole();
     const auto logger = Logger::GetSingleton();
     logger->Initialize(true);
-    printf(R"(
-//    _____  _          _____ _          __      _____
+    printf(R"(//    _____  _          _____ _          __      _____
 //   |  __ \| |        / ____| |         \ \    / /__ \
 //   | |__) | |____  _| (___ | |_ _   _   \ \  / /   ) |
 //   |  _  /| '_ \ \/ /\___ \| __| | | |   \ \/ /   / /

@@ -131,6 +131,12 @@ find_package(lz4 CONFIG REQUIRED)
 find_package(OpenSSL CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
+add_library(ThemidaSDK STATIC IMPORTED)
+set_target_properties(ThemidaSDK PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/ThemidaSDK/lib/SecureEngineSDK64.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/ThemidaSDK"
+)
+
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
         # minhook
@@ -157,6 +163,8 @@ target_link_libraries(${PROJECT_NAME}
         capstone
 
         nlohmann_json::nlohmann_json
+
+        ThemidaSDK
 
         Dbghelp.lib
         Ws2_32.lib
