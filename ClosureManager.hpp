@@ -45,6 +45,7 @@ public:
     /// @remarks This requires a closures, no matter which type, to be present on the lua stack.
     static int unhookfunction(lua_State *L);
 
+    void FixClosure(lua_State *L, Closure *closure);
     /// @brief Wraps the closure at the top of the lua_State's stack into a C closure, no matter which type.
     /// @remarks This function will leave the resulting new C closure at the top of the lua stack!
     static int newcclosure(lua_State *L);

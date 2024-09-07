@@ -48,7 +48,7 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     const auto callResult = lua_pcall(L, argc, LUA_MULTRET, 0);
     if (callResult != LUA_OK && callResult != LUA_YIELD &&
         std::strcmp(luaL_optstring(L, -1, ""), "attempt to yield across metamethod/C-call boundary") == 0) {
-        return lua_yield(L, LUA_MULTRET);
+        return lua_yield(L, 0);
     }
 
     if (callResult == LUA_ERRRUN)
@@ -74,7 +74,7 @@ int ClosureManager::hookfunction(lua_State *L) {
     if (!hookWith->isC)
         Security::GetSingleton()->WipeClosurePrototype(L, hookWith);
 
-    luaS_fix(hookWith); // Mark hookWith to not be collected by the lgc.
+    clManager->FixClosure(L, hookWith); // Mark hookWith to not be collected by the lgc.
 
     /*
      *  Supported hooks:
@@ -179,7 +179,7 @@ int ClosureManager::hookfunction(lua_State *L) {
             lua_pushvalue(L, 2);
             ClosureManager::newlclosure(L);
             wrappedHookWith = lua_toclosure(L, -1); // Wrap NC/C into L for hooking.
-            l_setbit(wrappedHookWith->marked, FIXEDBIT);
+            clManager->FixClosure(L, wrappedHookWith);
         }
 
         hookTarget->env = wrappedHookWith->env;
@@ -244,6 +244,35 @@ int ClosureManager::unhookfunction(lua_State *L) {
     return 0;
 }
 
+void fix_protos(Proto *p) {
+    luaS_fix(p);
+    for (auto it = 0; it < p->sizek; it++) {
+        luaS_fix(&(p->k + it)->value.gc->gch);
+    }
+
+    for (int i = 0; i < p->sizep; i++) {
+        fix_protos(p->p[i]);
+    }
+}
+
+void ClosureManager::FixClosure(lua_State *L, Closure *closure) {
+    L->top->value.p = closure;
+    L->top->tt = LUA_TFUNCTION;
+    L->top++;
+    lua_ref(L, -1);
+    lua_pop(L, 1);
+    return;
+    luaS_fix(closure);
+    if (closure->isC) {
+        return;
+    }
+
+    for (int i = 0; i < closure->nupvalues; i++)
+        luaS_fix(&closure->l.uprefs->value.gc->gch);
+
+    fix_protos(closure->l.p);
+}
+
 int ClosureManager::newcclosure(lua_State *L) {
     // Using relative offsets, since this function may be called by other functions! (hookfunc)
     auto closureIndex = -1;
@@ -257,7 +286,7 @@ int ClosureManager::newcclosure(lua_State *L) {
 
     const auto clManager = ClosureManager::GetSingleton();
     const auto closure = lua_toclosure(L, closureIndex);
-    luaS_fix(closure);
+    clManager->FixClosure(L, closure);
     lua_pushcclosurek(L, ClosureManager::newcclosure_handler, functionName, 0, nullptr);
     const auto cclosure = lua_toclosure(L, closureIndex);
     luaS_fix(cclosure);
@@ -268,7 +297,7 @@ int ClosureManager::newcclosure(lua_State *L) {
 
 int ClosureManager::newlclosure(lua_State *L) {
     luaL_checktype(L, -1, LUA_TFUNCTION);
-    luaS_fix(&(L->top - 1)->value.gc->cl);
+    ClosureManager::GetSingleton()->FixClosure(L, lua_toclosure(L, -1));
     lua_newtable(L); // t
     lua_newtable(L); // Meta
 
@@ -302,7 +331,6 @@ int ClosureManager::clonefunction(lua_State *L) {
     if (const auto originalCl = lua_toclosure(L, -1); originalCl->isC) {
         const auto clManager = ClosureManager::GetSingleton();
         Closure *newcl = luaF_newCclosure(L, originalCl->nupvalues, originalCl->env);
-        luaS_fix(newcl);
 
         if (originalCl->c.debugname != nullptr)
             newcl->c.debugname = originalCl->c.debugname;
@@ -314,6 +342,7 @@ int ClosureManager::clonefunction(lua_State *L) {
         newcl->c.cont = originalCl->c.cont;
         setclvalue(L, L->top, newcl);
         L->top++;
+        ClosureManager::GetSingleton()->FixClosure(L, lua_toclosure(L, -1));
 
         // Newcclosures may wrap C closures. Thus, we must obtain the original and bind it to what it used to be, as you
         // want the call to redirect correctly! Allow newcclosures to be cloned successfully by cloning the original for
@@ -327,7 +356,7 @@ int ClosureManager::clonefunction(lua_State *L) {
     } else {
         setclvalue(L, L->top, originalCl) L->top++;
         lua_clonefunction(L, -1);
-        luaS_fix(lua_toclosure(L, -1));
+        ClosureManager::GetSingleton()->FixClosure(L, lua_toclosure(L, -1));
         lua_remove(L, lua_gettop(L) - 1);
 
         Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1),
