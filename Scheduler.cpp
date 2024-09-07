@@ -12,6 +12,7 @@
 #include "Luau/Compiler.h"
 #include "Luau/Compiler/src/Builtins.h"
 #include "LuauManager.hpp"
+#include "ModLoader/ModManager.hpp"
 #include "RobloxManager.hpp"
 #include "Security.hpp"
 #include "lstate.h"
@@ -301,6 +302,9 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     lua_pcall(L, 0, 0, 0);
 
     logger->PrintInformation(RbxStu::Scheduler, "Initialized!");
+
+    logger->PrintInformation(RbxStu::Scheduler, "Invoking OnSchedulerInitialized mod subroutines...");
+    ModManager::GetSingleton()->OnSchedulerInitialized(L);
 
     logger->PrintInformation(RbxStu::Scheduler, "Stack popped. Now awaiting execution jobs from the Named Pipe!");
     lua_pop(L, lua_gettop(L));

@@ -3,6 +3,7 @@
 //
 #pragma once
 #include <Windows.h>
+#include <filesystem>
 #include <hex.h>
 #include <sha.h>
 #include <sstream>
@@ -126,6 +127,22 @@ public:
             luaL_argerror(L, index, std::format("Expected to be {}", expectedClassname).c_str());
     }
 
+
+    __forceinline static std::string GetDllDir() {
+        HMODULE hModule = nullptr;
+
+        if (char path[MAX_PATH];
+            GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                              "Module.dll", &hModule) &&
+            GetModuleFileNameA(hModule, path, sizeof(path))) {
+            const std::filesystem::path fullPath(path);
+            return fullPath.parent_path().string();
+        }
+
+        return "";
+    }
+
+
     __forceinline static std::string ToLower(std::string target) {
         for (auto &x: target) {
             x = std::tolower(x); // NOLINT(*-narrowing-conversions)
@@ -194,7 +211,8 @@ public:
         auto logger = Logger::GetSingleton();
         HW_PROFILE_INFO hwProfileInfo;
         if (!GetCurrentHwProfileA(&hwProfileInfo)) {
-            logger->PrintError(RbxStu::Anonymous, "Failed to obtain Hardware Identifier from GetCurrentHwProfileA, returning empty!");
+            logger->PrintError(RbxStu::Anonymous,
+                               "Failed to obtain Hardware Identifier from GetCurrentHwProfileA, returning empty!");
             return {};
         }
 

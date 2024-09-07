@@ -18,6 +18,8 @@
 
 #include <obfus.h>
 
+#include "ModLoader/ModManager.hpp"
+
 static void watermark() {
     WATERMARK(R"(/***)", R"( *      ____  _          ____  _          __     ______  )",
               R"( *     |  _ \| |____  __/ ___|| |_ _   _  \ \   / /___ \ )",
@@ -153,6 +155,10 @@ int main() {
     logger->PrintInformation(RbxStu::MainThread,
                              std::format("-- RbxStu Base: {}", static_cast<void *>(GetModuleHandle("Module.dll"))));
     SetConsoleTitleA("-- RbxStu V2 --");
+    logger->PrintInformation(RbxStu::MainThread, "-- Initializing ModManager...");
+    auto modManager = ModManager::GetSingleton();
+    modManager->LoadMods();
+
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
     const auto robloxManager = RobloxManager::GetSingleton();
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing LuauManager...");
@@ -162,11 +168,12 @@ int main() {
     std::thread(Communication::NewCommunication, "ws://localhost:8523").detach();
     std::thread(Communication::HandlePipe, "CommunicationPipe").detach();
 
-    const auto robloxPrint = robloxManager->GetRobloxPrint().value();
+    logger->PrintInformation(RbxStu::MainThread, "Running mod initialization step...");
+    modManager->InitializeMods();
+    logger->PrintInformation(RbxStu::MainThread, "All mods have been initialized.");
 
     logger->PrintInformation(RbxStu::MainThread,
-                             "Main Thread will now close, as all initialization has been completed.");
-
+                             "Main Thread will now close, as RbxStu V2's initialization has been completed.");
 
     STR_ENCRYPT_END;
     VM_END;

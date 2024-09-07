@@ -44,8 +44,22 @@ luaL_Reg *Library::GetLibraryFunctions() {
 }
 
 std::shared_ptr<EnvironmentManager> EnvironmentManager::GetSingleton() {
-    if (EnvironmentManager::pInstance == nullptr)
+    if (EnvironmentManager::pInstance == nullptr) {
         EnvironmentManager::pInstance = std::make_shared<EnvironmentManager>();
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Debug{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Globals{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Filesystem{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Closures{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Metatable{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Cache{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Console{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Script{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Misc{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Instance{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Input{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Http{});
+    }
+
     return EnvironmentManager::pInstance;
 }
 
@@ -133,6 +147,10 @@ void EnvironmentManager::SetServiceBlocked(const std::string &serviceName, bool 
         }
     }
 }
+void EnvironmentManager::DeclareLibrary(const char *libname, luaL_Reg *functionList) {
+    const auto nLib = new FlexibleLibrary{libname, functionList};
+    EnvironmentManager::GetSingleton()->m_vLibraryList.push_back(nLib);
+}
 
 void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
@@ -145,10 +163,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     lua_pushvalue(L, LUA_GLOBALSINDEX);
     lua_setglobal(L, "_ENV");
 
-    for (const std::vector<Library *> libList = {new Debug{}, new Globals{}, new Filesystem(), new Closures(),
-                                                 new Metatable(), new Cache(), new Console(), new Script(), new Misc(),
-                                                 new Instance(), new Input(), new Http() /*, new Websocket()*/};
-         const auto &lib: libList) {
+    for (const std::vector<Library *> libList = this->m_vLibraryList; const auto &lib: libList) {
         try {
             const auto envGlobals = lib->GetLibraryFunctions();
             lua_newtable(L);
@@ -166,7 +181,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             throw;
         }
 
-        delete lib;
+        // We cannot clear lib anymore, as the object will now prevail.
+        // delete lib;
     }
 
     logger->PrintInformation(RbxStu::EnvironmentManager,

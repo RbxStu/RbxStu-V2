@@ -69,6 +69,7 @@ namespace RbxStu {
     DefineSectionName(ByteScanner, "RbxStu::ByteScanner");
     DefineSectionName(RobloxManager, "RbxStu::RobloxManager");
     DefineSectionName(LuauManager, "RbxStu::LuauManager");
+    DefineSectionName(ModManager, "RbxStu::ModManager");
     DefineSectionName(EnvironmentManager, "RbxStu::EnvironmentManager");
     DefineSectionName(Security, "RbxStu::Security");
 

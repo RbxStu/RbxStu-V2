@@ -93,6 +93,13 @@ add_library(Module SHARED
         Communication/Packets/ScheduleLuauPacket.hpp
         Communication/Packets/ScheduleLuauResponsePacket.hpp
         Communication/Packets/SetScriptSourceAccessPacket.hpp
+
+        # Mod Loader
+        ModLoader/ModBase.h     # To be included by mod writers.
+        ModLoader/ModBase.cpp   # Implementation with proxy calls to ModManager.
+
+        ModLoader/ModManager.cpp
+        ModLoader/ModManager.hpp
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
@@ -139,7 +146,7 @@ set_target_properties(ThemidaSDK PROPERTIES
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/ThemidaSDK")
 
 target_link_libraries(${PROJECT_NAME}
-        PRIVATE
+        PUBLIC
         # minhook
         minhook
         # Curl For People

@@ -21,20 +21,6 @@ std::unordered_set<std::string> blacklistedExtensions = {".exe", ".dll", ".bat",
                                                          ".ts",  ".wsf", ".msi", ".com", ".lnk", ".ps1", ".py",
                                                          ".py3", ".pyc", ".pyw", ".scr", ".msi", ".html"};
 
-std::string GetDllDir() {
-    char path[MAX_PATH];
-    HMODULE hModule = NULL;
-
-    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                          reinterpret_cast<LPCSTR>(&GetDllDir), &hModule)) {
-        if (GetModuleFileNameA(hModule, path, sizeof(path))) {
-            const std::filesystem::path fullPath(path);
-            return fullPath.parent_path().string();
-        }
-    }
-    return "";
-}
-
 bool IsPathSafe(const std::string &relativePath) {
     const fs::path base = fs::absolute(workspaceDir);
     const fs::path combined = base / relativePath;
@@ -324,7 +310,7 @@ std::string Filesystem::GetLibraryName() { return "fs"; }
 
 luaL_Reg *Filesystem::GetLibraryFunctions() {
     const auto logger = Logger::GetSingleton();
-    if (const auto currentDirectory = fs::path(GetDllDir()); !currentDirectory.empty()) {
+    if (const auto currentDirectory = fs::path(Utilities::GetDllDir()); !currentDirectory.empty()) {
         logger->PrintDebug(RbxStu::Env_Filesystem, std::format("Current path: {}", currentDirectory.string()));
         canBeUsed = true;
 

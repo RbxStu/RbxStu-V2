@@ -47,7 +47,7 @@
 
 // Can be used to reconfigure visibility/exports for public APIs
 #ifndef LUA_API
-#define LUA_API extern
+#define LUA_API extern __declspec(dllexport)
 #endif
 
 #define LUALIB_API LUA_API
@@ -57,8 +57,8 @@
 #define LUAI_FUNC __attribute__((visibility("hidden"))) extern
 #define LUAI_DATA LUAI_FUNC
 #else
-#define LUAI_FUNC extern
-#define LUAI_DATA extern
+#define LUAI_FUNC extern __declspec(dllexport)
+#define LUAI_DATA extern __declspec(dllexport)
 #endif
 
 // Can be used to reconfigure internal error handling to use longjmp instead of C++ EH
