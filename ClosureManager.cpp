@@ -46,13 +46,16 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     L->top->tt = lua_Type::LUA_TFUNCTION;
     L->top++;
 
+    if (!RbxStu::s_mRefsMap.contains(closure))
+        luaL_error(L, "call resolution failed, invalid closure state.");
     lua_getref(L, RbxStu::s_mRefsMap[closure]);
     if (lua_type(L, -1) == LUA_TFUNCTION && lua_toclosure(L, -1) == closure) {
         lua_pop(L, 1);
     } else {
-        luaL_error(L, "call resolution failed, invalid ref."); // If the pointers aren't the same, and the lua type isn't
-                                                 // correct either, this MUST mean this is the work on the devil, but we
-                                                 // don't have a crucifix to remove him, so just crash.
+        luaL_error(L, "call resolution failed, invalid ref."); // If the pointers aren't the same, and the lua type
+                                                               // isn't correct either, this MUST mean this is the work
+                                                               // on the devil, but we don't have a crucifix to remove
+                                                               // him, so just crash.
     }
     lua_insert(L, 1);
 
