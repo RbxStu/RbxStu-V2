@@ -1,5 +1,6 @@
 #include <Environment/Libraries/WebSocket.hpp>
 #include <Scheduler.hpp>
+#include <ThemidaSDK.h>
 #include <iostream>
 #include <shared_mutex>
 
@@ -38,6 +39,8 @@ SchedulerJob Scheduler::GetSchedulerJob(bool pop) {
 }
 
 bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
+    VM_START;
+    STR_ENCRYPT_START;
     const auto logger = Logger::GetSingleton();
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto security = Security::GetSingleton();
@@ -153,7 +156,10 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
     }
 
     logger->PrintError(RbxStu::Scheduler, "Cannot find a valid job to step into; not even a stub one!");
-    throw std::exception("Valid job not found!");
+    const auto invalidJob = "Valid job not found!";
+    STR_ENCRYPT_END;
+    VM_END;
+    throw std::exception(invalidJob);
 };
 
 std::shared_mutex __scheduler_init;
@@ -171,6 +177,7 @@ std::optional<lua_State *> Scheduler::GetGlobalRobloxState() const {
 std::shared_mutex __scheduler_lock;
 
 void Scheduler::StepScheduler(lua_State *runner) {
+    UNPROTECTED_START;
     std::scoped_lock lg{__scheduler_lock};
     // Here we will check if the DataModel obtained is correct, as in, our data model is successful!
     const auto robloxManager = RobloxManager::GetSingleton();
@@ -197,6 +204,7 @@ void Scheduler::StepScheduler(lua_State *runner) {
         logger->PrintWarning(RbxStu::Scheduler, "Dispatching compilation error into Roblox Studio!");
         lua_error(runner);
     }
+    UNPROTECTED_END;
 }
 
 void Scheduler::SetExecutionDataModel(RBX::DataModelType dataModel) {
@@ -245,9 +253,11 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     lua_pushcclosure(
             L,
             [](lua_State *L) -> int32_t {
+                UNPROTECTED_START;
                 const auto scheduler = Scheduler::GetSingleton();
                 if (scheduler->IsInitialized())
                     scheduler->StepScheduler(L);
+                UNPROTECTED_END;
                 return 0;
             },
             nullptr, 0);

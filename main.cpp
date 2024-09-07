@@ -131,6 +131,8 @@ long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
 }
 
 int main() {
+    VM_START;
+    STR_ENCRYPT_START;
     watermark();
     SetUnhandledExceptionFilter(exception_filter);
     AllocConsole();
@@ -165,27 +167,12 @@ int main() {
     logger->PrintInformation(RbxStu::MainThread,
                              "Main Thread will now close, as all initialization has been completed.");
 
-    const auto scheduler = Scheduler::GetSingleton();
-    while (true) {
-        if (!robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-            _mm_pause();
-            continue;
-        }
 
-        robloxPrint(RBX::Console::MessageType::InformationBlue, "RbxStu: Client DataModel obtained!");
-        logger->PrintInformation(RbxStu::MainThread, "Obtained Client DataModel");
-
-        while (robloxManager->IsDataModelValid(RBX::DataModelType_PlayClient)) {
-            _mm_pause();
-        }
-
-        robloxPrint(RBX::Console::MessageType::Warning,
-                    "RbxStu: Client DataModel lost. Awaiting for new Client DataModel...");
-        logger->PrintInformation(RbxStu::MainThread, "Client DataModel lost. Awaiting for new Client DataModel...");
-    }
-
+    STR_ENCRYPT_END;
+    VM_END;
     return 0;
 }
+
 
 BOOL WINAPI DllMain(const HINSTANCE hModule, const DWORD fdwReason, const LPVOID lpvReserved) {
     // Perform actions based on the reason for calling.

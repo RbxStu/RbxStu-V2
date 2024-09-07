@@ -4,6 +4,8 @@
 
 #include "Scanner.hpp"
 
+#include <ThemidaSDK.h>
+
 std::shared_ptr<Scanner> Scanner::pInstance;
 
 Signature SignatureByte::GetSignatureFromString(const std::string &aob, const std::string &mask) {
@@ -47,6 +49,7 @@ Signature SignatureByte::GetSignatureFromString(const std::string &aob, const st
 
     return sig;
 }
+
 Signature SignatureByte::GetSignatureFromIDAString(const std::string &aob) {
     auto logger = Logger::GetSingleton();
     Signature sig;
