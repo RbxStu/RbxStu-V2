@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <lobject.h>
 #include <lua.h>
 #include <map>
@@ -35,6 +36,8 @@ public:
     void ResetManager();
 
     bool IsWrappedCClosure(Closure *cl) const;
+
+    bool IsWrapped(const Closure *closure) const;
 
     /// @brief Hooks two functions present at the top of the lua_State's stack.
     /// @remarks This requires two closures, no matter which type, to be present on the lua stack, else this function

@@ -60,6 +60,10 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
 bool ClosureManager::IsWrappedCClosure(Closure *cl) const {
     return this->m_newcclosureMap.contains(cl) && cl->isC && cl->c.f == newcclosure_handler;
 }
+bool ClosureManager::IsWrapped(const Closure *closure) const {
+    return std::ranges::any_of(this->m_newcclosureMap.begin(), this->m_newcclosureMap.end(),
+                               [&closure](const std::pair<Closure *, Closure *> cl) { return closure == cl.second; });
+}
 
 int ClosureManager::hookfunction(lua_State *L) {
     luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -245,8 +249,10 @@ int ClosureManager::unhookfunction(lua_State *L) {
 }
 
 void fix_protos(lua_State *L, Proto *p) {
+    p->marked = luaC_white(L->global);
     luaS_fix(p);
     for (auto it = 0; it < p->sizek; it++) {
+        (p->k + it)->value.gc->gch.marked = luaC_white(L->global);
         luaS_fix(&(p->k + it)->value.gc->gch);
     }
 
@@ -256,19 +262,19 @@ void fix_protos(lua_State *L, Proto *p) {
 }
 
 void ClosureManager::FixClosure(lua_State *L, Closure *closure) {
-    L->top->value.p = closure;
-    L->top->tt = LUA_TFUNCTION;
-    L->top++;
-    lua_ref(L, -1);
-    lua_pop(L, 1);
-    return;
+    // L->top->value.p = closure;
+    // L->top->tt = LUA_TFUNCTION;
+    // L->top++;
+    // lua_ref(L, -1);
+    // lua_pop(L, 1);
+    closure->marked = luaC_white(L->global);
     luaS_fix(closure);
-    // l_setbit(closure->marked, BLACKBIT);
     if (closure->isC) {
         return;
     }
 
     for (int i = 0; i < closure->nupvalues; i++) {
+        closure->l.uprefs->value.gc->gch.marked = luaC_white(L->global);
         luaS_fix(&closure->l.uprefs->value.gc->gch);
     }
     fix_protos(L, closure->l.p);
