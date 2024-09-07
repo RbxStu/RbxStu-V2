@@ -31,7 +31,7 @@ namespace RbxStu {
                 const auto pCtx = static_cast<GCOContext *>(ctx);
                 const auto ctxL = pCtx->pLua;
 
-                if (!iswhite(pGcObj))
+                if (isdead(ctxL->global, pGcObj))
                     return false; // The object is being collected/checked. Skip it.
 
                 if (const auto gcObjType = pGcObj->gch.tt;
@@ -60,10 +60,9 @@ namespace RbxStu {
 
         int getrenv(lua_State *L) {
             // Utilities::RobloxThreadSuspension threadSuspension(true);
-            // auto rL = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
-            // lua_pushvalue(rL, LUA_GLOBALSINDEX);
-            // lua_xmove(rL, L, 1);
-            lua_pushvalue(L, LUA_GLOBALSINDEX);
+            const auto rL = Scheduler::GetSingleton()->GetGlobalRobloxState().value();
+            lua_pushvalue(rL, LUA_GLOBALSINDEX);
+            lua_xmove(rL, L, 1);
             return 1;
         }
 

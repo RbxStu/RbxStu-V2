@@ -177,7 +177,7 @@ std::optional<lua_State *> Scheduler::GetGlobalRobloxState() const {
 std::shared_mutex __scheduler_lock;
 
 void Scheduler::StepScheduler(lua_State *runner) {
-    UNPROTECTED_START;
+    STR_ENCRYPT_START;
     std::scoped_lock lg{__scheduler_lock};
     // Here we will check if the DataModel obtained is correct, as in, our data model is successful!
     const auto robloxManager = RobloxManager::GetSingleton();
@@ -204,7 +204,8 @@ void Scheduler::StepScheduler(lua_State *runner) {
         logger->PrintWarning(RbxStu::Scheduler, "Dispatching compilation error into Roblox Studio!");
         lua_error(runner);
     }
-    UNPROTECTED_END;
+    STR_ENCRYPT_END;
+
 }
 
 void Scheduler::SetExecutionDataModel(RBX::DataModelType dataModel) {
@@ -240,6 +241,8 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     logger->PrintInformation(RbxStu::Scheduler, "Initializing Environment for the executor thread!");
 
+    luaL_sandboxthread(L);
+
     const auto envManager = EnvironmentManager::GetSingleton();
     envManager->PushEnvironment(L);
 
@@ -253,11 +256,9 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     lua_pushcclosure(
             L,
             [](lua_State *L) -> int32_t {
-                UNPROTECTED_START;
                 const auto scheduler = Scheduler::GetSingleton();
                 if (scheduler->IsInitialized())
                     scheduler->StepScheduler(L);
-                UNPROTECTED_END;
                 return 0;
             },
             nullptr, 0);
@@ -304,9 +305,6 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     logger->PrintInformation(RbxStu::Scheduler, "Stack popped. Now awaiting execution jobs from the Named Pipe!");
     lua_pop(L, lua_gettop(L));
     lua_pop(rL, lua_gettop(rL));
-
-    lua_setsafeenv(rL, LUA_GLOBALSINDEX, true);
-    // lua_setsafeenv(L, LUA_GLOBALSINDEX, true);
 }
 
 void Scheduler::ResetScheduler() {

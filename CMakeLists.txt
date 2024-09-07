@@ -165,7 +165,7 @@ target_link_libraries(${PROJECT_NAME}
 
         nlohmann_json::nlohmann_json
 
-        # ThemidaSDK
+        ThemidaSDK
 
         Dbghelp.lib
         Ws2_32.lib

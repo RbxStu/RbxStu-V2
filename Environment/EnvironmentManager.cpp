@@ -380,6 +380,9 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 local insertservice_LoadLocalAsset = clonefunction(cloneref(game.GetService(game, "InsertService")).LoadLocalAsset)
 local insertservice_LoadAsset = clonefunction(cloneref(game.GetService(game, "InsertService")).LoadAsset)
 local table_insert = clonefunction(table.insert)
+local table_find = clonefunction(table.find)
+local setuntouched = clonefunction(setuntouched)
+local isuntouched = clonefunction(isuntouched)
 local getreg = clonefunction(getreg)
 local string_gsub = clonefunction(string.gsub)
 local typeof = clonefunction(typeof)
@@ -447,8 +450,8 @@ getgenv().getloadedmodules = newcclosure(function()
 	local list = {}
 	for i, v in getgc(false) do
 		if typeof(v) == "function" then
-			local env = getfenv(v)
-			if typeof(env["script"]) == "Instance" and env["script"]:IsA("ModuleScript") then
+            local env = getfenv(v)
+			if typeof(env["script"]) == "Instance" and env["script"]:IsA("ModuleScript") and not table_find(list, env["script"]) then
 				table_insert(list, env["script"])
 			end
 		end

@@ -244,14 +244,14 @@ int ClosureManager::unhookfunction(lua_State *L) {
     return 0;
 }
 
-void fix_protos(Proto *p) {
+void fix_protos(lua_State *L, Proto *p) {
     luaS_fix(p);
     for (auto it = 0; it < p->sizek; it++) {
         luaS_fix(&(p->k + it)->value.gc->gch);
     }
 
     for (int i = 0; i < p->sizep; i++) {
-        fix_protos(p->p[i]);
+        fix_protos(L, p->p[i]);
     }
 }
 
@@ -263,14 +263,15 @@ void ClosureManager::FixClosure(lua_State *L, Closure *closure) {
     lua_pop(L, 1);
     return;
     luaS_fix(closure);
+    // l_setbit(closure->marked, BLACKBIT);
     if (closure->isC) {
         return;
     }
 
-    for (int i = 0; i < closure->nupvalues; i++)
+    for (int i = 0; i < closure->nupvalues; i++) {
         luaS_fix(&closure->l.uprefs->value.gc->gch);
-
-    fix_protos(closure->l.p);
+    }
+    fix_protos(L, closure->l.p);
 }
 
 int ClosureManager::newcclosure(lua_State *L) {
@@ -289,6 +290,7 @@ int ClosureManager::newcclosure(lua_State *L) {
     clManager->FixClosure(L, closure);
     lua_pushcclosurek(L, ClosureManager::newcclosure_handler, functionName, 0, nullptr);
     const auto cclosure = lua_toclosure(L, closureIndex);
+    luaC_barrierfast(L, closure);
     luaS_fix(cclosure);
     clManager->m_newcclosureMap[cclosure] = closure;
     lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.

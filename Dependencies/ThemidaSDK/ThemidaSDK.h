@@ -17,8 +17,8 @@
 #define DLL_IMPORT extern
 #define STDCALL_CONVENTION
 #else
-#define IGNORE_DLL_IMPORT
-#define DLL_IMPORT static // __declspec(dllimport)
+// #define IGNORE_DLL_IMPORT
+#define DLL_IMPORT  __declspec(dllimport)
 #define STDCALL_CONVENTION __stdcall
 #endif
 
