@@ -135,11 +135,21 @@ int main() {
     AllocConsole();
     const auto logger = Logger::GetSingleton();
     logger->Initialize(true);
+    printf(R"(
+//    _____  _          _____ _          __      _____
+//   |  __ \| |        / ____| |         \ \    / /__ \
+//   | |__) | |____  _| (___ | |_ _   _   \ \  / /   ) |
+//   |  _  /| '_ \ \/ /\___ \| __| | | |   \ \/ /   / /
+//   | | \ \| |_) >  < ____) | |_| |_| |    \  /   / /_
+//   |_|  \_\_.__/_/\_\_____/ \__|\__,_|     \/   |____|
+//
+)");
+
+    logger->PrintInformation(RbxStu::MainThread, "Initializing RbxStu V2");
     logger->PrintInformation(RbxStu::MainThread,
                              std::format("-- Studio Base: {}", static_cast<void *>(GetModuleHandle(nullptr))));
     logger->PrintInformation(RbxStu::MainThread,
                              std::format("-- RbxStu Base: {}", static_cast<void *>(GetModuleHandle("Module.dll"))));
-    logger->PrintInformation(RbxStu::MainThread, "Initializing RbxStu V2");
     SetConsoleTitleA("-- RbxStu V2 --");
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
     const auto robloxManager = RobloxManager::GetSingleton();
