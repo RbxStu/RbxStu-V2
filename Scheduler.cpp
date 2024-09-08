@@ -309,6 +309,12 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     logger->PrintInformation(RbxStu::Scheduler, "Stack popped. Now awaiting execution jobs from the Named Pipe!");
     lua_pop(L, lua_gettop(L));
     lua_pop(rL, lua_gettop(rL));
+
+    if (Communication::GetSingleton()->IsUnsafeMode()) {
+        logger->PrintWarning(
+                RbxStu::Scheduler,
+                "WARNING! YOU ARE RUNNING IN UNSAFE MODE! ANY SCRIPT RUN CAN RESULT IN DANGEROUS CONSEQUENCES! ONCE YOU FINISH PLAYING AROUND ENABLE SAFE MODE BACK ON!");
+    }
 }
 
 void Scheduler::ResetScheduler() {
