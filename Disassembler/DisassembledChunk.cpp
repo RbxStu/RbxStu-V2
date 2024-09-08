@@ -43,13 +43,13 @@ std::optional<const cs_insn> DisassembledChunk::GetInstructionWhichMatches(const
                                                                            const char *szOperationAsString,
                                                                            bool bUseContains) {
     for (const auto &instr: this->vInstructionsvec) {
-        if (!bUseContains && strcmp(instr.mnemonic, szMnemonic) == 0 &&
-            strcmp(instr.op_str, szOperationAsString) == 0) {
+        if (!bUseContains && (szMnemonic && strcmp(instr.mnemonic, szMnemonic) == 0 || !szMnemonic) &&
+            (szOperationAsString && strcmp(instr.op_str, szOperationAsString) == 0 || !szOperationAsString)) {
             return instr;
         }
 
-        if (bUseContains && strstr(instr.mnemonic, szMnemonic) != nullptr &&
-            strstr(instr.op_str, szOperationAsString) != nullptr) {
+        if (bUseContains && (szMnemonic && strstr(instr.mnemonic, szMnemonic) != nullptr || !szMnemonic) &&
+            (szOperationAsString && strstr(instr.op_str, szOperationAsString) != nullptr || !szOperationAsString)) {
             return instr;
         }
     }
