@@ -4,6 +4,8 @@
 
 #include "Instance.hpp"
 
+#include <iostream>
+
 #include "RobloxManager.hpp"
 #include "Utilities.hpp"
 
@@ -41,57 +43,60 @@ namespace RbxStu {
             return 0;
         }
 
-#ifdef ISNETWORKOWNER_DEV
         int isnetworkowner(lua_State *L) {
             Utilities::checkInstance(L, 1, "BasePart");
             auto part = *static_cast<void **>(lua_touserdata(L, 1));
-            lua_getglobal(L, "game");
-            lua_getfield(L, -1, "Players");
-            lua_getfield(L, -1, "LocalPlayer");
-            auto player = *static_cast<void **>(lua_touserdata(L, -1));
-            lua_pop(L, 3);
+
+            /*
+             *  Quick rundown due to the hack around this function.
+             *  We would normally access remoteId/peerId, but due to the fact that we are WE, we don't have that
+             *  privilage, instead we must get the peerId of a part we ACTUALLY own, this wouldn't be that complicated.
+             *
+             *  But what is to be noted is the following:
+             *      - On Local clients, RemoteId/PeerId is unreachable, PeerId == -1    (uint32_t max [underflowing]).
+             *      - Anchored/Bound by a physics constraint/welded, PeerId == 2        (After trial and error)
+             *
+             *  Thus, the hack around this behaviour is to create a part ourselves. Parts created by ourselves that are
+             *  parented to workspace are automatically simulated by our player, this means we really don't need
+             *  anything else, and we can obtain our remote PeerId that way. This COULD be hardcoded, but then team
+             *  tests would not work as expected. (PeerId appears to start at 4)
+             */
+
             auto partSystemAddress = RBX::SystemAddress{0};
             auto localPlayerAddress = RBX::SystemAddress{0};
+            reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(
+                    RobloxManager::GetSingleton()->GetRobloxFunction("RBX::BasePart::getNetworkOwner"))(
+                    part, &partSystemAddress);
 
-            uintptr_t partAddr = reinterpret_cast<uintptr_t>(part);
-            std::cout << "Part address: " << reinterpret_cast<void *>(partAddr) << std::endl;
+            lua_getglobal(L, "Instance");
+            lua_getfield(L, -1, "new");
+            lua_pushstring(L, "Part");
+            lua_getglobal(L, "workspace");
+            lua_pcall(L, 2, 1, 0);
+            reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(
+                    RobloxManager::GetSingleton()->GetRobloxFunction("RBX::BasePart::getNetworkOwner"))(
+                    *static_cast<void **>(lua_touserdata(L, -1)), &localPlayerAddress);
 
-            uintptr_t part2Addr = *reinterpret_cast<uintptr_t *>(partAddr + 0x150);
-            std::cout << "*(Part + 0x150): " << reinterpret_cast<void *>(part2Addr) << std::endl;
+            lua_getfield(L, -1, "Destroy");
+            lua_pushvalue(L, -2);
+            lua_pcall(L, 1, 0, 0);
+            lua_pop(L, 1);
 
-            uintptr_t part3Addr = *reinterpret_cast<uintptr_t *>(part2Addr + 0x268);
-            std::cout << "*(*(Part + 0x150) + 0x268): " << reinterpret_cast<void *>(part3Addr) << std::endl;
-
-            partSystemAddress.remoteId.peerId = part3Addr;
-
-            std::cout << "Player address: " << player << std::endl;
-            uintptr_t playerAddr = *(uintptr_t *) ((uintptr_t) player + 0x5e8);
-            std::cout << "*(Player + 0x5e8): " << (void *) playerAddr << std::endl;
-
-            localPlayerAddress.remoteId.peerId = playerAddr;
-
-            std::cout << "Part SystemAddress: " << partSystemAddress.remoteId.peerId << std::endl;
-            std::cout << "LocalPlayer SystemAddress: " << localPlayerAddress.remoteId.peerId << std::endl;
-
-            lua_pushnumber(L, partSystemAddress.remoteId.peerId);
-            lua_pushnumber(L, localPlayerAddress.remoteId.peerId);
-            lua_pushboolean(L, partSystemAddress.remoteId.peerId == localPlayerAddress.remoteId.peerId);
-            return 3;
+            lua_pushboolean(L, partSystemAddress.remoteId.peerId == 2 ||
+                                       partSystemAddress.remoteId.peerId == localPlayerAddress.remoteId.peerId);
+            return 1;
         }
-#endif
     } // namespace Instance
 } // namespace RbxStu
 
 std::string Instance::GetLibraryName() { return "instances"; }
 luaL_Reg *Instance::GetLibraryFunctions() {
     const auto reg = new luaL_Reg[]{{"gethui", RbxStu::Instance::gethui},
-                              {"fireproximityprompt", RbxStu::Instance::fireproximityprompt},
+                                    {"fireproximityprompt", RbxStu::Instance::fireproximityprompt},
 
-#ifdef ISNETWORKOWNER_DEV
-                              {"isnetworkowner", RbxStu::Instance::isnetworkowner},
-#endif
+                                    {"isnetworkowner", RbxStu::Instance::isnetworkowner},
 
-                              {nullptr, nullptr}};
+                                    {nullptr, nullptr}};
 
     return reg;
 }

@@ -170,6 +170,12 @@ namespace RbxStu {
         MakeSignature_FromIDA(RBX_Instance_getTopAncestor,
                               "48 8B 41 ? 48 85 C0 74 08 48 8B C8 E9 EF FF FF FF 48 8B C1 C3 CC CC");
 
+        /*
+         * How to find: search for "SetNetworkOwner". SetNetworkOwner is a part function, that means that on its implementation, it will take in a shared pointer to the base part and the player object.
+         * The player object is dereferenced, and lower below its
+         */
+        MakeSignature_FromIDA(RBX_Player_getPeerId, "8B 81 F0 05 00 00 89 02 48 8B C2 C3 CC");
+
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
@@ -198,6 +204,8 @@ namespace RbxStu {
                 {"RBX::Instance::getTopAncestor", RBX_Instance_getTopAncestor},
 
                 {"RBX::BasePart::getNetworkOwner", RBX_BasePart_getNetworkOwner},
+                {"RBX::Player::getPeerId", RBX_Player_getPeerId},
+
                 {"RBX::Players::findPlayerWithAddress", RBX_Players_findPlayerWithAddress},
 
                 {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose},
