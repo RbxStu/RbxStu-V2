@@ -21,23 +21,27 @@ public:
 
     template<RbxStu::Concepts::TypeConstraint<PacketFunctions> T>
     __forceinline std::optional<T> DeserializeFromJson(const std::string &input) {
+        const auto logger = Logger::GetSingleton();
         try {
+            logger->PrintDebug(RbxStu::PacketSerdes, std::format("Deserializing structure: {}; Input: '{}'", typeid(T).name(), input));
             return T::Deserialize(nlohmann::json::parse(input));
         } catch (const std::exception &ex) {
-            Logger::GetSingleton()->PrintError(RbxStu::PacketSerdes,
-                                               std::format("Failed to deserialize packet json! Structure Name: {}; "
-                                                           "Provided Input: \n\n{}\n\nerror.what(): {}",
-                                                           typeid(T).name(), input, ex.what()));
+            logger->PrintError(RbxStu::PacketSerdes,
+                               std::format("Failed to deserialize packet json! Structure Name: {}; "
+                                           "Provided Input: \n\n{}\n\nerror.what(): {}",
+                                           typeid(T).name(), input, ex.what()));
             return {};
         }
     }
 
     template<RbxStu::Concepts::TypeConstraint<PacketFunctions> T>
     __forceinline nlohmann::json SerializeFromStructure(const T &structure) {
+        const auto logger = Logger::GetSingleton();
         try {
+            logger->PrintDebug(RbxStu::PacketSerdes, std::format("Serializing structure: {}", typeid(T).name()));
             return T::Serialize(structure);
         } catch (const std::exception &ex) {
-            Logger::GetSingleton()->PrintError(
+            logger->PrintError(
                     RbxStu::PacketSerdes,
                     std::format("Failed to serialize packet structure! Structure Name : \n\n{}\n\nerror.what(): {}",
                                 typeid(T).name(), ex.what()));
