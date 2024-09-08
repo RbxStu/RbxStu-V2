@@ -10,7 +10,7 @@ namespace RBX {
     namespace Reflection {
         struct ClassDescriptor {
             void *vftable;
-            void *__className;
+            std::string &className;
             char _10[4];
             char _14[1];
             char _15[0x13];
