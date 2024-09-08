@@ -25,5 +25,6 @@ public:
 
     std::optional<std::unique_ptr<DisassembledChunk>> GetInstructions(_In_ DisassemblyRequest &disassemblyRequest);
     std::optional<void *> TranslateRelativeLeaIntoRuntimeAddress(const cs_insn &insn);
+    void *ObtainPossibleStartOfFunction(void *mapped);
     void * ObtainPossibleEndFromStart(void * mapped);
 };

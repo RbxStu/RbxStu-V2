@@ -26,13 +26,13 @@ DisassembledChunk::DisassembledChunk(cs_insn *pInstructions, std::size_t ullInst
 bool DisassembledChunk::ContainsInstruction(const char *szMnemonic, const char *szOperationAsString,
                                             bool bUseContains) {
     for (const auto &instr: this->vInstructionsvec) {
-        if (!bUseContains && strcmp(instr.mnemonic, szMnemonic) == 0 &&
-            strcmp(instr.op_str, szOperationAsString) == 0) {
+        if (!bUseContains && (!szMnemonic || strcmp(instr.mnemonic, szMnemonic) == 0) &&
+            (!szOperationAsString || strcmp(instr.op_str, szOperationAsString) == 0)) {
             return true;
         }
 
-        if (bUseContains && strstr(instr.mnemonic, szMnemonic) != nullptr &&
-            strstr(instr.op_str, szOperationAsString) != nullptr) {
+        if (bUseContains && (!szMnemonic || strstr(instr.mnemonic, szMnemonic) != nullptr) &&
+            (!szOperationAsString || strstr(instr.op_str, szOperationAsString) != nullptr)) {
             return true;
         }
     }
