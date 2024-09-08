@@ -21,6 +21,8 @@ public:
     __forceinline ScheduleLuauResponsePacket() {
         this->ulPacketId = RbxStu::WebSocketCommunication::ScheduleLuauResponsePacket;
         this->ullPacketFlags = ScheduleLuauResponsePacketFlags::Failure;
+        this->szText = "";
+        this->szOperationIdentifier = "";
     }
 
     static nlohmann::json Serialize(const ScheduleLuauResponsePacket &packet) {
