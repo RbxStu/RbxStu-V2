@@ -449,14 +449,13 @@ bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptS
 
         while (webSocket->getReadyState() == ix::ReadyState::Open) {
             if (!communication->m_qExecutionReportsQueue.empty()) {
-                auto [operationStatus, szOperationIdentifier, szErrorMessage] =
-                        communication->m_qExecutionReportsQueue.front();
-                communication->m_qExecutionReportsQueue.pop();
+                auto status = communication->m_qExecutionReportsQueue.front();
                 ScheduleLuauResponsePacket response{};
-                response.ullPacketFlags = operationStatus;
-                response.szText = szErrorMessage;
-                response.szOperationIdentifier = szOperationIdentifier;
-                webSocket->send(serializer->SerializeFromStructure(response), false);
+                response.ullPacketFlags = status.Status;
+                response.szText = status.szErrorMessage;
+                response.szOperationIdentifier = status.szOperationIdentifier;
+                webSocket->send(serializer->SerializeFromStructure(response).dump(), false);
+                communication->m_qExecutionReportsQueue.pop();
                 std::this_thread::sleep_for(std::chrono::milliseconds{5});
             } else {
                 _mm_pause();
@@ -508,6 +507,6 @@ void Communication::HandlePipe(const std::string &szPipeName) {
         Script.clear();
     }
 }
-void Communication::ReportExecutionStatus(const ExecutionStatus &execStatus) {
+void Communication::ReportExecutionStatus(const ExecutionStatus& execStatus) {
     this->m_qExecutionReportsQueue.emplace(execStatus);
 }
