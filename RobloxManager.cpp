@@ -461,6 +461,112 @@ void RobloxManager::Initialize() {
         }
     }
 
+    {
+        logger->PrintInformation(RbxStu::RobloxManager,
+                                 "Beginning scan for possible RBX::Reflection::ClassDescriptor registrations...");
+
+        const auto __GenericClassDescriptorGetterAndInitializer =
+                SignatureByte::GetSignatureFromIDAString("0F 29 44 24 ? 0F 10 4C 24 ? 0F 29 4C ?");
+
+        auto scanResult = scanner->Scan(__GenericClassDescriptorGetterAndInitializer, GetModuleHandle(nullptr));
+
+        logger->PrintInformation(
+                RbxStu::RobloxManager,
+                std::format("Found {} possible RBX::Reflection::ClassDescriptor registrations in Studio.",
+                            scanResult.size()));
+        for (const auto &result: scanResult) {
+            auto describedName = "";
+            auto leaopstr = "";
+            x86_reg descriptorContainerRegister;
+            void *descriptorPointer = nullptr;
+            { // Step 1/2: get describedName name
+                auto request = DisassemblyRequest{};
+                request.bIgnorePageProtection = true;
+                request.pStartAddress = result;
+                request.pEndAddress = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(result) - 0x60);
+
+                if (auto possibleInsns = disassembler->GetInstructions(request); possibleInsns.has_value()) {
+                    auto insns = std::move(possibleInsns.value());
+                    const auto callInstruction = insns->GetInstructionWhichMatches("call", nullptr, true);
+
+                    if (!callInstruction.has_value() ||
+                        !insns->ContainsInstruction("lea", "r8, [rip +", true) // Load string (Name)
+                        || !insns->ContainsInstruction(nullptr, "rdx,", true) ||
+                        !insns->ContainsInstruction("mov", "rcx,", true) // Load data pointer (ClassDescriptor)
+                    ) {
+                        continue;
+                    }
+
+                    auto leaInsn = insns->GetInstructionWhichMatches("lea", "r8, [rip +", true);
+                    describedName = static_cast<const char *>(
+                            disassembler->TranslateRelativeLeaIntoRuntimeAddress(leaInsn.value()).value());
+
+                    auto loadPointerOptional = insns->GetInstructionWhichMatches(
+                            "mov", "rcx,", true); // We must read from which register the data is being moved.
+                    auto loadPointer = loadPointerOptional.value();
+                    descriptorContainerRegister = loadPointer.detail->x86.operands[1].reg;
+                    leaopstr = loadPointer.op_str;
+                } else {
+                    logger->PrintWarning(RbxStu::RobloxManager,
+                                         "Failed to fetch instructions for the given function! -- name");
+                    continue;
+                }
+            }
+
+            { // Step 2: dump class descriptor pointer.
+
+                // Walk up the assembly to read `lea ( ? ), [rip + ...]`
+
+                auto request = DisassemblyRequest{};
+                request.bIgnorePageProtection = true;
+                request.pStartAddress = disassembler->ObtainPossibleStartOfFunction(result);
+                request.pEndAddress = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(result) + 0x60);
+
+                if (auto possibleInsns = disassembler->GetInstructions(request); possibleInsns.has_value()) {
+                    const auto insns = std::move(possibleInsns.value());
+                    if (!insns->ContainsInstruction("lea", ", [rip +", true))
+                        continue; // no lea insn, ignore.
+
+                    for (const auto &insn: insns->GetInstructions()) {
+                        if (strcmp(insn.mnemonic, "lea") == 0) {
+                            // Load effective address found.
+                            if (insn.detail->x86.operands[0].reg == descriptorContainerRegister) {
+                                if (auto addy = disassembler->TranslateRelativeLeaIntoRuntimeAddress(insn);
+                                    addy.has_value()) {
+                                    descriptorPointer = addy.value();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (descriptorPointer == nullptr) {
+                        printf("DISASSEMBLY FOR %s (MATCHING FOR INSN LEA OPSTR '%s'):\n", describedName, leaopstr);
+                        printf("%s\n", insns->RenderInstructions().c_str());
+                        continue;
+                    }
+                } else {
+                    logger->PrintWarning(RbxStu::RobloxManager,
+                                         std::format("Failed to fetch instructions for the given function -- data {}!",
+                                                     describedName));
+                }
+            }
+
+            this->m_mapClassDescriptors[describedName] =
+                    static_cast<RBX::Reflection::ClassDescriptor *>(descriptorPointer);
+        }
+
+        logger->PrintInformation(
+                RbxStu::RobloxManager,
+                std::format("End of scan for possible RBX::Reflection::ClassDescriptor! Obtained {} described objects!",
+                            this->m_mapClassDescriptors.size()));
+
+        for (const auto &entry: this->m_mapClassDescriptors) {
+            logger->PrintInformation(RbxStu::RobloxManager,
+                                     std::format("- RBX::Reflection::ClassDescriptor for '{}' -> {}", entry.first,
+                                                 static_cast<void *>(entry.second)));
+        }
+    }
+
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
 
     this->m_mapHookMap["RBX::ScriptContext::resumeDelayedThreads"] = new void *();

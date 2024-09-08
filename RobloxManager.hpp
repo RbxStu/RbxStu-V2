@@ -171,8 +171,9 @@ namespace RbxStu {
                               "48 8B 41 ? 48 85 C0 74 08 48 8B C8 E9 EF FF FF FF 48 8B C1 C3 CC CC");
 
         /*
-         * How to find: search for "SetNetworkOwner". SetNetworkOwner is a part function, that means that on its implementation, it will take in a shared pointer to the base part and the player object.
-         * The player object is dereferenced, and lower below its
+         * How to find: search for "SetNetworkOwner". SetNetworkOwner is a part function, that means that on its
+         * implementation, it will take in a shared pointer to the base part and the player object. The player object is
+         * dereferenced, and lower below its
          */
         MakeSignature_FromIDA(RBX_Player_getPeerId, "8B 81 F0 05 00 00 89 02 48 8B C2 C3 CC");
 
@@ -246,6 +247,9 @@ class RobloxManager final {
 
     /// @brief The map used to hold the pointer's encryption type and the identifier.
     std::map<std::string, RBX::PointerEncryptionType> m_mapPointerEncryptionMap;
+
+    /// @brief The map used to hold the class descriptors.
+    std::map<std::string, RBX::Reflection::ClassDescriptor *> m_mapClassDescriptors;
 
     /// @brief The map used to hold the pointer's encryption and offset.
     std::map<std::string, std::pair<std::uintptr_t, RBX::PointerEncryptionType>> m_mapPointerOffsetEncryption;
