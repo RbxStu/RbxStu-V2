@@ -59,7 +59,8 @@ namespace RbxStu {
              *  Thus, the hack around this behaviour is to create a part ourselves. Parts created by ourselves that are
              *  parented to workspace are automatically simulated by our player, this means we really don't need
              *  anything else, and we can obtain our remote PeerId that way. This COULD be hardcoded, but then team
-             *  tests would not work as expected. (PeerId appears to start at 4)
+             *  tests would not work as expected. (PeerId appears to start at 4). We _cannot_ rely on HumanoidRootPart,
+             *  as it can be owned by the server if the game developer desiers it.
              */
 
             auto partSystemAddress = RBX::SystemAddress{0};
