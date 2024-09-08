@@ -8,7 +8,53 @@
 
 namespace RBX {
     namespace Reflection {
-        struct ClassDescriptor {};
+        struct ClassDescriptor {
+            void *vftable;
+            void *__className;
+            char _10[4];
+            char _14[1];
+            char _15[0x13];
+            void *propertyDescriptions_Start;
+            char _30[0x10];
+            char _40[0x40];
+            char _80[0x40];
+            char _c0[0x10];
+            void *eventDescriptions_Start;
+            char _d8[0x28];
+            char _100[0x40];
+            char _140[0x38];
+            void *boundFunctionDescription_Start;
+            char _180[0x40];
+            char _1c0[0x40];
+            char _200[0x20];
+            void *boundYieldFunctionDescription_Start;
+            char _228[0x18];
+            char _240[0x40];
+            char _280[0x40];
+            char _2c0[8];
+            char _2c8[0x38];
+            char _300[0x40];
+            char _340[0x30];
+            char _370[8];
+            char _378[8];
+            char _380[4];
+            char _384[2];
+            char _386[2];
+            char _388[8];
+            struct RBX::Reflection::ClassDescriptor *baseClass;
+            char _398[8];
+            char _3a0[8];
+            char _3a8[0x18];
+            char _3c0[0x20];
+        };
+
+
+        struct PropertyDescriptor {
+            void *vftable;
+            std::string &propertyName;
+            char _0[0x18];
+            std::uint64_t isScriptable;
+        };
     } // namespace Reflection
     struct SystemAddress {
         struct PeerId {
