@@ -7,6 +7,9 @@
 #include "lstate.h"
 
 namespace RBX {
+    namespace Reflection {
+        struct ClassDescriptor {};
+    } // namespace Reflection
     struct SystemAddress {
         struct PeerId {
             uint32_t peerId;
@@ -99,7 +102,7 @@ namespace RBX {
         char _140[0x40];
         char _180[0x10];
         char _190[8];
-         void *m_pScriptContext;
+        void *m_pScriptContext;
         char _1a0[0x20];
         char _1c0[0x40];
         char _200[0x40];
