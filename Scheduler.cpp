@@ -118,6 +118,7 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         ExecutionStatus status{};
         status.Status = ScheduleLuauResponsePacketFlags::Success;
         status.szOperationIdentifier = job->luaJob.szOperationIdentifier;
+        status.szErrorMessage = "no error";
         Communication::GetSingleton()->ReportExecutionStatus(status);
         return true;
     } else if (job->bIsYieldingJob) {

@@ -32,6 +32,7 @@ public:
             this->bIsLuaCode = true;
             this->luaJob = {};
             this->luaJob.szluaCode = job.luaJob.szluaCode;
+            this->luaJob.szOperationIdentifier = job.luaJob.szOperationIdentifier;
         } else if (job.bIsYieldingJob) {
             this->bIsLuaCode = false;
             this->bIsYieldingJob = true;
