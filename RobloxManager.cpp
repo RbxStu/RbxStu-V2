@@ -559,12 +559,6 @@ void RobloxManager::Initialize() {
                 RbxStu::RobloxManager,
                 std::format("End of scan for possible RBX::Reflection::ClassDescriptor! Obtained {} described objects!",
                             this->m_mapClassDescriptors.size()));
-
-        for (const auto &entry: this->m_mapClassDescriptors) {
-            logger->PrintInformation(RbxStu::RobloxManager,
-                                     std::format("- RBX::Reflection::ClassDescriptor for '{}' -> {}", entry.first,
-                                                 static_cast<void *>(entry.second)));
-        }
     }
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
