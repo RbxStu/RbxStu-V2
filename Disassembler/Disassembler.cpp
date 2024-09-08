@@ -67,16 +67,8 @@ Disassembler::GetInstructions(_In_ DisassemblyRequest &disassemblyRequest) {
     // FFS ITS NOT UNREACHABLE DUDE.
     // ReSharper disable once CppDFAUnreachableCode
 
-    if (disassemblyRequest.pStartAddress < disassemblyRequest.pEndAddress) {
-        logger->PrintDebug(RbxStu::Disassembler, "pStartAddress is bigger than pEndAddress! For the purposes of "
-                                                 "simplicity, the addresses will be flipped! Beware!");
-        const auto t = disassemblyRequest.pStartAddress;
-        disassemblyRequest.pStartAddress = disassemblyRequest.pEndAddress;
-        disassemblyRequest.pEndAddress = t;
-    }
-
-    const auto segmentSize = reinterpret_cast<std::uintptr_t>(disassemblyRequest.pStartAddress) -
-                             reinterpret_cast<std::uintptr_t>(disassemblyRequest.pEndAddress);
+    const auto segmentSize = std::abs(reinterpret_cast<std::intptr_t>(disassemblyRequest.pStartAddress) -
+                                      reinterpret_cast<std::intptr_t>(disassemblyRequest.pEndAddress));
 
     if (!disassemblyRequest.bIgnorePageProtection) {
 #define CHECK_NOT_FLAG(num, flag) ((num & flag) != flag)
@@ -130,6 +122,25 @@ std::optional<void *> Disassembler::TranslateRelativeLeaIntoRuntimeAddress(const
     return reinterpret_cast<void *>(insn.address + insn.size + strtoull(insnOpAsString.c_str(), &endChar, 16));
 }
 
+void *Disassembler::ObtainPossibleStartOfFunction(void *mapped) {
+    const auto logger = Logger::GetSingleton();
+    // Compilers normally leave some stub 0xCC at the end of functions to split them up, I'm not joking.
+    // we can abuse this to find the possible ending of a function, keyword, possible, we cannot really get everything
+    // we want on this life :(. That also said, for the purposes of MORE simplicity, we will make the address an even
+    // one, just for the sake of god.
+    if (reinterpret_cast<std::uintptr_t>(mapped) % 2 != 0) {
+        logger->PrintDebug(RbxStu::Disassembler, "Rounding address to a multiple of 2 for simplicity");
+        mapped = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(mapped) - 1);
+    }
+    auto pAsm = static_cast<std::uint8_t *>(mapped);
+    while ((*pAsm != static_cast<std::uint8_t>(0xCC) || *(pAsm - 1) != static_cast<std::uint8_t>(0xCC)) && pAsm--) {
+        _mm_pause();
+    }
+
+    return pAsm;
+}
+
+
 void *Disassembler::ObtainPossibleEndFromStart(void *mapped) {
     const auto logger = Logger::GetSingleton();
     // Compilers normally leave some stub 0xCC at the end of functions to split them up, I'm not joking.
@@ -137,7 +148,7 @@ void *Disassembler::ObtainPossibleEndFromStart(void *mapped) {
     // we want on this life :(. That also said, for the purposes of MORE simplicity, we will make the address an even
     // one, just for the sake of god.
     if (reinterpret_cast<std::uintptr_t>(mapped) % 2 != 0) {
-        logger->PrintWarning(RbxStu::Disassembler, "Rounding address to a multiple of 2 for simplicity");
+        logger->PrintDebug(RbxStu::Disassembler, "Rounding address to a multiple of 2 for simplicity");
         mapped = reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(mapped) - 1);
     }
 
