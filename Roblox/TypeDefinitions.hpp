@@ -150,7 +150,7 @@ namespace RBX {
         public:
             union {
                 uint32_t bIsEditable; // Implemented
-                uint32_t bCanReplicate; // Implemented
+                uint32_t bCanReplicate; // Implemented (2nd bit)
                 uint32_t bCanXmlRead; // Implemented
                 uint32_t bCanXmlWrite; // Implemented
                 uint32_t bAlwaysClone; // Implemented
@@ -167,10 +167,10 @@ namespace RBX {
                 this->__bitfield.bIsScriptable = (this->__bitfield.bIsScriptable) ^ ((~bIsScriptable & 0xFF << 5));
             }
 
-            bool IsEditable() { return ((this->__bitfield.bIsEditable >> 1) & 1); }
+            bool IsEditable() { return ((this->__bitfield.bIsEditable) & 1); }
 
             void SetEditable(const uint8_t bIsEditable) {
-                this->__bitfield.bIsEditable = (this->__bitfield.bIsEditable) ^ ((~bIsEditable & 0xFF << 1));
+                this->__bitfield.bIsEditable = (this->__bitfield.bIsEditable) ^ ((~bIsEditable & 0xFF));
             }
 
             bool IsCanXmlRead() { return ((this->__bitfield.bCanXmlRead >> 3) & 1); }
