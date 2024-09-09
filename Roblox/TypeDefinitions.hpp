@@ -149,76 +149,55 @@ namespace RBX {
         struct PropertyDescriptor : RBX::Reflection::MemberDescriptor {
         public:
             union {
-                uint32_t bIsPublic; // Implemented
-                uint32_t bIsEditable; //
+                uint32_t bIsEditable; // Implemented
                 uint32_t bCanReplicate; // Implemented
                 uint32_t bCanXmlRead; // Implemented
                 uint32_t bCanXmlWrite; // Implemented
-                uint32_t bIsScriptable; // Implemented
                 uint32_t bAlwaysClone; // Implemented
+                uint32_t bIsScriptable; // Implemented  (5th bit)
+                uint32_t bIsPublic; // Implemented  (6th bit)
             } __bitfield;
             RBX::Reflection::Type *type;
             bool bIsEnum;
             RBX::Security::Permissions scriptWriteAccess;
 
-            bool IsScriptable() { return (this->__bitfield.bIsScriptable >> 5) & 0xFF; }
+            bool IsScriptable() { return ((this->__bitfield.bIsScriptable >> 5) & 1); }
 
-            void SetScriptable(bool bIsScriptable) {
-
-                if (bIsScriptable)
-                    this->__bitfield.bIsScriptable = (this->__bitfield.bIsScriptable) | ((bIsScriptable << 5) & 0xFF);
-                else
-                    this->__bitfield.bIsScriptable = (this->__bitfield.bIsScriptable) ^ ~((bIsScriptable << 5) & 0xFF);
+            void SetScriptable(const uint8_t bIsScriptable) {
+                this->__bitfield.bIsScriptable = (this->__bitfield.bIsScriptable) ^ ((~bIsScriptable & 0xFF << 5));
             }
 
-            bool IsEditable() { return (this->__bitfield.bIsEditable >> 1) & 0xFF; }
+            bool IsEditable() { return ((this->__bitfield.bIsEditable >> 1) & 1); }
 
-            void SetEditable(bool bIsEditable) {
-                if (bIsEditable)
-                    this->__bitfield.bIsEditable = (this->__bitfield.bIsEditable) | ((bIsEditable << 1) & 0xFF);
-                else
-                    this->__bitfield.bIsEditable = (this->__bitfield.bIsEditable) ^ ~((bIsEditable << 1) & 0xFF);
+            void SetEditable(const uint8_t bIsEditable) {
+                this->__bitfield.bIsEditable = (this->__bitfield.bIsEditable) ^ ((~bIsEditable & 0xFF << 1));
             }
 
-            bool IsCanXmlRead() { return (this->__bitfield.bCanXmlRead >> 3) & 0xFF; }
-            void SetCanXmlRead(const bool bCanXmlRead) {
-                if (bCanXmlRead)
-                    this->__bitfield.bCanXmlRead = (this->__bitfield.bCanXmlRead) | ((bCanXmlRead << 3) & 0xFF);
-                else
-                    this->__bitfield.bCanXmlRead = (this->__bitfield.bCanXmlRead) ^ ~((bCanXmlRead << 3) & 0xFF);
+            bool IsCanXmlRead() { return ((this->__bitfield.bCanXmlRead >> 3) & 1); }
+            void SetCanXmlRead(const uint8_t bCanXmlRead) {
+                this->__bitfield.bCanXmlRead = (this->__bitfield.bCanXmlRead) ^ ((~bCanXmlRead & 0xFF << 3));
             }
 
-            bool IsCanXmlWrite() { return (this->__bitfield.bCanXmlWrite >> 4) & 0xFF; }
-            void SetCanXmlWrite(const bool bCanXmlWrite) {
-                if (bCanXmlWrite)
-                    this->__bitfield.bCanXmlWrite = (this->__bitfield.bCanXmlWrite) | ((bCanXmlWrite << 4) & 0xFF);
-                else
-                    this->__bitfield.bCanXmlWrite = (this->__bitfield.bCanXmlWrite) ^ ~((bCanXmlWrite << 4) & 0xFF);
+            bool IsCanXmlWrite() { return ((this->__bitfield.bCanXmlWrite >> 4) & 1); }
+            void SetCanXmlWrite(const uint8_t bCanXmlWrite) {
+                this->__bitfield.bCanXmlWrite = (this->__bitfield.bCanXmlWrite) ^ ((~bCanXmlWrite & 0xFF << 4));
             }
 
-            bool IsPublic() { return (this->__bitfield.bIsPublic) & 0xFF; }
-            void SetIsPublic(const bool bIsPublic) {
-                if (bIsPublic)
-                    this->__bitfield.bIsPublic = (this->__bitfield.bIsPublic) | static_cast<uint32_t>(bIsPublic);
-                else
-                    this->__bitfield.bIsPublic = (this->__bitfield.bIsPublic) ^ ~static_cast<uint32_t>(bIsPublic);
+            bool IsPublic() { return ((this->__bitfield.bIsPublic >> 6) & 1); }
+            void SetIsPublic(const uint8_t bIsPublic) {
+                this->__bitfield.bIsPublic =
+                        (this->__bitfield.bIsPublic) ^ static_cast<uint32_t>(~bIsPublic & 0xFF << 6);
             }
 
 
-            bool IsCanReplicate() { return (this->__bitfield.bCanReplicate >> 2) & 0xFF; }
-            void SetCanReplicate(const bool bCanReplicate) {
-                if (bCanReplicate)
-                    this->__bitfield.bCanReplicate = (this->__bitfield.bCanReplicate) | ((bCanReplicate << 2) & 0xFF);
-                else
-                    this->__bitfield.bCanReplicate = (this->__bitfield.bCanReplicate) ^ ~((bCanReplicate << 2) & 0xFF);
+            bool IsCanReplicate() { return ((this->__bitfield.bCanReplicate >> 2) & 1); }
+            void SetCanReplicate(const uint8_t bCanReplicate) {
+                this->__bitfield.bCanReplicate = (this->__bitfield.bCanReplicate) ^ ((~bCanReplicate & 0xFF << 2));
             }
 
-            bool IsAlwaysClone() { return (this->__bitfield.bAlwaysClone >> 6) & 0xFF; }
-            void SetAlwaysClone(const bool bAlwaysClone) {
-                if (bAlwaysClone)
-                    this->__bitfield.bAlwaysClone = (this->__bitfield.bAlwaysClone) | (bAlwaysClone << 6) & 0xFF;
-                else
-                    this->__bitfield.bAlwaysClone = (this->__bitfield.bAlwaysClone) ^ ~(bAlwaysClone << 6) & 0xFF;
+            bool IsAlwaysClone() { return ((this->__bitfield.bAlwaysClone) & 1); }
+            void SetAlwaysClone(const uint8_t bAlwaysClone) {
+                this->__bitfield.bAlwaysClone = (this->__bitfield.bAlwaysClone) ^ (~bAlwaysClone & 0xFF);
             }
 
             PropertyDescriptorVFT *GetVFT() { return static_cast<PropertyDescriptorVFT *>(this->vftable); }

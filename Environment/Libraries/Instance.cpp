@@ -124,6 +124,61 @@ namespace RbxStu {
 
             return 1;
         }
+
+        int gethiddenproperty(lua_State *L) {
+            Utilities::checkInstance(L, 1, "ANY");
+            const auto propName = std::string(luaL_checkstring(L, 2));
+
+            bool isPublic = false;
+            for (const auto instance = *static_cast<RBX::Instance **>(lua_touserdata(L, 1));
+                 const auto &prop: instance->classDescriptor->propertyDescriptors.descriptors) {
+                if (prop->name == propName) {
+                    isPublic = prop->IsPublic();
+                    const auto isScriptable = prop->IsScriptable();
+                    prop->SetIsPublic(true);
+                    prop->SetScriptable(true);
+                    lua_getfield(L, 1, propName.c_str());
+                    prop->SetScriptable(isScriptable);
+                    prop->SetIsPublic(isPublic);
+                }
+            }
+            if (lua_gettop(L) == 2)
+                luaL_argerror(L, 2,
+                              std::format("userdata<{}> does not have the property '{}'.",
+                                          Utilities::getInstanceType(L, 1), propName)
+                                      .c_str());
+
+            lua_pushboolean(L, !isPublic);
+            return 2;
+        }
+
+        int sethiddenproperty(lua_State *L) {
+            Utilities::checkInstance(L, 1, "ANY");
+            const auto propName = std::string(luaL_checkstring(L, 2));
+            luaL_checkany(L, 3);
+
+            bool isPublic = false;
+            for (const auto instance = *static_cast<RBX::Instance **>(lua_touserdata(L, 1));
+                 const auto &prop: instance->classDescriptor->propertyDescriptors.descriptors) {
+                if (prop->name == propName) {
+                    isPublic = prop->IsPublic();
+                    const auto isScriptable = prop->IsScriptable();
+                    prop->SetIsPublic(true);
+                    prop->SetScriptable(true);
+                    lua_setfield(L, 1, propName.c_str());
+                    prop->SetScriptable(isScriptable);
+                    prop->SetIsPublic(isPublic);
+                }
+            }
+            if (lua_gettop(L) == 3) // lua_setfield will pop the new value of the property.
+                luaL_argerror(L, 2,
+                              std::format("userdata<{}> does not have the property '{}'.",
+                                          Utilities::getInstanceType(L, 1), propName)
+                                      .c_str());
+
+            lua_pushboolean(L, !isPublic);
+            return 1;
+        }
     } // namespace Instance
 } // namespace RbxStu
 
@@ -136,6 +191,8 @@ luaL_Reg *Instance::GetLibraryFunctions() {
 
                                     {"isscriptable", RbxStu::Instance::isscriptable},
                                     {"setscriptable", RbxStu::Instance::setscriptable},
+                                    {"gethiddenproperty", RbxStu::Instance::gethiddenproperty},
+                                    {"sethiddenproperty", RbxStu::Instance::sethiddenproperty},
                                     {nullptr, nullptr}};
 
     return reg;
