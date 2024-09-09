@@ -87,6 +87,43 @@ namespace RbxStu {
                                        partSystemAddress.remoteId.peerId == localPlayerAddress.remoteId.peerId);
             return 1;
         }
+
+        int isscriptable(lua_State *L) {
+            Utilities::checkInstance(L, 1, "ANY");
+            const auto propName = std::string(luaL_checkstring(L, 2));
+
+            for (const auto instance = *static_cast<RBX::Instance **>(lua_touserdata(L, 1));
+                 const auto &prop: instance->classDescriptor->propertyDescriptors.descriptors) {
+                if (prop->name == propName) {
+                    lua_pushboolean(L, prop->IsScriptable());
+                }
+            }
+            if (lua_type(L, -1) != lua_Type::LUA_TBOOLEAN)
+                lua_pushnil(L);
+
+            return 1;
+        }
+
+        int setscriptable(lua_State *L) {
+            Utilities::checkInstance(L, 1, "ANY");
+            const auto propName = std::string(luaL_checkstring(L, 2));
+            const bool newScriptable = luaL_checkboolean(L, 3);
+
+            for (const auto instance = *static_cast<RBX::Instance **>(lua_touserdata(L, 1));
+                 const auto &prop: instance->classDescriptor->propertyDescriptors.descriptors) {
+                if (prop->name == propName) {
+                    lua_pushboolean(L, prop->IsScriptable());
+                    prop->SetScriptable(newScriptable);
+                }
+            }
+            if (lua_gettop(L) == 3)
+                luaL_argerror(L, 2,
+                              std::format("userdata<{}> does not have the property '{}'.",
+                                          Utilities::getInstanceType(L, 1), propName)
+                                      .c_str());
+
+            return 1;
+        }
     } // namespace Instance
 } // namespace RbxStu
 
@@ -97,6 +134,8 @@ luaL_Reg *Instance::GetLibraryFunctions() {
 
                                     {"isnetworkowner", RbxStu::Instance::isnetworkowner},
 
+                                    {"isscriptable", RbxStu::Instance::isscriptable},
+                                    {"setscriptable", RbxStu::Instance::setscriptable},
                                     {nullptr, nullptr}};
 
     return reg;
