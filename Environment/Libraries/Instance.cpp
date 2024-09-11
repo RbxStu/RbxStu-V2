@@ -119,7 +119,7 @@ namespace RbxStu {
             if (lua_gettop(L) == 3)
                 luaL_argerror(L, 2,
                               std::format("userdata<{}> does not have the property '{}'.",
-                                          Utilities::getInstanceType(L, 1), propName)
+                                          Utilities::getInstanceType(L, 1).second, propName)
                                       .c_str());
 
             return 1;
@@ -145,7 +145,7 @@ namespace RbxStu {
             if (lua_gettop(L) == 2)
                 luaL_argerror(L, 2,
                               std::format("userdata<{}> does not have the property '{}'.",
-                                          Utilities::getInstanceType(L, 1), propName)
+                                          Utilities::getInstanceType(L, 1).second, propName)
                                       .c_str());
 
             lua_pushboolean(L, !isPublic);
@@ -173,7 +173,7 @@ namespace RbxStu {
             if (lua_gettop(L) == 3) // lua_setfield will pop the new value of the property.
                 luaL_argerror(L, 2,
                               std::format("userdata<{}> does not have the property '{}'.",
-                                          Utilities::getInstanceType(L, 1), propName)
+                                          Utilities::getInstanceType(L, 1).second, propName)
                                       .c_str());
 
             lua_pushboolean(L, !isPublic);

@@ -82,6 +82,7 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "analyticsservice",
                                                    "ixpservice",
                                                    "commerceservice",
+                                                   "marketplaceservice",
                                                    "sessionservice",
                                                    "studioservice",
                                                    "platformcloudstorageservice",
@@ -107,7 +108,16 @@ static std::vector<std::string> blockedFunctions = {
         // "postasync",
         "openscreenshotsfolder", "openvideosfolder", "takescreenshot", "togglerecording", "startplaying", "getsecret",
         "requestasync", "sendrobloxevent",
-        "startsessionwithpath" // StartSessionWithPathAsync
+        "startsessionwithpath", // StartSessionWithPathAsync
+        "banasync", "makerequest", "setplaceid", "setuniverseid", "reportingoogleanalytics", "shutdown"};
+
+static std::map<std::string, std::vector<std::string>> specificBlockage = {
+        {std::string{"OpenCloudService"}, std::vector<std::string>{"RegisterOpenCloud"}},
+        {std::string{"HttpService"}, std::vector<std::string>{"SetHttpEnabled"}},
+        {std::string{"BrowserService"}, std::vector<std::string>{"BLOCK_ALL"}},
+        {std::string{"DataModel"}, std::vector<std::string>{"Load"}},
+        {std::string{"HttpRbxApiService"}, std::vector<std::string>{"BLOCK_ALL"}},
+        {std::string{"MessageBusService"}, std::vector<std::string>{"BLOCK_ALL"}} // Block all.
 };
 
 void EnvironmentManager::SetFunctionBlocked(const std::string &functionName, bool status) {
@@ -194,6 +204,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
         lua_getmetatable(L, -1);
         lua_rawgetfield(L, -1, "__index");
         auto __index = lua_toclosure(L, -1);
+
         __index_game_original = __index->c.f;
         __index->c.f = [](lua_State *L) -> int {
             if (lua_type(L, 2) != lua_Type::LUA_TSTRING)
@@ -214,6 +225,33 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
+            lua_getmetatable(L, 1);
+            lua_getfield(L, -1, "__type");
+
+            if (const auto s = lua_tostring(L, -1);
+                strcmp(s, "Instance") == 0) { // FIXME: missing argument #1 (Instance expected)
+                lua_pop(L, 3);
+                lua_pushstring(L, "ClassName");
+                __index_game_original(L);
+                auto instanceClassName = lua_tostring(L, -1);
+                lua_pop(L, 2);
+                lua_pushstring(L, index);
+
+                const auto indexAsString = std::string(index);
+                if (specificBlockage.contains(instanceClassName)) {
+                    for (const auto &func: specificBlockage[instanceClassName]) {
+                        if (indexAsString.find(func) != std::string::npos) {
+                            goto banned__index;
+                        }
+                        if (func == "BLOCK_ALL")
+                            goto banned__index; // Block all regardless.
+                    }
+                }
+            } else {
+                lua_pop(L, 2);
+            }
+
+
             if (!Communication::GetSingleton()->CanAccessScriptSource() && strcmp(index, "Source") == 0) {
                 Utilities::checkInstance(L, 1, "LuaSourceContainer");
                 lua_pushstring(L, "");
@@ -221,8 +259,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             }
 
             if (loweredIndex.find("getservice") != std::string::npos ||
-                loweredIndex.find("findservice") != std::string::npos) {
-                // getservice / findservice
+                loweredIndex.find("findservice") != std::string::npos ||
+                index == "service") { // manages getservice, GetService, FindService and service all at once.
                 lua_pushcclosure(
                         L,
                         [](lua_State *L) -> int {
@@ -312,6 +350,30 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 }
             }
 
+            lua_getmetatable(L, 1);
+            lua_getfield(L, -1, "__type");
+
+            if (const auto s = lua_tostring(L, -1);
+                strcmp(s, "Instance") == 0) { // FIXME: missing argument #1 (Instance expected)
+                lua_pushvalue(L, 1);
+                lua_getfield(L, -1, "ClassName");
+                auto instanceClassName = lua_tostring(L, -1);
+                lua_pop(L, 4);
+
+                const auto namecallAsString = std::string(namecall);
+                if (specificBlockage.contains(instanceClassName)) {
+                    for (const auto &func: specificBlockage[instanceClassName]) {
+                        if (namecallAsString.find(func) != std::string::npos) {
+                            goto banned__namecall;
+                        }
+                        if (func == "BLOCK_ALL")
+                            goto banned__namecall; // Block all regardless.
+                    }
+                }
+            } else {
+                lua_pop(L, 2);
+            }
+
             if (false) {
             banned__namecall:
                 Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
@@ -328,7 +390,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 return __namecall_game_original(L);
 
             if (loweredNamecall.find("getservice") != std::string::npos ||
-                loweredNamecall.find("findservice") != std::string::npos) {
+                loweredNamecall.find("findservice") != std::string::npos || strcmp(namecall, "service") == 0) {
                 // getservice / findservice
                 auto serviceName = luaL_checkstring(L, 2);
                 const auto svcName = Utilities::ToLower(serviceName);

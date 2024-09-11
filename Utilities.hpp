@@ -100,7 +100,7 @@ public:
             this->state = RESUMED;
         }
     };
-    __forceinline static std::string getInstanceType(lua_State *L, int index) {
+    __forceinline static std::pair<bool, std::string> getInstanceType(lua_State *L, int index) {
         luaL_checktype(L, index, LUA_TUSERDATA);
 
         lua_getglobal(L, "typeof");
@@ -108,7 +108,9 @@ public:
         lua_call(L, 1, 1);
 
         if (const bool isInstance = (strcmp(lua_tostring(L, -1), "Instance") == 0); !isInstance) {
-            return lua_tostring(L, -1);
+            const auto str = lua_tostring(L, -1);
+            lua_pop(L, 1);
+            return {false, str};
         }
         lua_pop(L, 1);
 
@@ -116,7 +118,7 @@ public:
 
         auto className = lua_tostring(L, -1);
         lua_pop(L, 1);
-        return className;
+        return {true, className};
     }
 
     __forceinline static void checkInstance(lua_State *L, int index, const char *expectedClassname) {
