@@ -229,7 +229,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             lua_getfield(L, -1, "__type");
 
             if (const auto s = lua_tostring(L, -1);
-                strcmp(s, "Instance") == 0) {
+                strcmp(s, "Instance") == 0 && Security::GetSingleton()->IsOurThread(L)) {
                 lua_pop(L, 3);
                 lua_pushstring(L, "ClassName");
                 __index_game_original(L);
@@ -260,7 +260,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
             if (loweredIndex.find("getservice") != std::string::npos ||
                 loweredIndex.find("findservice") != std::string::npos ||
-                index == "service") { // manages getservice, GetService, FindService and service all at once.
+                strstr(index, "service") !=
+                        nullptr) { // manages getservice, GetService, FindService and service all at once.
                 lua_pushcclosure(
                         L,
                         [](lua_State *L) -> int {
@@ -353,8 +354,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             lua_getmetatable(L, 1);
             lua_getfield(L, -1, "__type");
 
-            if (const auto s = lua_tostring(L, -1);
-                strcmp(s, "Instance") == 0) {
+            if (const auto s = lua_tostring(L, -1); strcmp(s, "Instance") == 0) {
                 lua_pushvalue(L, 1);
                 lua_getfield(L, -1, "ClassName");
                 auto instanceClassName = lua_tostring(L, -1);

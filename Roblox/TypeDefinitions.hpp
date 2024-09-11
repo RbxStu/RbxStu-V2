@@ -16,6 +16,18 @@ namespace RbxStu::Concepts {
 }
 
 namespace RBX {
+    namespace Security {
+        enum Permissions : uint32_t;
+        struct ExtendedIdentity {
+            std::int32_t identity;
+            uint64_t assetId;
+            void *runningContext;
+        };
+    } // namespace Security
+    struct Script {};
+    struct Actor {};
+
+
     struct IntrusivePtrTarget {
         std::atomic<int> strong;
         std::atomic<int> weak;
@@ -35,6 +47,7 @@ namespace RBX {
             RobloxScript = 0x5,
             RobloxEngine = 0x6,
             NotAccessible = 0x7,
+            ExecutorLevel = 0x8, // not from roblox i added lmao
             TestLocalUser = 0x3
         };
     }

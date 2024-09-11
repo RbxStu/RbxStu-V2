@@ -99,7 +99,7 @@ void Security::PrintCapabilities(std::uint32_t capabilities) {
 };
 
 std::uint64_t Security::IdentityToCapabilities(const std::uint32_t identity) {
-    std::uint64_t capabilities = 0x3FFFF00 | (1ll << 46ll); // Basic capability | Checkcaller check
+    std::uint64_t capabilities = 0x3FFFF00 | (1ull << 48ull); // Basic capability | Checkcaller check
 
     if (const auto capabilitiesForIdentity = identityCapabilities.find(identity);
         capabilitiesForIdentity != identityCapabilities.end()) {
@@ -128,7 +128,7 @@ void Security::SetThreadSecurity(lua_State *L, std::int32_t identity) {
 
     auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     auto capabilities = Security::GetSingleton()->IdentityToCapabilities(identity);
-    plStateUd->identity = identity;
+    plStateUd->contextInformation = RBX::Security::ExtendedIdentity{identity, 0, nullptr};
     plStateUd->capabilities = capabilities;
 }
 
@@ -150,7 +150,7 @@ bool Security::IsOurThread(lua_State *L) {
     /// the number with 'll'
     const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
     const auto logger = Logger::GetSingleton();
-    const auto passed = (extraSpace->capabilities & (1ll << 46ll)) == (1ll << 46ll);
+    const auto passed = (extraSpace->capabilities & (1ull << 48ll)) == (1ull << 48ull);
     return passed;
 }
 

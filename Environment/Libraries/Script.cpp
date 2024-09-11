@@ -111,7 +111,7 @@ namespace RbxStu {
 
         int getidentity(lua_State *L) {
             auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
-            lua_pushinteger(L, plStateUd->identity);
+            lua_pushinteger(L, plStateUd->contextInformation.identity);
             return 1;
         }
 

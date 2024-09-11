@@ -359,8 +359,8 @@ int ClosureManager::clonefunction(lua_State *L) {
         ClosureManager::GetSingleton()->FixClosure(L, lua_toclosure(L, -1));
         lua_remove(L, lua_gettop(L) - 1);
 
-        Security::GetSingleton()->SetLuaClosureSecurity(lua_toclosure(L, -1),
-                                                        static_cast<RBX::Lua::ExtraSpace *>(L->userdata)->identity);
+        Security::GetSingleton()->SetLuaClosureSecurity(
+                lua_toclosure(L, -1), static_cast<RBX::Lua::ExtraSpace *>(L->userdata)->contextInformation.identity);
 
         lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
         return 1;

@@ -76,18 +76,6 @@ void rbx_rbxcrash(const char *crashType, const char *crashDescription) {
     VM_END;
 }
 
-RBX::SystemAddress *getNetworkOwner(void *basePart, RBX::SystemAddress *returnAddress) {
-    auto originalFunction = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_getNetworkOwner>(
-            RobloxManager::GetSingleton()->GetHookOriginal("RBX::BasePart::getNetworkOwner"));
-    auto returnOutput = originalFunction(basePart, returnAddress);
-
-    std::stringstream ss;
-    ss << "Get network owner peer id result: " << returnOutput->remoteId.peerId;
-    Logger::GetSingleton()->PrintInformation("RbxStu::GetNetworkHook", ss.str());
-
-    return returnOutput;
-}
-
 std::shared_mutex __rbx__scriptcontext__resumeWaitingThreads__lock;
 
 /// @brief Used for the hook of RBX::ScriptContext::resumeWaitingThreads to prevent accessing uninitialized lua_States.
@@ -584,10 +572,6 @@ void RobloxManager::Initialize() {
     MH_CreateHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"], rbx_rbxcrash, &this->m_mapHookMap["RBX::RBXCRASH"]);
     MH_EnableHook(this->m_mapRobloxFunctions["RBX::RBXCRASH"]);
 
-    // this->m_mapHookMap["RBX::BasePart::getNetworkOwner"] = new void *();
-    // MH_CreateHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"], getNetworkOwner,
-    // &this->m_mapHookMap["RBX::BasePart::getNetworkOwner"]);
-    // MH_EnableHook(this->m_mapRobloxFunctions["RBX::BasePart::getNetworkOwner"]);
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initialization Completed. [3/3]");
     this->m_bInitialized = true;

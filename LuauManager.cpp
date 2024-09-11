@@ -56,9 +56,9 @@ namespace RbxStu {
                                "48 89 5C 24 ? 48 89 6C 24 ? 56 41 54 41 57 48 83 EC ? 48 89 7C 24 ? 4D 8B E1 4C 89 74 "
                                "24 ? 4D 8B F8 48 8B F2 48 8B D9 33 ED 0F 1F 44 00 00 83 7E 0C 06 75 4C");
 
-        _MakeSignature_FromIDA(
-                _luaV_gettable,
-                "48 89 5C 24 ? 55 41 54 41 55 41 56 41 57 48 83 EC ? 48 89 74 24 ? 4C 8D 2D ? ? ? ? 48 89 7C 24 ? 4D 8B E1 4D 8B F8 48 8B DA 4C 8B F1 33 ED 83 7B 0C 06 75 76");
+        _MakeSignature_FromIDA(_luaV_gettable,
+                               "48 89 5C 24 ? 55 41 54 41 55 41 56 41 57 48 83 EC ? 48 89 74 24 ? 4C 8D 2D ? ? ? ? 48 "
+                               "89 7C 24 ? 4D 8B E1 4D 8B F8 48 8B DA 4C 8B F1 33 ED 83 7B 0C 06 75 76");
         const static std::map<std::string, Signature> s_luauSignatureMap = {
                 {"luaV_settable", _luaV_settable}, {"luaV_gettable", _luaV_gettable},
                 {"luaD_throw", _luaD_throw},       {"luau_execute", _luau_execute},
@@ -88,39 +88,6 @@ static void luau__freeblock(lua_State *L, uint32_t sizeClass, void *block) {
 
     return (reinterpret_cast<RbxStu::LuauFunctionDefinitions::freeblock>(
             LuauManager::GetSingleton()->GetHookOriginal("freeblock"))(L, sizeClass, block));
-}
-
-static void newThreadAfter(lua_State *newLuaThread) {
-    Sleep(1000);
-    auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(newLuaThread->userdata);
-    if (plStateUd->identity != 2)
-        return;
-
-    const auto logger = Logger::GetSingleton();
-
-    std::stringstream ss;
-    ss << "0x" << std::hex << std::uppercase << reinterpret_cast<uintptr_t>(newLuaThread) << " thread got identity "
-       << std::dec << plStateUd->identity << " and capabilities 0x" << std::hex << std::uppercase
-       << plStateUd->capabilities;
-
-    logger->PrintInformation("RbxStu::luaE_newthread_hook", ss.str());
-    const auto security = Security::GetSingleton();
-    security->PrintCapabilities(plStateUd->capabilities);
-}
-
-static void *luaE__newthread(lua_State *on) {
-    auto originalFunction = reinterpret_cast<RbxStu::LuauFunctionDefinitions::luaE_newthread>(
-            LuauManager::GetSingleton()->GetHookOriginal("luaE_newthread"));
-    auto newLuaThread = originalFunction(on);
-    const auto logger = Logger::GetSingleton();
-
-    std::stringstream ss;
-    ss << "New lua thread got opened: 0x" << std::hex << std::uppercase << reinterpret_cast<uintptr_t>(newLuaThread);
-    logger->PrintInformation("RbxStu::luaE_newthread_hook", ss.str());
-
-    std::thread([newLuaThread]() { newThreadAfter(newLuaThread); }).detach();
-
-    return newLuaThread;
 }
 
 static std::shared_mutex __luaumanager__singletonmutex;

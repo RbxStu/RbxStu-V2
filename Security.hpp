@@ -7,6 +7,8 @@
 #include <list>
 #include <memory>
 
+#include "Roblox/TypeDefinitions.hpp"
+
 typedef int64_t (*Validator)(int64_t testAgainst, struct lua_State *testWith);
 
 namespace RBX::Lua {
@@ -19,53 +21,24 @@ namespace RBX::Lua {
             void *__intrusive_set_AllThreads;
         };
 
-        char _1[8];
+        char _0[8];
         char _8[8];
         char _10[8];
         struct RBX::Lua::ExtraSpace::Shared *sharedExtraSpace;
         char _20[8];
         Validator *CapabilitiesValidator;
-        uint32_t identity;
-        char _38[9];
-        char _40[8];
+        struct RBX::Security::ExtendedIdentity contextInformation;
         uint64_t capabilities;
-        char _50[9];
+        char _50[8];
         char _58[8];
-        char _60[8];
-        char _68[8];
+        std::weak_ptr<RBX::Actor> actor;
         char _70[8];
-        char _78[8];
-        char _80[8];
+        std::weak_ptr<RBX::Script> script;
         char _88[8];
-        char _90[1];
-        char _91[1];
-        char _92[1];
-        uint8_t taskStatus;
+        bool globalActorState;
+        enum RBX::Luau::TaskState taskStatus;
     };
-    struct OriginalExtraSpace { // Used for pointer validation, DO NOT USE.
-        char _1[8];
-        char _8[8];
-        char _10[8];
-        struct RBX::Lua::ExtraSpace::Shared *sharedExtraSpace;
-        char _20[8];
-        Validator *CapabilitiesValidator;
-        uint32_t identity;
-        char _38[9];
-        char _40[8];
-        uint64_t capabilities;
-        char _50[9];
-        char _58[8];
-        char _60[8];
-        char _68[8];
-        char _70[8];
-        char _78[8];
-        char _80[8];
-        char _88[8];
-        char _90[1];
-        char _91[1];
-        char _92[1];
-        uint8_t taskStatus;
-    };
+
 } // namespace RBX::Lua
 
 class Security final {
@@ -116,6 +89,3 @@ public:
 
 static_assert(sizeof(RBX::Lua::ExtraSpace) == 0x98,
               "RBX::Lua::ExtraSpace aka RobloxExtraSpace has a (known) size of 0x98 bytes.");
-
-static_assert(sizeof(RBX::Lua::OriginalExtraSpace) == 0x98,
-              "RBX::Lua::OriginalExtraSpace aka RobloxExtraSpace has a (known) size of 0x98 bytes.");
