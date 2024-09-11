@@ -16,6 +16,16 @@ namespace RbxStu::Concepts {
 }
 
 namespace RBX {
+    struct IntrusivePtrTarget {
+        std::atomic<int> strong;
+        std::atomic<int> weak;
+    };
+    template<typename T>
+    class IntrusivePtr {
+    public:
+        T *pointer;
+    };
+
     namespace Security {
         enum Permissions : uint32_t {
             None = 0x0,
@@ -242,6 +252,26 @@ namespace RBX {
             char _3c0[0x20];
         };
     } // namespace Reflection
+    namespace Signals {
+        struct SlotBase;
+
+        struct SignalBase {
+            IntrusivePtr<SlotBase> head;
+            std::shared_ptr<std::vector<IntrusivePtr<SlotBase>>> slots;
+        };
+
+        struct SlotBase : RBX::IntrusivePtrTarget {
+            void (*call)(RBX::Signals::SlotBase *);
+            void (*destroy)(RBX::Signals::SlotBase *);
+            IntrusivePtr<RBX::Signals::SlotBase> next;
+            RBX::Signals::SignalBase *owner;
+        };
+
+        class Connection {
+            IntrusivePtr<SlotBase> signal;
+        };
+    } // namespace Signals
+
     struct SystemAddress {
         struct PeerId {
             uint32_t peerId;

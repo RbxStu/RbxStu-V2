@@ -235,7 +235,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                                     Logger::GetSingleton()->PrintWarning(
                                             RbxStu::Anonymous, std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
                                                                            "BLACKLISTED SERVICE! SERVICE ACCESSED: {}",
-                                                                           svcName));
+                                                                           serviceName));
 
                                     if (Communication::GetSingleton()->IsUnsafeMode())
                                         break;
@@ -337,7 +337,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                         Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
                                                              std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
                                                                          "BLACKLISTED SERVICE! SERVICE ACCESSED: {}",
-                                                                         svcName));
+                                                                         serviceName));
 
                         if (Communication::GetSingleton()->IsUnsafeMode())
                             break;

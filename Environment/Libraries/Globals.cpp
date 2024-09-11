@@ -63,6 +63,18 @@ namespace RbxStu {
         return 0;
     }
 
+    int printaddress(lua_State *L) {
+        luaL_checkany(L, 1);
+        auto p = lua_topointer(L, 1);
+        Logger::GetSingleton()->PrintInformation(RbxStu::Anonymous, std::format("Given Object: {}", p));
+        return 0;
+    }
+
+    int gethwid(lua_State *L) {
+        lua_pushstring(L, Utilities::GetHwid()->c_str());
+        return 1;
+    }
+
 } // namespace RbxStu
 
 
@@ -73,6 +85,8 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                     // {"decompile", RbxStu::decompile}, // Stripped for the reasons of security.
                                     {"makeuncollectable", RbxStu::makeuncollectable},
                                     {"makecollectable", RbxStu::makecollectable},
+                                    {"printaddress", RbxStu::printaddress},
+                                    {"gethwid", RbxStu::gethwid},
                                     {nullptr, nullptr}};
 
     return reg;
