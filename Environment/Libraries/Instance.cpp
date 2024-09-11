@@ -193,6 +193,7 @@ luaL_Reg *Instance::GetLibraryFunctions() {
                                     {"setscriptable", RbxStu::Instance::setscriptable},
                                     {"gethiddenproperty", RbxStu::Instance::gethiddenproperty},
                                     {"sethiddenproperty", RbxStu::Instance::sethiddenproperty},
+
                                     {nullptr, nullptr}};
 
     return reg;

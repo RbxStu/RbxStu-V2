@@ -120,7 +120,7 @@ namespace RbxStu {
          *
          *  @remarks This function does not seem to require DataModels' pointer encryption.
          **/
-        MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8B 81 68 04 00 00 C3 CC CC CC CC");
+        MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8B 81 60 04 00 00 C3 CC CC CC CC");
 
         MakeSignature_FromIDA(RBX_DataModel_doDataModelClose,
                               "40 53 48 83 ec ?? 80 3D ?? ?? ?? ?? 00 48 8b d9 74 ?? 80 3d ?? ?? ?? ?? 00 74 ?? 48 8B "
@@ -135,7 +135,7 @@ namespace RbxStu {
          *  @brief First function call in `RBX::Instance::removeAllChildren`.
          **/
         MakeSignature_FromIDA(RBX_Instance_remove, "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B "
-                                                   "D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 49 05 00 00 00 75 12");
+                                                   "D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 41 05 00 00 00 75 12");
 
         MakeSignature_FromIDA(RBX_ScriptContext_setThreadIdentityAndSandbox,
                               "48 89 5C 24 ? 55 56 41 54 41 56 41 57 48 83 EC ? 45 33 F6 4D 8B F8 44 38 35 ? ? ? 06 "
@@ -163,10 +163,6 @@ namespace RbxStu {
 
         MakeSignature_FromIDA(RBX_BasePart_getNetworkOwner, "48 8B 81 ? ? ? ? 8B 88 ? ? ? ? 48 8B C2 89 0A C3");
 
-        MakeSignature_FromIDA(RBX_Players_findPlayerWithAddress,
-                              "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 4C 8B EA 4C 8B F9 4D 85 C0 0F "
-                              "84 AE 02 00 ? 49 8B 78 ? 48 85 FF 74 13 48 8B 4F ? 48 85 C9 74 0D E8 ? ? ? ? 48 8B F8");
-
         MakeSignature_FromIDA(RBX_Instance_getTopAncestor,
                               "48 8B 41 ? 48 85 C0 74 08 48 8B C8 E9 EF FF FF FF 48 8B C1 C3 CC CC");
 
@@ -175,7 +171,7 @@ namespace RbxStu {
          * implementation, it will take in a shared pointer to the base part and the player object. The player object is
          * dereferenced, and lower below its
          */
-        MakeSignature_FromIDA(RBX_Player_getPeerId, "8B 81 F0 05 00 00 89 02 48 8B C2 C3 CC");
+        MakeSignature_FromIDA(RBX_Player_getPeerId, "8B 81 08 06 00 00 89 02 48 8B C2 C3");
 
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
@@ -206,8 +202,6 @@ namespace RbxStu {
 
                 {"RBX::BasePart::getNetworkOwner", RBX_BasePart_getNetworkOwner},
                 {"RBX::Player::getPeerId", RBX_Player_getPeerId},
-
-                {"RBX::Players::findPlayerWithAddress", RBX_Players_findPlayerWithAddress},
 
                 {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose},
                 {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},

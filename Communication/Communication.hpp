@@ -9,6 +9,7 @@
 
 #include "Packets/ScheduleLuauResponsePacket.hpp"
 #include "Roblox/TypeDefinitions.hpp"
+#include "ixwebsocket/IXWebSocket.h"
 
 struct ExecutionStatus {
     ScheduleLuauResponsePacketFlags Status;
@@ -25,6 +26,8 @@ class Communication final {
     bool m_bAllowScriptSourceAccess = false;
 
     std::queue<ExecutionStatus> m_qExecutionReportsQueue;
+
+    std::shared_ptr<ix::WebSocket> WebSocket;
 
     RBX::DataModelType lCurrentExecutionDataModel = RBX::DataModelType_PlayClient;
 
@@ -55,8 +58,9 @@ public:
 
     const std::string &GetFingerprintHeaderName();
 
-    void SetExecutionDataModel(RBX::DataModelType dataModelType);
+    void OnDataModelUpdated(RBX::DataModelType dataModelType, bool wasCreated);
 
+    void SetExecutionDataModel(RBX::DataModelType dataModelType);
     const RBX::DataModelType GetExecutionDataModel();
 
     bool IsCodeGenerationEnabled() const;

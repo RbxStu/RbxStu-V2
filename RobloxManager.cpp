@@ -547,6 +547,12 @@ void RobloxManager::Initialize() {
                 RbxStu::RobloxManager,
                 std::format("End of scan for possible RBX::Reflection::ClassDescriptor! Obtained {} described objects!",
                             this->m_mapClassDescriptors.size()));
+
+        for (const auto &entry: this->m_mapClassDescriptors) {
+            logger->PrintInformation(RbxStu::RobloxManager,
+                                     std::format("- RBX::Reflection::ClassDescriptor for '{}' -> {}", entry.first,
+                                                 static_cast<void *>(entry.second)));
+        }
     }
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
@@ -782,6 +788,7 @@ void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType,
     if (this->m_bInitialized) {
         const auto logger = Logger::GetSingleton();
         if (dataModel && dataModel->m_bIsClosed) {
+            Communication::GetSingleton()->OnDataModelUpdated(dataModelType, false);
             logger->PrintWarning(RbxStu::RobloxManager,
                                  std::format("Attempted to change the current DataModel of type {} but the provided "
                                              "DataModel is marked as closed!",
@@ -789,6 +796,7 @@ void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType,
             return;
         }
         if (dataModel == nullptr) {
+            Communication::GetSingleton()->OnDataModelUpdated(dataModelType, false);
             logger->PrintError(
                     RbxStu::RobloxManager,
                     std::format("Attempted to change the DataModel pointer from {} to nullptr. This may lead to "
@@ -801,6 +809,8 @@ void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType,
         logger->PrintInformation(RbxStu::RobloxManager, std::format("DataModel of type {} modified to point to: {}",
                                                                     RBX::DataModelTypeToString(dataModelType),
                                                                     reinterpret_cast<void *>(dataModel)));
+
+        Communication::GetSingleton()->OnDataModelUpdated(dataModelType, true);
     }
 }
 

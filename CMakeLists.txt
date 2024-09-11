@@ -91,6 +91,7 @@ add_library(Module SHARED
         Communication/Packets/HelloPacket.hpp
         Communication/Packets/ResponseStatusPacket.hpp
         Communication/Packets/ScheduleLuauPacket.hpp
+        Communication/Packets/DataModelUpdatePacket.hpp
         Communication/Packets/ScheduleLuauResponsePacket.hpp
         Communication/Packets/SetScriptSourceAccessPacket.hpp
 

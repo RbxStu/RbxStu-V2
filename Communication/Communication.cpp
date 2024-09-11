@@ -9,6 +9,7 @@
 #include "Environment/EnvironmentManager.hpp"
 #include "Logger.hpp"
 #include "PacketSerdes.hpp"
+#include "Packets/DataModelUpdatePacket.hpp"
 #include "Packets/HelloPacket.hpp"
 #include "Packets/ResponseStatusPacket.hpp"
 #include "Packets/ScheduleLuauPacket.hpp"
@@ -70,6 +71,16 @@ std::string Communication::SetFingerprintHeader(const std::string &header) {
     return old;
 }
 const std::string &Communication::GetFingerprintHeaderName() { return this->m_szFingerprintHeader; }
+
+void Communication::OnDataModelUpdated(const RBX::DataModelType dataModelType, const bool wasCreated) {
+    if (WebSocket->getReadyState() == ix::ReadyState::Open) {
+        const auto serializer = PacketSerdes::GetSingleton();
+        const auto dataModelUpdated = DataModelUpdatePacket{dataModelType, wasCreated};
+
+        const auto generated = serializer->SerializeFromStructure<DataModelUpdatePacket>(dataModelUpdated);
+        this->WebSocket->send(generated.dump(), false);
+    }
+}
 void Communication::SetExecutionDataModel(RBX::DataModelType dataModelType) {
     this->lCurrentExecutionDataModel = dataModelType;
 }
@@ -93,7 +104,8 @@ bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptS
     }
 
     logger->PrintInformation(RbxStu::Communication, "Starting ix::WebSocket for communication!");
-    const auto webSocket = std::make_unique<ix::WebSocket>();
+    auto webSocket = std::make_shared<ix::WebSocket>();
+    communication->WebSocket = webSocket;
     webSocket->setUrl(szRemoteHost);
     webSocket->setOnMessageCallback([&robloxManager, &environmentManager, &scheduler, &communication, &serializer,
                                      &logger, &webSocket](const ix::WebSocketMessagePtr &message) {
@@ -507,6 +519,6 @@ void Communication::HandlePipe(const std::string &szPipeName) {
         Script.clear();
     }
 }
-void Communication::ReportExecutionStatus(const ExecutionStatus& execStatus) {
+void Communication::ReportExecutionStatus(const ExecutionStatus &execStatus) {
     this->m_qExecutionReportsQueue.emplace(execStatus);
 }
