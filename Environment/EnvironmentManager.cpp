@@ -229,7 +229,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             lua_getfield(L, -1, "__type");
 
             if (const auto s = lua_tostring(L, -1);
-                strcmp(s, "Instance") == 0) { // FIXME: missing argument #1 (Instance expected)
+                strcmp(s, "Instance") == 0) {
                 lua_pop(L, 3);
                 lua_pushstring(L, "ClassName");
                 __index_game_original(L);
@@ -354,7 +354,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             lua_getfield(L, -1, "__type");
 
             if (const auto s = lua_tostring(L, -1);
-                strcmp(s, "Instance") == 0) { // FIXME: missing argument #1 (Instance expected)
+                strcmp(s, "Instance") == 0) {
                 lua_pushvalue(L, 1);
                 lua_getfield(L, -1, "ClassName");
                 auto instanceClassName = lua_tostring(L, -1);
