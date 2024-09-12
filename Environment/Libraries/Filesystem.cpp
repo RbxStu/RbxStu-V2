@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 
 bool canBeUsed = false;
 std::filesystem::path workspaceDir;
-std::unordered_set<std::string> blacklistedExtensions = {".exe", ".dll", ".bat", ".cmd", ".scr", ".vbs", ".js",
+std::unordered_set<std::string> blacklistedExtensions = {".wsf", ".exe", ".dll", ".bat", ".cmd", ".scr", ".vbs", ".js",
                                                          ".ts",  ".wsf", ".msi", ".com", ".lnk", ".ps1", ".py",
                                                          ".py3", ".pyc", ".pyw", ".scr", ".msi", ".html"};
 
