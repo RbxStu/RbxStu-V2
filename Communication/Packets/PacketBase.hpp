@@ -51,6 +51,10 @@ namespace RbxStu::WebSocketCommunication {
         /// (LocalScript, Script, ModuleScript, ...)
         /// @remarks This packet uses PacketFlags.
         SetScriptSourceAccessPacket = 0xA,
+
+        /// @brief Will send every time a DataModel is removed and added.
+        /// @remarks This packet uses PacketFlags.
+        DataModelUpdatePacket = 0xB,
     };
 }; // namespace RbxStu::WebSocketCommunication
 

@@ -787,7 +787,7 @@ void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType,
     std::lock_guard lock{__datamodelModificationMutex};
     if (this->m_bInitialized) {
         const auto logger = Logger::GetSingleton();
-        if (dataModel && dataModel->m_bIsClosed) {
+        if (dataModel && !dataModel->m_bIsOpen) {
             Communication::GetSingleton()->OnDataModelUpdated(dataModelType, false);
             logger->PrintWarning(RbxStu::RobloxManager,
                                  std::format("Attempted to change the current DataModel of type {} but the provided "
@@ -817,7 +817,7 @@ void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType,
 bool RobloxManager::IsDataModelValid(const RBX::DataModelType &type) const {
     if (this->m_bInitialized && this->GetCurrentDataModel(type).has_value()) {
         const auto dataModel = this->GetCurrentDataModel(type).value();
-        return Utilities::IsPointerValid(dataModel) && !dataModel->m_bIsClosed;
+        return Utilities::IsPointerValid(dataModel) && dataModel->m_bIsOpen;
     }
 
     return false;

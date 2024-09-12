@@ -22,7 +22,7 @@ enum DataModelUpdatePacketFlags {
 class DataModelUpdatePacket final : public PacketBase {
 public:
     __forceinline DataModelUpdatePacket(RBX::DataModelType dataModel, bool wasCreated = false) {
-        this->ulPacketId = RbxStu::WebSocketCommunication::ScheduleLuauPacket;
+        this->ulPacketId = RbxStu::WebSocketCommunication::DataModelUpdatePacket;
         this->ullPacketFlags =
                 (1ull << static_cast<std::uint64_t>(dataModel)) | (wasCreated ? (1ull << 5ull) : (1ull << 6ull));
     }

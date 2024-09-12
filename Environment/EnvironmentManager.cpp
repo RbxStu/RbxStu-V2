@@ -233,18 +233,20 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 lua_pop(L, 3);
                 lua_pushstring(L, "ClassName");
                 __index_game_original(L);
-                auto instanceClassName = lua_tostring(L, -1);
+                const auto instanceClassName = Utilities::ToLower(lua_tostring(L, -1));
                 lua_pop(L, 2);
                 lua_pushstring(L, index);
 
                 const auto indexAsString = std::string(index);
-                if (specificBlockage.contains(instanceClassName)) {
-                    for (const auto &func: specificBlockage[instanceClassName]) {
-                        if (indexAsString.find(func) != std::string::npos) {
-                            goto banned__index;
+                for (const auto &[bannedName, sound]: specificBlockage) {
+                    if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
+                        for (const auto &func: sound) {
+                            if (indexAsString.find(func) != std::string::npos) {
+                                goto banned__index;
+                            }
+                            if (func == "BLOCK_ALL")
+                                goto banned__index; // Block all regardless.
                         }
-                        if (func == "BLOCK_ALL")
-                            goto banned__index; // Block all regardless.
                     }
                 }
             } else {
@@ -357,17 +359,20 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             if (const auto s = lua_tostring(L, -1); strcmp(s, "Instance") == 0) {
                 lua_pushvalue(L, 1);
                 lua_getfield(L, -1, "ClassName");
-                auto instanceClassName = lua_tostring(L, -1);
+                const auto instanceClassName = Utilities::ToLower(lua_tostring(L, -1));
                 lua_pop(L, 4);
 
                 const auto namecallAsString = std::string(namecall);
-                if (specificBlockage.contains(instanceClassName)) {
-                    for (const auto &func: specificBlockage[instanceClassName]) {
-                        if (namecallAsString.find(func) != std::string::npos) {
-                            goto banned__namecall;
+
+                for (const auto &[bannedName, sound]: specificBlockage) {
+                    if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
+                        for (const auto &func: sound) {
+                            if (namecallAsString.find(func) != std::string::npos) {
+                                goto banned__namecall;
+                            }
+                            if (func == "BLOCK_ALL")
+                                goto banned__namecall; // Block all regardless.
                         }
-                        if (func == "BLOCK_ALL")
-                            goto banned__namecall; // Block all regardless.
                     }
                 }
             } else {
