@@ -73,7 +73,7 @@ std::string Communication::SetFingerprintHeader(const std::string &header) {
 const std::string &Communication::GetFingerprintHeaderName() { return this->m_szFingerprintHeader; }
 
 void Communication::OnDataModelUpdated(const RBX::DataModelType dataModelType, const bool wasCreated) {
-    if (WebSocket->getReadyState() == ix::ReadyState::Open) {
+    if (WebSocket.get() && WebSocket->getReadyState() == ix::ReadyState::Open) {
         const auto serializer = PacketSerdes::GetSingleton();
         const auto dataModelUpdated = DataModelUpdatePacket{dataModelType, wasCreated};
 
