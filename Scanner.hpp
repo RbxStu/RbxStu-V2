@@ -35,7 +35,7 @@ class Scanner final {
     /// calculate the base address of the returned void pointers.
     /// @return A vector containing all the addresses that matched, translated from the buffers address into the
     /// BaseAddress provided by memoryInformation.
-    static std::vector<void *> ScanInternal(_In_ const unsigned char *buffer, _In_ const std::size_t bufferSize,
+    static std::vector<void *> ScanInternal(_In_ const unsigned char *buffer, _In_ std::size_t bufferSize,
                                             _In_ const Signature &signature,
                                             _In_ const MEMORY_BASIC_INFORMATION &memoryInformation);
 

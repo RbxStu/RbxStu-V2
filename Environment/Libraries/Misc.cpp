@@ -193,12 +193,8 @@ namespace RbxStu {
                         auto Headers = std::map<std::string, std::string, cpr::CaseInsensitiveCompare>();
                         Headers["User-Agent"] = "Roblox/WinInet";
 
-                        if (const auto optionalHardwareId = Utilities::GetHwid(); !optionalHardwareId.has_value())
-                            Headers[Communication::GetSingleton()->GetFingerprintHeaderName()] =
-                                    "8F3A2C1BE9D70F4"; // Stub value if GetHwid fails.
-                        else
-                            Headers[Communication::GetSingleton()->GetFingerprintHeaderName()] =
-                                    optionalHardwareId.value();
+                        auto communication = Communication::GetSingleton();
+                        Headers[communication->GetFingerprintHeaderName()] = communication->GetHardwareId();
 
                         const auto response = cpr::Get(cpr::Url{url}, cpr::Header{Headers});
 
@@ -288,11 +284,8 @@ namespace RbxStu {
                 auto Headers = std::map<std::string, std::string, cpr::CaseInsensitiveCompare>();
                 Headers["User-Agent"] = "Roblox/WinInet";
 
-                if (const auto optionalHardwareId = Utilities::GetHwid(); !optionalHardwareId.has_value())
-                    Headers[Communication::GetSingleton()->GetFingerprintHeaderName()] =
-                            "8F3A2C1BE9D70F4"; // Stub value if GetHwid fails.
-                else
-                    Headers[Communication::GetSingleton()->GetFingerprintHeaderName()] = optionalHardwareId.value();
+                auto communication = Communication::GetSingleton();
+                Headers[communication->GetFingerprintHeaderName()] = communication->GetHardwareId();
 
                 lua_getfield(L, 1, "Headers");
                 if (!lua_isnil(L, -1)) {

@@ -11,13 +11,13 @@
 #include "PacketSerdes.hpp"
 #include "Packets/DataModelUpdatePacket.hpp"
 #include "Packets/HelloPacket.hpp"
+#include "Packets/HttpConfigurationPacket.hpp"
 #include "Packets/ResponseStatusPacket.hpp"
 #include "Packets/ScheduleLuauPacket.hpp"
 #include "Packets/SetExecutionDataModelPacket.hpp"
 #include "Packets/SetFastVariablePacket.hpp"
 #include "Packets/SetFunctionBlockStatePacket.hpp"
 #include "Packets/SetNativeCodeGenPacket.hpp"
-#include "Packets/SetRequestFingerprintPacket.hpp"
 #include "Packets/SetSafeModePacket.hpp"
 #include "Packets/SetScriptSourceAccessPacket.hpp"
 #include "RobloxManager.hpp"
@@ -28,6 +28,13 @@
 std::shared_ptr<Communication> Communication::pInstance;
 
 static std::mutex __get_singleton_lock{};
+
+Communication::Communication() {
+    if (const auto hwid = Utilities::GetHwid(); hwid.has_value())
+        this->m_szHardwareId = hwid.value();
+    else
+        this->m_szHardwareId = "8F3A2C1BE9D70F4";
+}
 
 std::shared_ptr<Communication> Communication::GetSingleton() {
     std::scoped_lock lock{__get_singleton_lock};
@@ -88,6 +95,7 @@ const RBX::DataModelType Communication::GetExecutionDataModel() { return this->l
 bool Communication::IsCodeGenerationEnabled() const { return this->m_bEnableCodeGen; }
 void Communication::SetCodeGenerationEnabled(const bool enableCodeGen) { this->m_bEnableCodeGen = enableCodeGen; }
 bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptSourceAccess; }
+std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
 
 [[noreturn]] void Communication::NewCommunication(const std::string &szRemoteHost) {
     const auto logger = Logger::GetSingleton();
@@ -245,11 +253,23 @@ bool Communication::CanAccessScriptSource() const { return this->m_bAllowScriptS
                         break;
                     }
 
-                    case RbxStu::WebSocketCommunication::SetRequestFingerprintPacket: {
-                        if (const auto packet =
-                                    serializer->DeserializeFromJson<SetRequestFingerprintPacket>(message->str);
+                    case RbxStu::WebSocketCommunication::HttpConfigurationPacket: {
+                        if (const auto packet = serializer->DeserializeFromJson<HttpConfigurationPacket>(message->str);
                             packet.has_value()) {
                             communication->m_szFingerprintHeader = std::string(packet->szNewFingerprint);
+                            if (packet->szNewHwid.empty()) {
+                                logger->PrintWarning(RbxStu::Communication,
+                                                     "HttpConfigurationPacket provided no new HardwareID. "
+                                                     "Automatically using the DEFAULT system hardware ID.");
+                                if (const auto hwid = Utilities::GetHwid(); hwid.has_value())
+                                    communication->m_szHardwareId = hwid.value();
+                                else
+                                    logger->PrintError(RbxStu::Communication,
+                                                       "Hardware ID not changed! There has been an error obtaining "
+                                                       "your PC's Hardware ID!");
+                            } else {
+                                communication->m_szHardwareId = std::string(packet->szNewHwid);
+                            }
                             wasSuccess = true;
                         } else {
                             logger->PrintWarning(

@@ -71,7 +71,7 @@ namespace RbxStu {
     }
 
     int gethwid(lua_State *L) {
-        lua_pushstring(L, Utilities::GetHwid()->c_str());
+        lua_pushstring(L, Communication::GetSingleton()->GetHardwareId().c_str());
         return 1;
     }
 

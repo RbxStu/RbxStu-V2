@@ -35,7 +35,7 @@ namespace RBX::Lua {
         char _70[8];
         std::weak_ptr<RBX::Script> script;
         char _88[8];
-        bool globalActorState;
+        bool isActorState;
         enum RBX::Luau::TaskState taskStatus;
     };
 

@@ -32,9 +32,11 @@ class Communication final {
     RBX::DataModelType lCurrentExecutionDataModel = RBX::DataModelType_PlayClient;
 
     std::string m_szFingerprintHeader = "RbxStu-Fingerprint";
-
+    std::string m_szHardwareId = "";
 
 public:
+    Communication();
+
     static std::shared_ptr<Communication> GetSingleton();
 
     /// @brief Defines if the DLL should run in UNSAFE mode, turning off all protections, leaving raw execution.
@@ -66,6 +68,8 @@ public:
     bool IsCodeGenerationEnabled() const;
     void SetCodeGenerationEnabled(bool enableCodeGen);
     bool CanAccessScriptSource() const;
+    std::string GetHardwareId();
+    ;
 
     /// @brief Swiftly handles the WebSocket used for advanced communication with RbxStu V2.
     /// @param szRemoteHost The remote host that will handle the communication.

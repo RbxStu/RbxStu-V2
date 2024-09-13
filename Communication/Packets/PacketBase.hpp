@@ -28,7 +28,7 @@ namespace RbxStu::WebSocketCommunication {
 
         /// @brief Sets the Fingerprint used on the HTTP header for game:HttpGet, httpget, and
         /// request/http_request/http.request.
-        SetRequestFingerprintPacket = 0x4,
+        HttpConfigurationPacket = 0x4,
 
         /// @brief Sets the safe mode for RbxStu V2. This will toggle all built-in security, beware.
         SetSafeModePacket = 0x5,
