@@ -86,8 +86,8 @@ add_library(Module SHARED
         Communication/Packets/SetFunctionBlockStatePacket.hpp
         Communication/Packets/SetNativeCodeGenPacket.hpp
         Communication/Packets/SetFastVariablePacket.hpp
-        Communication/Packets/SetRequestFingerprintPacket.hpp
         Communication/Packets/SetExecutionDataModelPacket.hpp
+        Communication/Packets/HttpConfigurationPacket.hpp
         Communication/Packets/HelloPacket.hpp
         Communication/Packets/ResponseStatusPacket.hpp
         Communication/Packets/ScheduleLuauPacket.hpp
