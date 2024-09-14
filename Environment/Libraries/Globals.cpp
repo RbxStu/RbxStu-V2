@@ -75,6 +75,24 @@ namespace RbxStu {
         return 1;
     }
 
+    int isnativecode(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        const auto cl = lua_toclosure(L, 1);
+
+        lua_pushboolean(L, cl->isC || cl->l.p->execdata != nullptr);
+        return 1;
+    }
+
+    int compiletonative(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        const Luau::CodeGen::CompilationOptions opts{Luau::CodeGen::CodeGenFlags::CodeGen_ColdFunctions};
+        Logger::GetSingleton()->PrintInformation(RbxStu::Anonymous, "Compiling function into native code...");
+        Luau::CodeGen::compile(L, -1, opts);
+
+        return 0;
+    }
 } // namespace RbxStu
 
 
@@ -87,6 +105,8 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                     {"makecollectable", RbxStu::makecollectable},
                                     {"printaddress", RbxStu::printaddress},
                                     {"gethwid", RbxStu::gethwid},
+                                    {"compiletonative", RbxStu::compiletonative},
+                                    {"isnativecode", RbxStu::isnativecode},
                                     {nullptr, nullptr}};
 
     return reg;
