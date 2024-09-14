@@ -10,6 +10,7 @@
 
 #include "ClosureManager.hpp"
 #include "Communication/Communication.hpp"
+#include "Luau/Bytecode.h"
 #include "Luau/CodeGen/include/Luau/CodeGen.h"
 #include "Luau/Compiler.h"
 #include "RobloxManager.hpp"
@@ -84,6 +85,16 @@ namespace RbxStu {
         return 1;
     }
 
+    int hasnativecode(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        const auto cl = lua_toclosure(L, 1);
+
+        lua_pushboolean(L,
+                        ((cl->l.p->flags & LuauProtoFlag::LPF_NATIVE_FUNCTION) == LuauProtoFlag::LPF_NATIVE_FUNCTION));
+        return 1;
+    }
+
     int compiletonative(lua_State *L) {
         luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
 
@@ -141,6 +152,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                     {"gethwid", RbxStu::gethwid},
                                     {"compiletonative", RbxStu::compiletonative},
                                     {"isnativecode", RbxStu::isnativecode},
+                                    {"hasnativecode", RbxStu::hasnativecode},
                                     {"deoptimizefromnative", RbxStu::deoptimizefromnative},
                                     {nullptr, nullptr}};
 
