@@ -82,7 +82,6 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "analyticsservice",
                                                    "ixpservice",
                                                    "commerceservice",
-                                                   //"marketplaceservice", Needs to be enabled for IY to even load
                                                    "sessionservice",
                                                    "studioservice",
                                                    "platformcloudstorageservice",
@@ -114,10 +113,67 @@ static std::vector<std::string> blockedFunctions = {
 static std::map<std::string, std::vector<std::string>> specificBlockage = {
         {std::string{"OpenCloudService"}, std::vector<std::string>{"RegisterOpenCloud"}},
         {std::string{"HttpService"}, std::vector<std::string>{"SetHttpEnabled"}},
-        {std::string{"BrowserService"}, std::vector<std::string>{"BLOCK_ALL"}},
-        //{std::string{"DataModel"}, std::vector<std::string>{"Load"}}, Unintentionally blocks game:IsLoaded()
-        {std::string{"HttpRbxApiService"}, std::vector<std::string>{"BLOCK_ALL"}},
-        {std::string{"MessageBusService"}, std::vector<std::string>{"BLOCK_ALL"}} // Block all.
+       {std::string{"BrowserService"},
+         std::vector<std::string>{
+                 "CopyAuthCookieFromBrowserToEngine",
+                 "EmitHybridEvent",
+                 "ExecuteJavaScript",
+                 "OpenBrowserWindow",
+                 "OpenNativeOverlay",
+                 "OpenWeChatAuthWindow",
+                 "ReturnToJavaScript",
+                 "SendCommand",
+         }},
+        {std::string{"DataModel"}, std::vector<std::string>{"Load"}},
+        {std::string{"HttpRbxApiService"},
+         std::vector<std::string>{
+                 "PostAsync",
+                 "PostAsyncFullUrl",
+                 "GetAsync",
+                 "GetAsyncFullUrl",
+                 "RequestAsync",
+                 "RequestLimitedAsync",
+
+         }},
+        {std::string{"MessageBusService"},
+         std::vector<std::string>{
+                 "Call",
+                 "GetLast",
+                 "GetMessageId",
+                 "GetProtocolRequestMessageId",
+                 "GetProtocolResponseMessageId",
+                 "MakeRequest",
+                 "Publish",
+                 "PublishProtocolMethodRequest",
+                 "PublishProtocolMethodResponse",
+                 "SetRequestHandler",
+                 "Subscribe",
+                 "SubscribeToProtocolMethodRequest",
+                 "SubscribeToProtocolMethodResponse",
+         }},
+        {std::string{"MarketplaceService"},
+         std::vector<std::string>{
+                 "GetRobuxBalance",
+                 "GetUserSubscriptionDetailsInternalAsync",
+                 "PerformBulkPurchase",
+                 "PerformPurchase",
+                 "PerformPurchaseV2",
+                 "PerformSubscriptionPuchase",
+                 "PerformSubscriptionPuchaseV2",
+                 "PrepareCollectiblesPurchase",
+                 "PlayerOwnsAsset",
+                 "PlayerOwnsBundle",
+                 "PromptBulkPurchase",
+                 "PromptBundlePurchase",
+                 "PromptCancelSubscription",
+                 "PromptCollectiblesPurchase",
+                 "PromptGamePassPurchase",
+                 "PromptNativePurchaseWithLocalPlayer",
+                 "PromptPremiumPurchase",
+                 "PromptRobloxPurchase",
+                 "PromptThirdPartyPurchase",
+                 "ReportAssetSale",
+         }},
 };
 
 void EnvironmentManager::SetFunctionBlocked(const std::string &functionName, bool status) {
@@ -166,10 +222,10 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
     const auto logger = Logger::GetSingleton();
 
     // Don't replace renv globals.
-    // lua_pushvalue(L, LUA_GLOBALSINDEX);
-    // lua_setglobal(L, "_G");
-    // lua_pushvalue(L, LUA_GLOBALSINDEX);
-    // lua_setglobal(L, "shared");
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
+    lua_setglobal(L, "_G");
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
+    lua_setglobal(L, "shared");
     lua_pushvalue(L, LUA_GLOBALSINDEX);
     lua_setglobal(L, "_ENV");
 
@@ -215,14 +271,12 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             const auto loweredIndex = Utilities::ToLower(index);
             for (const auto &func: blockedFunctions) {
                 if (loweredIndex.find(func) != std::string::npos) {
-                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__index;
                 }
             }
 
             for (const auto &func: blockedServices) {
                 if (loweredIndex.find(func) != std::string::npos) {
-                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__index;
                 }
             }
@@ -244,13 +298,10 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                     if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
                         for (const auto &func: sound) {
                             if (indexAsString.find(func) != std::string::npos) {
-                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                                 goto banned__index;
                             }
-                            if (func == "BLOCK_ALL" && strcmp(index, "ClassName") != 0) { // Caused dex to error bc it was reading its ClassName
-                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
+                            if (func == "BLOCK_ALL")
                                 goto banned__index; // Block all regardless.
-                            }
                         }
                     }
                 }
@@ -327,12 +378,12 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             banned__index:
                 Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
                                                      std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
-                                                                 "BLACKLISTED PROPERTY/FUNCTION! PROPERTY/FUNCTION ACCESSED: {}",
+                                                                 "BLACKLISTED FUNCTION/SERVICE! FUNCTION ACCESSED: {}",
                                                                  index));
                 if (Communication::GetSingleton()->IsUnsafeMode())
                     return __index_game_original(L);
 
-                luaL_errorL(L, "This property/function has been blocked for security");
+                luaL_errorL(L, "This service/function has been blocked for security");
             }
 
 
@@ -348,14 +399,12 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             const auto loweredNamecall = Utilities::ToLower(namecall);
             for (const auto &func: blockedFunctions) {
                 if (loweredNamecall.find(func) != std::string::npos) {
-                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__namecall;
                 }
             }
 
             for (const auto &func: blockedServices) {
                 if (loweredNamecall.find(func) != std::string::npos) {
-                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__namecall;
                 }
             }
@@ -375,13 +424,10 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                     if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
                         for (const auto &func: sound) {
                             if (namecallAsString.find(func) != std::string::npos) {
-                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                                 goto banned__namecall;
                             }
-                            if (func == "BLOCK_ALL") {
-                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
+                            if (func == "BLOCK_ALL")
                                 goto banned__namecall; // Block all regardless.
-                            }
                         }
                     }
                 }

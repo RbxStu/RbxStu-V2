@@ -81,7 +81,7 @@ namespace RbxStu {
 
         const auto cl = lua_toclosure(L, 1);
 
-        lua_pushboolean(L, cl->isC || cl->l.p->execdata != nullptr);
+        lua_pushboolean(L, lua_iscfunction(L, 1) || cl->l.p->execdata != nullptr);
         return 1;
     }
 
@@ -90,6 +90,9 @@ namespace RbxStu {
 
         const auto cl = lua_toclosure(L, 1);
 
+        if (lua_iscfunction(L, 1))
+            luaL_argerror(L, 1, "Lua closure expected");
+
         lua_pushboolean(L,
                         ((cl->l.p->flags & LuauProtoFlag::LPF_NATIVE_FUNCTION) == LuauProtoFlag::LPF_NATIVE_FUNCTION));
         return 1;
@@ -97,6 +100,9 @@ namespace RbxStu {
 
     int compiletonative(lua_State *L) {
         luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        if (lua_iscfunction(L, 1))
+            luaL_argerror(L, 1, "Lua closure expected");
 
         const Luau::CodeGen::CompilationOptions opts{Luau::CodeGen::CodeGenFlags::CodeGen_ColdFunctions};
         Logger::GetSingleton()->PrintInformation(RbxStu::Anonymous, "Compiling function into native code...");
@@ -123,7 +129,7 @@ namespace RbxStu {
 
         const auto cl = lua_toclosure(L, 1);
 
-        if (cl->isC)
+        if (lua_iscfunction(L, 1))
             luaL_argerror(L, 1, "Lua closure expected");
 
         auto currentCi = L->ci;
@@ -138,6 +144,17 @@ namespace RbxStu {
 
         return 0;
     }
+
+    int decompile(lua_State *L) {
+        Utilities::checkInstance(L, 1, "LuaSourceContainer");
+        if (Communication::GetSingleton()->CanAccessScriptSource()) {
+            lua_getfield(L, 1, "Source");
+            return 1;
+        }
+
+        lua_pushstring(L, "-- decompile unavailable");
+        return 1;
+    }
 } // namespace RbxStu
 
 
@@ -145,7 +162,7 @@ std::string Globals::GetLibraryName() { return "rbxstu"; }
 luaL_Reg *Globals::GetLibraryFunctions() {
     // WARNING: you MUST add nullptr at the end of luaL_Reg declarations, else, Luau will choke.
     const auto reg = new luaL_Reg[]{{"isluau", RbxStu::isluau},
-                                    // {"decompile", RbxStu::decompile}, // Stripped for the reasons of security.
+                                    {"decompile", RbxStu::decompile}, // Stripped for the reasons of security.
                                     {"makeuncollectable", RbxStu::makeuncollectable},
                                     {"makecollectable", RbxStu::makecollectable},
                                     {"printaddress", RbxStu::printaddress},
