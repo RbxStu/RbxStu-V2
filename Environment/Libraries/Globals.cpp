@@ -93,6 +93,40 @@ namespace RbxStu {
 
         return 0;
     }
+
+    void deoptimize_all_protos(Proto *p) {
+        if (p == nullptr)
+            return;
+
+        for (int i = 0; i < p->sizep; i++) {
+            auto currentProto = (p + i);
+            currentProto->flags = 0;
+            currentProto->exectarget = 0;
+            free(currentProto->execdata);
+            currentProto->execdata = nullptr;
+        }
+    }
+
+    int deoptimizefromnative(lua_State *L) {
+        luaL_checktype(L, 1, lua_Type::LUA_TFUNCTION);
+
+        const auto cl = lua_toclosure(L, 1);
+
+        if (cl->isC)
+            luaL_argerror(L, 1, "Lua closure expected");
+
+        auto currentCi = L->ci;
+        while (L->base_ci < currentCi) {
+            if (currentCi->func->value.p == cl)
+                luaL_argerror(L, 1, "The function to deoptimize from native cannot be on the callstack");
+
+            currentCi--;
+        }
+
+        deoptimize_all_protos(cl->l.p);
+
+        return 0;
+    }
 } // namespace RbxStu
 
 
@@ -107,6 +141,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                     {"gethwid", RbxStu::gethwid},
                                     {"compiletonative", RbxStu::compiletonative},
                                     {"isnativecode", RbxStu::isnativecode},
+                                    {"deoptimizefromnative", RbxStu::deoptimizefromnative},
                                     {nullptr, nullptr}};
 
     return reg;
