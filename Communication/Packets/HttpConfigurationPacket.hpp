@@ -29,9 +29,11 @@ struct HttpConfigurationPacket final : public PacketBase {
 
         json.at("packet_id").get_to(result.ulPacketId);
         json.at("packet_flags").get_to(result.ullPacketFlags);
-        json.at("new_http_fingerprint").get_to(result.szNewFingerprint);
+        if (json.contains("new_http_fingerprint"))
+            json.at("new_http_fingerprint").get_to(result.szNewFingerprint);
         if (json.contains("new_hwid"))
             json.at("new_hwid").get_to(result.szNewHwid);
+
         return result;
     }
 };

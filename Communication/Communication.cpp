@@ -49,14 +49,14 @@ bool Communication::IsUnsafeMode() const { return this->m_bIsUnsafe; }
 void Communication::SetUnsafeMode(const bool isUnsafe) {
     const auto logger = Logger::GetSingleton();
     if (isUnsafe) {
-        const auto ret = MessageBox(nullptr, "WARNING",
+        const auto ret = MessageBox(nullptr,
                                     "An attempt has been made to disable RbxStu's Safe Mode! This may constitute a "
                                     "malicious author "
                                     "trying to lower the security of the execution environment to steal ROBUX or "
                                     "other "
                                     "valuables! If you did not allow this, press No, and Safe Mode will remain "
                                     "active.",
-                                    MB_YESNO | MB_ICONHAND | MB_SYSTEMMODAL | MB_TOPMOST | MB_SETFOREGROUND);
+                                    "WARNING", MB_YESNO | MB_ICONHAND | MB_SYSTEMMODAL | MB_TOPMOST | MB_SETFOREGROUND);
 
         if (ret == IDYES) {
             logger->PrintWarning(RbxStu::Communication, "RbxStu's Safe Mode has been disabled!");
@@ -256,7 +256,16 @@ std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
                     case RbxStu::WebSocketCommunication::HttpConfigurationPacket: {
                         if (const auto packet = serializer->DeserializeFromJson<HttpConfigurationPacket>(message->str);
                             packet.has_value()) {
-                            communication->m_szFingerprintHeader = std::string(packet->szNewFingerprint);
+
+                            if (packet->szNewFingerprint.empty()) {
+                                logger->PrintWarning(RbxStu::Communication,
+                                                     "HttpConfigurationPacket provided no new Fingerprint. "
+                                                     "Automatically using the DEFAULT RbxStu-Fingerprint!");
+                                communication->m_szFingerprintHeader = "RbxStu-Fingerprint";
+                            } else {
+                                communication->m_szFingerprintHeader = std::string(packet->szNewFingerprint);
+                            }
+
                             if (packet->szNewHwid.empty()) {
                                 logger->PrintWarning(RbxStu::Communication,
                                                      "HttpConfigurationPacket provided no new HardwareID. "
@@ -375,7 +384,7 @@ std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
                                                       SetScriptSourceAccessPacketFlags::AllowSourceAccess;
                             if (sourceAccess) {
                                 const auto ret = MessageBox(
-                                        nullptr, "WARNING",
+                                        nullptr,
                                         "An attempt enable .Source access to executed scripts! This may lead to your "
                                         "entire game being at risk of being dumped by malicious actors who recognize "
                                         "the RbxStu V2 environment. This is the ONLY warning you will receive, this is "
@@ -383,6 +392,8 @@ std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
                                         "RbxStu, which is to contribute to stopping cheats/improve developer "
                                         "experience. Only allow .Source access when you trust the script "
                                         "provider/author!",
+                                        "WARNING",
+
                                         MB_YESNO | MB_ICONHAND | MB_SYSTEMMODAL | MB_TOPMOST | MB_SETFOREGROUND);
 
                                 if (ret == IDYES) {
@@ -428,16 +439,18 @@ std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
                 break;
             }
             case ix::WebSocketMessageType::Open: {
-                logger->PrintInformation(RbxStu::Communication,
-                                         "Sending HELLO to UI with all of RbxStu's current configuration!");
-                auto hello = HelloPacket{};
-                hello.szFingerprintHeader = communication->m_szFingerprintHeader;
-                hello.bIsSafeModeEnabled = !communication->m_bIsUnsafe;
-                hello.lCurrentExecutionDataModel = communication->lCurrentExecutionDataModel;
-                hello.bIsNativeCodeGenEnabled = communication->m_bEnableCodeGen;
+                if (webSocket->getReadyState() == ix::ReadyState::Open) {
+                    logger->PrintInformation(RbxStu::Communication,
+                                             "Sending HELLO to UI with all of RbxStu's current configuration!");
+                    auto hello = HelloPacket{};
+                    hello.szFingerprintHeader = communication->m_szFingerprintHeader;
+                    hello.bIsSafeModeEnabled = !communication->m_bIsUnsafe;
+                    hello.lCurrentExecutionDataModel = communication->lCurrentExecutionDataModel;
+                    hello.bIsNativeCodeGenEnabled = communication->m_bEnableCodeGen;
 
-                const auto generated = serializer->SerializeFromStructure(hello);
-                webSocket->send(generated.dump(), false);
+                    const auto generated = serializer->SerializeFromStructure(hello);
+                    webSocket->send(generated.dump(), false);
+                }
                 break;
             }
             case ix::WebSocketMessageType::Close:
@@ -494,6 +507,7 @@ std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
             }
         }
         logger->PrintWarning(RbxStu::Communication, "Websocket connection lost. Beginning reconnection!");
+        webSocket->stop();
         std::this_thread::sleep_for(std::chrono::milliseconds{5000});
     }
 
