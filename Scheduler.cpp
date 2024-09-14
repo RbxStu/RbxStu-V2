@@ -95,7 +95,7 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
         security->SetLuaClosureSecurity(pClosure, 8);
 
         if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
-            const Luau::CodeGen::CompilationOptions opts{0};
+            const Luau::CodeGen::CompilationOptions opts{Luau::CodeGen::CodeGenFlags::CodeGen_ColdFunctions};
             logger->PrintInformation(RbxStu::Scheduler,
                                      "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
             Luau::CodeGen::compile(L, -1, opts);
@@ -281,12 +281,8 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     security->SetLuaClosureSecurity(lua_toclosure(L, -1), 8);
 
-    if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
-        Luau::CodeGen::CompilationOptions nativeOptions;
-        logger->PrintInformation(RbxStu::Scheduler,
-                                 "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
-        Luau::CodeGen::compile(L, -1, nativeOptions);
-    }
+    Luau::CodeGen::CompilationOptions nativeOptions{Luau::CodeGen::CodeGenFlags::CodeGen_ColdFunctions};
+    Luau::CodeGen::compile(L, -1, nativeOptions);
 
     // if (robloxManager->GetRobloxTaskDefer().has_value()) {
     //     const auto defer = robloxManager->GetRobloxTaskDefer().value();
@@ -312,9 +308,9 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     lua_pop(rL, lua_gettop(rL));
 
     if (Communication::GetSingleton()->IsUnsafeMode()) {
-        logger->PrintWarning(
-                RbxStu::Scheduler,
-                "WARNING! YOU ARE RUNNING IN UNSAFE MODE! ANY SCRIPT RUN CAN RESULT IN DANGEROUS CONSEQUENCES! ONCE YOU FINISH PLAYING AROUND ENABLE SAFE MODE BACK ON!");
+        logger->PrintWarning(RbxStu::Scheduler,
+                             "WARNING! YOU ARE RUNNING IN UNSAFE MODE! ANY SCRIPT RUN CAN RESULT IN DANGEROUS "
+                             "CONSEQUENCES! ONCE YOU FINISH PLAYING AROUND ENABLE SAFE MODE BACK ON!");
     }
 }
 

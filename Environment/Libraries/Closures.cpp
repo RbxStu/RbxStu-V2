@@ -71,7 +71,7 @@ namespace RbxStu {
             }
 
             if (Communication::GetSingleton()->IsCodeGenerationEnabled()) {
-                const Luau::CodeGen::CompilationOptions opts{0};
+                const Luau::CodeGen::CompilationOptions opts{Luau::CodeGen::CodeGenFlags::CodeGen_ColdFunctions};
                 Logger::GetSingleton()->PrintInformation(
                         RbxStu::Anonymous, "Native Code Generation is enabled! Compiling Luau Bytecode -> Native");
                 Luau::CodeGen::compile(L, -1, opts);
