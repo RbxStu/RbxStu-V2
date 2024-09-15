@@ -215,12 +215,14 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             const auto loweredIndex = Utilities::ToLower(index);
             for (const auto &func: blockedFunctions) {
                 if (loweredIndex.find(func) != std::string::npos) {
+                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__index;
                 }
             }
 
             for (const auto &func: blockedServices) {
                 if (loweredIndex.find(func) != std::string::npos) {
+                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__index;
                 }
             }
@@ -242,10 +244,13 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                     if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
                         for (const auto &func: sound) {
                             if (indexAsString.find(func) != std::string::npos) {
+                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                                 goto banned__index;
                             }
                             if (func == "BLOCK_ALL" && strcmp(index, "ClassName") != 0) { // Caused dex to error bc it was reading its ClassName
+                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                                 goto banned__index; // Block all regardless.
+                            }
                         }
                     }
                 }
@@ -343,12 +348,14 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             const auto loweredNamecall = Utilities::ToLower(namecall);
             for (const auto &func: blockedFunctions) {
                 if (loweredNamecall.find(func) != std::string::npos) {
+                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__namecall;
                 }
             }
 
             for (const auto &func: blockedServices) {
                 if (loweredNamecall.find(func) != std::string::npos) {
+                    Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                     goto banned__namecall;
                 }
             }
@@ -368,10 +375,13 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                     if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
                         for (const auto &func: sound) {
                             if (namecallAsString.find(func) != std::string::npos) {
+                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                                 goto banned__namecall;
                             }
-                            if (func == "BLOCK_ALL")
+                            if (func == "BLOCK_ALL") {
+                                Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Blocking because {}", func));
                                 goto banned__namecall; // Block all regardless.
+                            }
                         }
                     }
                 }
