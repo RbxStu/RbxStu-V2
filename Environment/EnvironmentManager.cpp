@@ -322,12 +322,12 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
             banned__index:
                 Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
                                                      std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
-                                                                 "BLACKLISTED FUNCTION/SERVICE! FUNCTION ACCESSED: {}",
+                                                                 "BLACKLISTED PROPERTY/FUNCTION! PROPERTY/FUNCTION ACCESSED: {}",
                                                                  index));
                 if (Communication::GetSingleton()->IsUnsafeMode())
                     return __index_game_original(L);
 
-                luaL_errorL(L, "This service/function has been blocked for security");
+                luaL_errorL(L, "This property/function has been blocked for security");
             }
 
 
