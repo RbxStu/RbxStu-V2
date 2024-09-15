@@ -90,6 +90,7 @@ void Communication::OnDataModelUpdated(const RBX::DataModelType dataModelType, c
 }
 void Communication::SetExecutionDataModel(RBX::DataModelType dataModelType) {
     this->lCurrentExecutionDataModel = dataModelType;
+    Scheduler::GetSingleton()->ResetScheduler(SchedulerResetReason::ExecutionDataModelChanged);
 }
 const RBX::DataModelType Communication::GetExecutionDataModel() { return this->lCurrentExecutionDataModel; }
 bool Communication::IsCodeGenerationEnabled() const { return this->m_bEnableCodeGen; }
@@ -310,9 +311,17 @@ std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
                         if (const auto packet =
                                     serializer->DeserializeFromJson<SetExecutionDataModelPacket>(message->str);
                             packet.has_value()) {
+                            logger->PrintWarning(
+                                    RbxStu::Communication,
+                                    "WARNING: Changing the DataModel while in execution MAY result in crashes! Avoid "
+                                    "changing DataModels after making something that may affect RbxStu, like using "
+                                    "hookfunction! Changing DataModels is supported, but its not the most polished "
+                                    "functionality, so it may lead to crashes or undefined behavior, avoid it if possible!");
+
+
                             switch (static_cast<SetExecutionDataModelPacketFlags>(packet.value().ullPacketFlags)) {
                                 case SetExecutionDataModelPacketFlags::Edit:
-                                    logger->PrintWarning(RbxStu::Scheduler,
+                                    logger->PrintWarning(RbxStu::Communication,
                                                          "WARNING: The execution DataModel has been changed to Edit "
                                                          "mode. This may allow for things like complete saveinstance "
                                                          "into a remote server. This is dangerous!");
@@ -323,11 +332,15 @@ std::string Communication::GetHardwareId() { return this->m_szHardwareId; }
                                     communication->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayClient);
                                     break;
                                 case SetExecutionDataModelPacketFlags::Server:
+                                    logger->PrintWarning(
+                                            RbxStu::Communication,
+                                            "WARNING: The execution DataModel has been changed to Server "
+                                            "mode. This may result in unknown behaviour or security risks.");
                                     communication->SetExecutionDataModel(RBX::DataModelType::DataModelType_PlayServer);
                                     break;
                                 case SetExecutionDataModelPacketFlags::Standalone:
                                     logger->PrintWarning(
-                                            RbxStu::Scheduler,
+                                            RbxStu::Communication,
                                             "WARNING: The execution DataModel has been changed to Standalone "
                                             "mode. This may result in unknown behaviour or security risks.");
 

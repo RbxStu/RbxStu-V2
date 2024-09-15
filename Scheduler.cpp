@@ -186,10 +186,14 @@ void Scheduler::StepScheduler(lua_State *runner) {
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto logger = Logger::GetSingleton();
     if (const auto dataModel = robloxManager->GetCurrentDataModel(this->GetExecutionDataModel());
-        !dataModel.has_value() || this->m_pClientDataModel != dataModel.value()) {
+        !dataModel.has_value() || this->m_pClientDataModel.value() != dataModel.value()) {
         logger->PrintWarning(RbxStu::Scheduler, "The task scheduler's internal state is out of date! Reason: DataModel "
                                                 "pointer is invalid! Executing reinitialization sub-routine!");
-        this->ResetScheduler();
+        this->ResetScheduler(Utilities::IsPointerValid(this->m_pClientDataModel.value()) &&
+                                             robloxManager->GetDataModelType(this->m_pClientDataModel.value()) !=
+                                                     robloxManager->GetDataModelType(dataModel.value())
+                                     ? SchedulerResetReason::ExecutionDataModelChanged
+                                     : SchedulerResetReason::DataModelLost);
         return;
     }
     // if (runner != this->m_lsInitialisedWith.value()) {
@@ -213,7 +217,7 @@ void Scheduler::StepScheduler(lua_State *runner) {
 void Scheduler::SetExecutionDataModel(RBX::DataModelType dataModel) {
     Communication::GetSingleton()->SetExecutionDataModel(dataModel);
     Logger::GetSingleton()->PrintWarning(RbxStu::Scheduler, "Execution DataModel changed. Issuing Scheduler Reset!");
-    this->ResetScheduler();
+    this->ResetScheduler(SchedulerResetReason::ExecutionDataModelChanged);
 }
 
 RBX::DataModelType Scheduler::GetExecutionDataModel() { return Communication::GetSingleton()->GetExecutionDataModel(); }
@@ -257,19 +261,23 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
 
     lua_pushcclosure(
             L,
-            [](lua_State *L) -> int32_t {
+            [](lua_State *L) -> std::int32_t {
                 const auto scheduler = Scheduler::GetSingleton();
                 if (scheduler->IsInitialized())
                     scheduler->StepScheduler(L);
                 return 0;
             },
             nullptr, 0);
-    lua_setglobal(L, "scheduler");
+
+    lua_setglobal(L, std::format("scheduler_", reinterpret_cast<std::uintptr_t>(L)).c_str());
 
     auto opts = Luau::CompileOptions{};
-    opts.debugLevel = 0;
-    opts.optimizationLevel = 2;
-    const auto bytecode = Luau::compile("game:GetService(\"RunService\").Heartbeat:Connect(scheduler)", opts);
+    opts.debugLevel = 2;
+    opts.optimizationLevel = 0;
+    const auto bytecode =
+            Luau::compile(std::format("print\"hi\"; return game:GetService(\"RunService\").Heartbeat:Connect({})",
+                                      std::format("scheduler_", reinterpret_cast<std::uintptr_t>(L))),
+                          opts);
 
 
     if (luau_load(L, "SchedulerHookInit", bytecode.c_str(), bytecode.size(), 0) != LUA_OK) {
@@ -296,7 +304,10 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     //                        "scheduler! Reason: task.defer and task.spawn were not found on the sigging step.");
     //     throw std::exception("Cannot run Scheduler job!");
     // }
-    lua_pcall(L, 0, 0, 0);
+    lua_call(L, 0, 1);
+
+    this->m_lRefToStepConnection = lua_ref(L, -1);
+    lua_pop(L, 1);
 
     logger->PrintInformation(RbxStu::Scheduler, "Initialized!");
 
@@ -314,9 +325,26 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     }
 }
 
-void Scheduler::ResetScheduler() {
+void Scheduler::ResetScheduler(SchedulerResetReason resetReason) {
     std::lock_guard g{__scheduler_init};
     const auto logger = Logger::GetSingleton();
+
+    if (resetReason == SchedulerResetReason::ExecutionDataModelChanged && this->m_lsRoblox.has_value()) {
+        logger->PrintInformation(RbxStu::Scheduler, "Disconnecting scheduler stepping from previous DataModel...");
+        const auto L = this->m_lsRoblox.value();
+        try {
+            lua_getref(L, this->m_lRefToStepConnection);
+            lua_getfield(L, -1, "Disconnect");
+            lua_pushvalue(L, -2);
+            lua_call(L, 1, 1);
+            logger->PrintInformation(RbxStu::Scheduler, "Disconnected Scheduler Step!");
+        } catch (const std::exception &e) {
+            logger->PrintError(RbxStu::Scheduler, std::format("Cannot Disconnect Step! exception -> {}", e.what()));
+        }
+    }
+
+
+    this->m_lRefToStepConnection = 0;
     this->m_lsRoblox = {};
     this->m_lsInitialisedWith = {};
     this->m_pClientDataModel = {};
@@ -326,15 +354,24 @@ void Scheduler::ResetScheduler() {
         this->m_qSchedulerJobs.pop();
     }
 
-    logger->PrintInformation(RbxStu::Scheduler, "Applying environment side effects!");
-    logger->PrintInformation(RbxStu::Scheduler, "Clearing Luau WebSockets...");
-    Websocket::ResetWebsockets(); // Reset websockets
 
-    logger->PrintInformation(RbxStu::Scheduler, "Resetting ClosureManager...");
-    ClosureManager::GetSingleton()->ResetManager();
+    if (resetReason == SchedulerResetReason::DataModelLost) {
+        logger->PrintInformation(RbxStu::Scheduler, "Applying environment side effects!");
+        logger->PrintInformation(RbxStu::Scheduler, "Clearing Luau WebSockets...");
+        Websocket::ResetWebsockets(); // Reset websockets
 
-    logger->PrintInformation(RbxStu::Scheduler, "Cleaning reference map...");
-    RbxStu::s_mRefsMap.clear();
+        logger->PrintInformation(RbxStu::Scheduler, "Resetting ClosureManager...");
+        ClosureManager::GetSingleton()->ResetManager(this->GetExecutionDataModel());
+
+        logger->PrintInformation(RbxStu::Scheduler,
+                                 "Cleaning reference map for the DataModel that is currently initialized...");
+        // The DataModel was lost! It is safe to clear our CURRENT ref map!
+        RbxStu::s_mRefsMapBasedOnDataModel[this->GetExecutionDataModel()].clear();
+    } else {
+        logger->PrintInformation(RbxStu::Scheduler, "Cannot apply environment side effects!");
+        logger->PrintError(RbxStu::Scheduler, "Cannot reset reference nor Closure map! Doing so will break the "
+                                              "previous DataModel ignoring resource collection...");
+    }
 
     logger->PrintInformation(RbxStu::Scheduler, "Scheduler reset completed. All fields set to no value.");
 }

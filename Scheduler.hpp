@@ -14,6 +14,8 @@
 #include "lstate.h"
 #include "lua.h"
 
+enum SchedulerResetReason { DataModelLost, ExecutionDataModelChanged };
+
 class SchedulerJob {
 public:
     struct lJob {
@@ -137,6 +139,9 @@ class Scheduler final {
     /// hooking, which the ScriptContext that m_lsRoblox was obtained from is parented/related to.
     std::optional<RBX::DataModel *> m_pClientDataModel;
 
+    /// @brief a lua_ref to the connection used to step the current scheduler. Used in ResetScheduler to disconnect!
+    int m_lRefToStepConnection;
+
     /// @brief Internal function used to dequeue a job from the job queue.
     SchedulerJob GetSchedulerJob(bool pop);
 
@@ -169,7 +174,7 @@ public:
 
     /// @brief Used to reset the scheduler if it is deemed unfit for execution.
     /// @remarks Reserved for internal API use. Do not call unless explicitly required.
-    void ResetScheduler();
+    void ResetScheduler(SchedulerResetReason resetReason);
 
     /// @brief Used to obtain the RbxStu lua_State the Scheduler was initialized with.
     /// @return A std::optional<lua_State *> which may or may not have a value.

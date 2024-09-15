@@ -3,9 +3,10 @@
 //
 #pragma once
 #include "Environment/EnvironmentManager.hpp"
+#include "Roblox/TypeDefinitions.hpp"
 
 namespace RbxStu {
-    static std::map<const void *, int> s_mRefsMap;
+    static std::map<RBX::DataModelType, std::map<const void *, int>> s_mRefsMapBasedOnDataModel;
 }
 
 class Globals final : public Library {

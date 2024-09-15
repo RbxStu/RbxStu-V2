@@ -276,6 +276,7 @@ public:
     std::optional<lua_CFunction> GetRobloxTaskSpawn();
 
     std::optional<void *> GetScriptContext(const lua_State *L) const;
+    std::optional<RBX::DataModel *> GetDataModelFromLuaState(lua_State *L);
 
     std::optional<RBX::DataModel *> GetDataModelFromScriptContext(void *scriptContext);
 
@@ -328,5 +329,8 @@ public:
     ///     - The pointer is on an allocated memory page.
     ///     - The DataModel has not been closed ((RBX::DataModel *)->m_bIsClosed).
     bool IsDataModelValid(const RBX::DataModelType &type) const;
+
     std::optional<void *> GetFastVariable(const std::string &str);
+
+    RBX::DataModelType GetDataModelType(RBX::DataModel *dataModel);
 };

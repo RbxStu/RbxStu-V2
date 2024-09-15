@@ -9,6 +9,8 @@
 #include <lua.h>
 #include <map>
 
+#include "Roblox/TypeDefinitions.hpp"
+
 struct LuauHookInformation {
     /// @brief Used to quickly distinguish between a C function and a Lua function.
     bool isC;
@@ -24,8 +26,9 @@ struct LuauHookInformation {
 class ClosureManager final {
     static std::shared_ptr<ClosureManager> pInstance;
 
-    std::map<Closure *, LuauHookInformation> m_hookMap;
-    std::map<Closure *, Closure *> m_newcclosureMap;
+    std::map<RBX::DataModelType, std::map<Closure *, LuauHookInformation>>
+            m_hookMap; // TODO: Make hook map use DataModel Types'
+    std::map<RBX::DataModelType, std::map<Closure *, Closure *>> m_newcclosureMap;
 
     /// @brief Handles a newcclosure call.
     static int newcclosure_handler(lua_State *L);
@@ -33,12 +36,11 @@ class ClosureManager final {
 public:
     static std::shared_ptr<ClosureManager> GetSingleton();
 
-    void ResetManager();
+    void ResetManager(const RBX::DataModelType &resetTarget);
 
-    bool IsWrappedCClosure(Closure *cl) const;
+    bool IsWrappedCClosure(lua_State *L, Closure *cl);
 
-    bool IsWrapped(const Closure *closure) const;
-
+    bool IsWrapped(lua_State *L, const Closure *closure);
     /// @brief Hooks two functions present at the top of the lua_State's stack.
     /// @remarks This requires two closures, no matter which type, to be present on the lua stack, else this function
     /// call will fail.

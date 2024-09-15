@@ -9,6 +9,8 @@
 #include "Logger.hpp"
 #include "Luau/CodeGen.h"
 #include "Luau/Compiler.h"
+#include "RobloxManager.hpp"
+#include "Scheduler.hpp"
 #include "Security.hpp"
 #include "lapi.h"
 #include "lfunc.h"
@@ -25,20 +27,32 @@ std::shared_ptr<ClosureManager> ClosureManager::GetSingleton() {
     return ClosureManager::pInstance;
 }
 
-void ClosureManager::ResetManager() {
-    this->m_newcclosureMap.clear();
-    this->m_hookMap.clear();
+void ClosureManager::ResetManager(const RBX::DataModelType &resetTarget) {
+    this->m_newcclosureMap[resetTarget].clear();
+    this->m_hookMap[resetTarget].clear();
 }
 
 int ClosureManager::newcclosure_handler(lua_State *L) {
     const auto argc = lua_gettop(L);
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto scriptContext = manager->GetScriptContext(L);
+    if (!scriptContext.has_value())
+        luaL_error(L, "call resolution failed; ScriptContext unavailable");
+
+    const auto dataModel = manager->GetDataModelFromScriptContext(scriptContext.value());
+    if (!dataModel.has_value())
+        luaL_error(L, "call resolution failed; DataModel unavailable");
+
+    const auto currentDataModel = manager->GetDataModelType(dataModel.value());
+
     const auto clManager = ClosureManager::GetSingleton();
-    if (!clManager->m_newcclosureMap.contains(clvalue(L->ci->func)))
+    if (!clManager->m_newcclosureMap[currentDataModel].contains(clvalue(L->ci->func)))
         luaL_error(L, "call resolution failed"); // using key based indexing will insert it into the map, that is wrong.
 
     // Due to the nature of the Lua Registry, our closures can be replaced with complete garbage.
     // Thus we must be careful, and validate that the Lua Registry ref IS present.
-    Closure *closure = clManager->m_newcclosureMap.at(clvalue(L->ci->func));
+    Closure *closure = clManager->m_newcclosureMap[currentDataModel].at(clvalue(L->ci->func));
 
     luaC_threadbarrier(L);
 
@@ -46,9 +60,11 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     L->top->tt = lua_Type::LUA_TFUNCTION;
     L->top++;
 
-    if (!RbxStu::s_mRefsMap.contains(closure))
+    const auto scheduler = Scheduler::GetSingleton();
+
+    if (!RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel].contains(closure))
         luaL_error(L, "call resolution failed, invalid closure state.");
-    lua_getref(L, RbxStu::s_mRefsMap[closure]);
+    lua_getref(L, RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel][closure]);
     if (lua_type(L, -1) == LUA_TFUNCTION && lua_toclosure(L, -1) == closure) {
         lua_pop(L, 1);
     } else {
@@ -71,11 +87,28 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     return lua_gettop(L);
 }
 
-bool ClosureManager::IsWrappedCClosure(Closure *cl) const {
-    return this->m_newcclosureMap.contains(cl) && cl->isC && cl->c.f == newcclosure_handler;
+bool ClosureManager::IsWrappedCClosure(lua_State *L, Closure *cl) {
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto dataModel = manager->GetDataModelFromLuaState(L);
+    if (!dataModel.has_value())
+        return false;
+
+    const auto currentDataModel = manager->GetDataModelType(dataModel.value());
+    return this->m_newcclosureMap[currentDataModel].contains(cl) && cl->isC && cl->c.f == newcclosure_handler;
 }
-bool ClosureManager::IsWrapped(const Closure *closure) const {
-    return std::ranges::any_of(this->m_newcclosureMap.begin(), this->m_newcclosureMap.end(),
+
+bool ClosureManager::IsWrapped(lua_State *L, const Closure *closure) {
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto dataModel = manager->GetDataModelFromLuaState(L);
+    if (!dataModel.has_value())
+        return false;
+
+    const auto currentDataModel = manager->GetDataModelType(dataModel.value());
+
+    return std::ranges::any_of(this->m_newcclosureMap[currentDataModel].begin(),
+                               this->m_newcclosureMap[currentDataModel].end(),
                                [&closure](const std::pair<Closure *, Closure *> cl) { return closure == cl.second; });
 }
 
@@ -94,6 +127,14 @@ int ClosureManager::hookfunction(lua_State *L) {
 
     clManager->FixClosure(L, hookWith); // Mark hookWith to not be collected by the lgc.
 
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto dataModel = manager->GetDataModelFromLuaState(L);
+    if (!dataModel.has_value())
+        luaL_error(L, "cannot hook function; DataModel unavailable");
+
+    const auto currentDataModel = manager->GetDataModelType(dataModel.value());
+
     /*
      *  Supported hooks:
      *  - C->C
@@ -108,7 +149,7 @@ int ClosureManager::hookfunction(lua_State *L) {
      */
 
     // C->C/L
-    if (hookTarget->isC && !clManager->IsWrappedCClosure(hookTarget)) {
+    if (hookTarget->isC && !clManager->IsWrappedCClosure(L, hookTarget)) {
         lua_pushvalue(L, 1);
         ClosureManager::clonefunction(L);
         const auto cl = lua_toclosure(L, -1);
@@ -120,17 +161,19 @@ int ClosureManager::hookfunction(lua_State *L) {
         // else, this will not work! Even then, this allows us to support L closure hooking!
 
         auto wrappedHookWith = lua_toclosure(L, -2);
-        if (!hookWith->isC || clManager->IsWrappedCClosure(hookWith) ||
+        if (!hookWith->isC || clManager->IsWrappedCClosure(L, hookWith) ||
             hookTarget->nupvalues > wrappedHookWith->nupvalues) {
             lua_pushvalue(L, 2);
             ClosureManager::newcclosure(L);
             wrappedHookWith = lua_toclosure(L, -1);
 
-            if (clManager->IsWrappedCClosure(hookWith))
-                clManager->m_newcclosureMap[hookTarget] = clManager->m_newcclosureMap[hookWith];
+            if (clManager->IsWrappedCClosure(L, hookWith))
+                clManager->m_newcclosureMap[currentDataModel][hookTarget] =
+                        clManager->m_newcclosureMap[currentDataModel][hookWith];
 
             if (!hookWith->isC)
-                clManager->m_newcclosureMap[hookTarget] = clManager->m_newcclosureMap[wrappedHookWith];
+                clManager->m_newcclosureMap[currentDataModel][hookTarget] =
+                        clManager->m_newcclosureMap[currentDataModel][wrappedHookWith];
         }
 
         for (int i = 0; i < wrappedHookWith->nupvalues; i++)
@@ -147,16 +190,17 @@ int ClosureManager::hookfunction(lua_State *L) {
     }
 
     // NC->C/L || Simple pointer substitution
-    if (clManager->IsWrappedCClosure(hookTarget) && !clManager->IsWrappedCClosure(hookWith)) {
+    if (clManager->IsWrappedCClosure(L, hookTarget) && !clManager->IsWrappedCClosure(L, hookWith)) {
         lua_pushvalue(L, 1);
         ClosureManager::clonefunction(L);
         const auto cl = lua_toclosure(L, -1);
 
-        clManager->m_newcclosureMap[cl] =
-                clManager->m_newcclosureMap[hookTarget]; // We must substitute the refs on original to point to the new,
+        clManager->m_newcclosureMap[currentDataModel][cl] =
+                clManager->m_newcclosureMap[currentDataModel]
+                                           [hookTarget]; // We must substitute the refs on original to point to the new,
                                                          // but we must keep the clones'.
 
-        clManager->m_newcclosureMap[hookTarget] = hookWith;
+        clManager->m_newcclosureMap[currentDataModel][hookTarget] = hookWith;
         L->top->value.p = cl;
         L->top->tt = LUA_TFUNCTION;
         L->top++;
@@ -165,17 +209,19 @@ int ClosureManager::hookfunction(lua_State *L) {
 
 
     // NC->NC || Simple pointer substitution
-    if (clManager->IsWrappedCClosure(hookTarget) && clManager->IsWrappedCClosure(hookWith)) {
+    if (clManager->IsWrappedCClosure(L, hookTarget) && clManager->IsWrappedCClosure(L, hookWith)) {
         lua_pushvalue(L, 1);
         ClosureManager::clonefunction(L);
         const auto cl = lua_toclosure(L, -1);
 
-        clManager->m_newcclosureMap[cl] =
-                clManager->m_newcclosureMap[hookTarget]; // We must substitute the refs on original to point to the new,
+        clManager->m_newcclosureMap[currentDataModel][cl] =
+                clManager->m_newcclosureMap[currentDataModel]
+                                           [hookTarget]; // We must substitute the refs on original to point to the new,
         // but we must keep the clones'.
 
-        clManager->m_newcclosureMap[hookTarget] =
-                clManager->m_newcclosureMap[hookWith]; // Copy the ref of hookWith to be used with hookWhat.
+        clManager->m_newcclosureMap[currentDataModel][hookTarget] =
+                clManager->m_newcclosureMap[currentDataModel]
+                                           [hookWith]; // Copy the ref of hookWith to be used with hookWhat.
 
         L->top->value.p = cl;
         L->top->tt = LUA_TFUNCTION;
@@ -222,12 +268,20 @@ int ClosureManager::hookfunction(lua_State *L) {
 
 int ClosureManager::unhookfunction(lua_State *L) {
     luaL_checktype(L, -1, LUA_TFUNCTION);
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto dataModel = manager->GetDataModelFromLuaState(L);
+    if (!dataModel.has_value())
+        luaL_error(L, "cannot unhook function; DataModel unavailable");
+
+    auto dataModelType = manager->GetDataModelType(dataModel.value());
+
     const auto clManager = ClosureManager::GetSingleton();
     const auto hookedCl = lua_toclosure(L, -1);
-    if (!clManager->m_hookMap.contains(hookedCl))
+    if (!clManager->m_hookMap[dataModelType].contains(hookedCl))
         luaL_argerrorL(L, 1, "The given closure has not been hooked");
 
-    const auto hookInfo = clManager->m_hookMap[hookedCl];
+    const auto hookInfo = clManager->m_hookMap[dataModelType][hookedCl];
 
     if (hookInfo.isWrappedHook)
         luaL_argerrorL(L, 1, "Unhooking C->L or L->C hooks is not implemented yet!");
@@ -266,8 +320,20 @@ void ClosureManager::FixClosure(lua_State *L, Closure *closure) {
     L->top->value.p = closure;
     L->top->tt = LUA_TFUNCTION;
     L->top++;
-    if (!RbxStu::s_mRefsMap.contains(closure))
-        RbxStu::s_mRefsMap[closure] = lua_ref(L, -1);
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto scriptContext = manager->GetScriptContext(L);
+    if (!scriptContext.has_value())
+        luaL_error(L, "cannot fix closure in memory; ScriptContext unavailable");
+
+    const auto dataModel = manager->GetDataModelFromScriptContext(scriptContext.value());
+    if (!dataModel.has_value())
+        luaL_error(L, "cannot fix closure in memory; DataModel unavailable");
+
+    const auto currentDataModel = manager->GetDataModelType(dataModel.value());
+
+    if (!RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel].contains(closure))
+        RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel][closure] = lua_ref(L, -1);
     lua_pop(L, 1);
     // Push to the ref list.
 }
@@ -283,6 +349,14 @@ int ClosureManager::newcclosure(lua_State *L) {
     if (lua_type(L, -1) == LUA_TSTRING)
         functionName = luaL_optstring(L, -1, nullptr);
 
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto dataModel = manager->GetDataModelFromLuaState(L);
+    if (!dataModel.has_value())
+        luaL_error(L, "cannot wrap closure; DataModel unavailable");
+
+    const auto currentDataModel = manager->GetDataModelType(dataModel.value());
+
     const auto clManager = ClosureManager::GetSingleton();
     const auto closure = lua_toclosure(L, closureIndex);
     clManager->FixClosure(L, closure);
@@ -290,7 +364,7 @@ int ClosureManager::newcclosure(lua_State *L) {
     const auto cclosure = lua_toclosure(L, closureIndex);
     luaC_barrierfast(L, closure);
     luaS_fix(cclosure);
-    clManager->m_newcclosureMap[cclosure] = closure;
+    clManager->m_newcclosureMap[currentDataModel][cclosure] = closure;
     lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
     return 1;
 }
@@ -328,6 +402,15 @@ int ClosureManager::newlclosure(lua_State *L) {
 int ClosureManager::clonefunction(lua_State *L) {
     luaL_checktype(L, -1, LUA_TFUNCTION);
 
+    const auto manager = RobloxManager::GetSingleton();
+
+    const auto dataModel = manager->GetDataModelFromLuaState(L);
+    if (!dataModel.has_value())
+        luaL_error(L, "cannot clone closure; DataModel unavailable");
+
+    auto dataModelType = manager->GetDataModelType(dataModel.value());
+
+
     if (const auto originalCl = lua_toclosure(L, -1); originalCl->isC) {
         const auto clManager = ClosureManager::GetSingleton();
         Closure *newcl = luaF_newCclosure(L, originalCl->nupvalues, originalCl->env);
@@ -347,9 +430,9 @@ int ClosureManager::clonefunction(lua_State *L) {
         // Newcclosures may wrap C closures. Thus, we must obtain the original and bind it to what it used to be, as you
         // want the call to redirect correctly! Allow newcclosures to be cloned successfully by cloning the original for
         // the wrapper.
-        if (clManager->m_newcclosureMap.contains(originalCl))
-            clManager->m_newcclosureMap[newcl] =
-                    clManager->m_newcclosureMap[originalCl]; // Redirect to the correct Registry ref.
+        if (clManager->m_newcclosureMap[dataModelType].contains(originalCl))
+            clManager->m_newcclosureMap[dataModelType][newcl] =
+                    clManager->m_newcclosureMap[dataModelType][originalCl]; // Redirect to the correct Registry ref.
 
         lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
         return 1;

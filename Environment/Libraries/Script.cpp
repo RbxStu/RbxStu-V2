@@ -132,7 +132,7 @@ namespace RbxStu {
             while (L->base_ci < currentCi) {
                 if (const auto pClosure = static_cast<Closure *>(currentCi->func->value.p); pClosure->isC) {
                     if (pClosure->c.debugname != nullptr &&
-                        !ClosureManager::GetSingleton()->IsWrappedCClosure(pClosure)) {
+                        !ClosureManager::GetSingleton()->IsWrappedCClosure(L, pClosure)) {
                         lua_pushboolean(L, false);
                         return 1;
                     }

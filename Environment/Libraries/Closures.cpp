@@ -50,7 +50,7 @@ namespace RbxStu {
 
             if (const auto pClosure = lua_toclosure(L, 1); pClosure->isC) {
                 lua_pushboolean(L, pClosure->c.debugname == nullptr ||
-                                           ClosureManager::GetSingleton()->IsWrappedCClosure(pClosure));
+                                           ClosureManager::GetSingleton()->IsWrappedCClosure(L, pClosure));
             } else {
                 lua_pushboolean(L, pClosure->l.p->linedefined == -1);
             }
@@ -94,8 +94,8 @@ luaL_Reg *Closures::GetLibraryFunctions() {
 
                                     {"hookfunction", ClosureManager::hookfunction},
                                     {"replaceclosure", ClosureManager::hookfunction},
-                                    {"unhookfunction", ClosureManager::unhookfunction},
-                                    {"restorefunction", ClosureManager::unhookfunction},
+                                    // {"unhookfunction", ClosureManager::unhookfunction},
+                                    // {"restorefunction", ClosureManager::unhookfunction},
 
                                     {"newlclosure", ClosureManager::newlclosure},
                                     {"newcclosure", ClosureManager::newcclosure},

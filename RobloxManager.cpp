@@ -152,9 +152,9 @@ void *rbx__scriptcontext__resumeWaitingThreads(
         // Utilities::ResumeRobloxThreads(threadInformation);
         // Utilities::CleanUpThreadHandles(threadInformation);
     } else if (scheduler->IsInitialized() && !robloxManager->IsDataModelValid(scheduler->GetExecutionDataModel())) {
-        logger->PrintWarning(RbxStu::HookedFunction, "DataModel for client is invalid, yet the scheduler is "
+        logger->PrintWarning(RbxStu::HookedFunction, "DataModel is invalid, yet the scheduler is "
                                                      "initialized, resetting scheduler!");
-        scheduler->ResetScheduler();
+        scheduler->ResetScheduler(SchedulerResetReason::DataModelLost);
     }
 
     calledBeforeCount = 0;
@@ -597,7 +597,7 @@ std::shared_ptr<RobloxManager> RobloxManager::GetSingleton() {
 
 std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
     auto logger = Logger::GetSingleton();
-    const uint64_t identity = 0;
+    const uint64_t identity = rand() % 2 == 0 ? 0 : 1;
     const uint64_t script = 0;
 
     if (!this->m_bInitialized) {
@@ -688,6 +688,22 @@ std::optional<void *> RobloxManager::GetScriptContext(const lua_State *L) const 
     }
     const auto scriptContext = extraSpace->sharedExtraSpace->scriptContext;
     return scriptContext;
+}
+
+std::optional<RBX::DataModel *> RobloxManager::GetDataModelFromLuaState(lua_State *L) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Cannot get DataModel from lua_State! Reason: RobloxManager is not initialized.");
+        return {};
+    }
+    const auto scriptContext = this->GetScriptContext(L);
+
+    if (!scriptContext.has_value()) {
+        return {};
+    }
+
+    return this->GetDataModelFromScriptContext(scriptContext.value());
 }
 
 std::optional<RBX::DataModel *> RobloxManager::GetDataModelFromScriptContext(void *scriptContext) {
@@ -837,4 +853,22 @@ std::optional<void *> RobloxManager::GetFastVariable(const std::string &str) {
                          "Cannot fetch Fast Variable! Reason: Fast Variable was not found during scanning!");
 
     return {};
+}
+RBX::DataModelType RobloxManager::GetDataModelType(RBX::DataModel *dataModel) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager, "Cannot get DataModel type! Reason: RobloxManager not initialized!");
+        return {};
+    }
+    const auto getStudioGameStateType =
+            reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_getStudioGameStateType>(
+                    this->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
+
+    if (getStudioGameStateType == nullptr) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Cannot get DataModel type from Roblox's function! Using reversed structs instead!");
+        return dataModel->m_dwDataModelType;
+    }
+
+    return getStudioGameStateType(dataModel);
 }
