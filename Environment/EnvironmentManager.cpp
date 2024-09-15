@@ -82,7 +82,7 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "analyticsservice",
                                                    "ixpservice",
                                                    "commerceservice",
-                                                   "marketplaceservice",
+                                                   //"marketplaceservice", Needs to be enabled for IY to even load
                                                    "sessionservice",
                                                    "studioservice",
                                                    "platformcloudstorageservice",
@@ -115,7 +115,7 @@ static std::map<std::string, std::vector<std::string>> specificBlockage = {
         {std::string{"OpenCloudService"}, std::vector<std::string>{"RegisterOpenCloud"}},
         {std::string{"HttpService"}, std::vector<std::string>{"SetHttpEnabled"}},
         {std::string{"BrowserService"}, std::vector<std::string>{"BLOCK_ALL"}},
-        {std::string{"DataModel"}, std::vector<std::string>{"Load"}},
+        //{std::string{"DataModel"}, std::vector<std::string>{"Load"}}, Unintentionally blocks game:IsLoaded()
         {std::string{"HttpRbxApiService"}, std::vector<std::string>{"BLOCK_ALL"}},
         {std::string{"MessageBusService"}, std::vector<std::string>{"BLOCK_ALL"}} // Block all.
 };
@@ -244,7 +244,7 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                             if (indexAsString.find(func) != std::string::npos) {
                                 goto banned__index;
                             }
-                            if (func == "BLOCK_ALL")
+                            if (func == "BLOCK_ALL" && strcmp(index, "ClassName") != 0) { // Caused dex to error bc it was reading its ClassName
                                 goto banned__index; // Block all regardless.
                         }
                     }
