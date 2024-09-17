@@ -6,6 +6,8 @@
 #include <cstdint>
 
 #include "Utilities.hpp"
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace RbxStu::WebSocketCommunication {
     /// @brief Used to document and keep track of RbxStu V2 packets
