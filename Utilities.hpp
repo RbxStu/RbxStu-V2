@@ -195,7 +195,7 @@ public:
     /// at LEAST of the size of the given type, and that the pointer is allocated in memory.
     template<typename T>
     __forceinline static bool IsPointerValid(T *tValue) { // Validate pointers.
-        const auto ptr = reinterpret_cast<void *>(tValue);
+        const auto ptr = reinterpret_cast<const void *>(const_cast<const T *>(tValue));
         auto buf = MEMORY_BASIC_INFORMATION{};
 
         // Query a full page.
@@ -248,6 +248,15 @@ public:
         encoder.MessageEnd();
 
         return output;
+    }
+
+    __forceinline static void GetService(lua_State *L, const std::string &serviceName) {
+        lua_getglobal(L, "game");
+        lua_getfield(L, -1, "GetService");
+        lua_pushvalue(L, -2);
+        lua_pushstring(L, serviceName.c_str());
+        lua_pcall(L, 2, 1, 0);
+        lua_remove(L, -2);
     }
 };
 
