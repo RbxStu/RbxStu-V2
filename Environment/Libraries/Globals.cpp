@@ -159,6 +159,22 @@ namespace RbxStu {
         return 0;
     }
 
+    int isnativecallstack(lua_State *L) {
+        auto currentCi = static_cast<int>(L->ci - L->base_ci);
+
+        while (currentCi > 0) {
+            if (!luaG_isnative(L, currentCi)) {
+                lua_pushboolean(L, false);
+                return 1;
+            }
+
+            currentCi--;
+        }
+
+        lua_pushboolean(L, true);
+        return 1;
+    }
+
     int decompile(lua_State *L) {
         Utilities::checkInstance(L, 1, "LuaSourceContainer");
         if (Communication::GetSingleton()->CanAccessScriptSource()) {
@@ -185,6 +201,7 @@ luaL_Reg *Globals::GetLibraryFunctions() {
                                     {"isnativecode", RbxStu::isnativecode},
                                     {"hasnativecode", RbxStu::hasnativecode},
                                     {"deoptimizefromnative", RbxStu::deoptimizefromnative},
+                                    {"isnativecallstack", RbxStu::isnativecallstack},
                                     {nullptr, nullptr}};
 
     return reg;
