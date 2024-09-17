@@ -66,6 +66,8 @@ add_library(Module SHARED
         Environment/Libraries/WebSocket.hpp
         Environment/Libraries/Http.cpp
         Environment/Libraries/Http.hpp
+        Environment/Libraries/Debugger.cpp
+        Environment/Libraries/Debugger.hpp
 
         # Disassembler abstraction
         Disassembler/Disassembler.cpp
@@ -95,12 +97,18 @@ add_library(Module SHARED
         Communication/Packets/ScheduleLuauResponsePacket.hpp
         Communication/Packets/SetScriptSourceAccessPacket.hpp
 
+
         # Mod Loader
         ModLoader/ModBase.h     # To be included by mod writers.
         ModLoader/ModBase.cpp   # Implementation with proxy calls to ModManager.
 
         ModLoader/ModManager.cpp
         ModLoader/ModManager.hpp
+
+        # VSCode Debugging Support
+        Debugger/DebuggerManager.cpp
+        Debugger/DebuggerManager.hpp
+        Debugger/Packets/DebuggerPacketBase.h
 )
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(Module PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Dependencies")
