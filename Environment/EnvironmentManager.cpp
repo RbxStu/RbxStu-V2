@@ -12,6 +12,7 @@
 #include "Libraries/Closures.hpp"
 #include "Libraries/Console.hpp"
 #include "Libraries/Debug.hpp"
+#include "Libraries/Debugger.hpp"
 #include "Libraries/Filesystem.hpp"
 #include "Libraries/Globals.hpp"
 #include "Libraries/Http.hpp"
@@ -58,6 +59,7 @@ std::shared_ptr<EnvironmentManager> EnvironmentManager::GetSingleton() {
         EnvironmentManager::pInstance->m_vLibraryList.push_back(new Instance{});
         EnvironmentManager::pInstance->m_vLibraryList.push_back(new Input{});
         EnvironmentManager::pInstance->m_vLibraryList.push_back(new Http{});
+        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Debugger{});
     }
 
     return EnvironmentManager::pInstance;
@@ -86,7 +88,8 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "studioservice",
                                                    "platformcloudstorageservice",
                                                    "startpageservice",
-                                                   "scripteditorservice"};
+                                                   "scripteditorservice",
+                                                   "avatareditorservice"};
 
 static std::vector<std::string> blockedFunctions = {
         "openvideosfolder", "openscreenshotsfolder", "getrobuxbalance",
