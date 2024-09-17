@@ -230,6 +230,9 @@ class RobloxManager final {
     /// @brief The map used to keep track of the valid RBX::DataModel pointers.
     std::map<RBX::DataModelType, RBX::DataModel *> m_mapDataModelMap;
 
+    /// @brief The map used to map DataModel types and their ScriptContext's
+    std::map<RBX::DataModelType, void *> m_mapScriptContextMap;
+
     /// @brief Whether the current instance is initialized.
     bool m_bInitialized = false;
 
@@ -333,4 +336,7 @@ public:
     std::optional<void *> GetFastVariable(const std::string &str);
 
     RBX::DataModelType GetDataModelType(RBX::DataModel *dataModel);
+
+    std::optional<void *> GetScriptContextOfDataModel(RBX::DataModel *dataModel);
+    void SetScriptContext(const RBX::DataModelType &dataModel, void **scriptContext);
 };

@@ -11,6 +11,7 @@
 #include <DbgHelp.h>
 
 #include <ThemidaSDK.h>
+#include "Debugger/DebuggerManager.hpp"
 #include "Disassembler/Disassembler.hpp"
 #include "Disassembler/DisassemblyRequest.hpp"
 #include "LuauManager.hpp"
@@ -96,15 +97,26 @@ void *rbx__scriptcontext__resumeWaitingThreads(
                 robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(waitingHybridScriptsJob);
 
     __rbx__scriptcontext__resumeWaitingThreads__lock.lock();
-    auto scriptContext =
-            *reinterpret_cast<void **>(*reinterpret_cast<std::uintptr_t *>(waitingHybridScriptsJob) + 0x1F8);
+    auto scriptContext = *reinterpret_cast<void **>(*static_cast<std::uintptr_t *>(waitingHybridScriptsJob) + 0x1F8);
 
     // logger->PrintInformation(RbxStu::HookedFunction,
     //                         std::format("ScriptContext::resumeWaitingThreads. ScriptContext: {:#x}", ScriptContext));
 
+    const auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getDataModel>(
+            robloxManager->GetRobloxFunction("RBX::ScriptContext::getDataModel"));
+
+    {
+        const auto dataModel = getDataModel(scriptContext);
+        if (const auto debuggerManager = DebuggerManager::GetSingleton();
+            dataModel->m_bIsOpen && !debuggerManager->IsInitialized()) {
+            const auto globalState = robloxManager->GetGlobalState(scriptContext);
+            debuggerManager->RegisterCallbackCopy(lua_callbacks(globalState.value()));
+        }
+
+        if (dataModel->m_bIsOpen)
+            robloxManager->SetScriptContext(robloxManager->GetDataModelType(dataModel), &scriptContext);
+    }
     if (!scheduler->IsInitialized() && luauManager->IsInitialized()) { // !scheduler->is_initialized()
-        auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getDataModel>(
-                robloxManager->GetRobloxFunction("RBX::ScriptContext::getDataModel"));
         if (getDataModel == nullptr) {
             logger->PrintWarning(RbxStu::HookedFunction, "Initialization of Scheduler may be unstable! Cannot "
                                                          "determine DataModel for the obtained ScriptContext!");
@@ -596,9 +608,9 @@ std::shared_ptr<RobloxManager> RobloxManager::GetSingleton() {
 }
 
 std::optional<lua_State *> RobloxManager::GetGlobalState(void *scriptContext) {
-    auto logger = Logger::GetSingleton();
-    const uint64_t identity = rand() % 2 == 0 ? 0 : 1;
-    const uint64_t script = 0;
+    const auto logger = Logger::GetSingleton();
+    const std::uint64_t identity = 0;
+    const std::uint64_t script = 0;
 
     if (!this->m_bInitialized) {
         logger->PrintError(RbxStu::RobloxManager,
@@ -871,4 +883,34 @@ RBX::DataModelType RobloxManager::GetDataModelType(RBX::DataModel *dataModel) {
     }
 
     return getStudioGameStateType(dataModel);
+}
+std::optional<void *> RobloxManager::GetScriptContextOfDataModel(RBX::DataModel *dataModel) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Cannot get ScriptContext from DataModel! Reason: RobloxManager not initialized!");
+        return {};
+    }
+
+    if (const auto dataModelType = this->GetDataModelType(dataModel); m_mapScriptContextMap.contains(dataModelType))
+        return m_mapScriptContextMap.at(dataModelType);
+
+    return {};
+}
+void RobloxManager::SetScriptContext(const RBX::DataModelType &dataModel, void **scriptContext) {
+    const auto logger = Logger::GetSingleton();
+    if (!this->m_bInitialized) {
+        logger->PrintError(RbxStu::RobloxManager,
+                           "Cannot set ScriptContext for a DataModel! Reason: RobloxManager not initialized!");
+        return;
+    }
+
+    if (!Utilities::IsPointerValid(scriptContext)) {
+        logger->PrintError(
+                RbxStu::RobloxManager,
+                "Cannot set ScriptContext! ScriptContext points to invalid memory, making this operation unsafe!");
+        return;
+    }
+
+    m_mapScriptContextMap[dataModel] = static_cast<void *>(scriptContext);
 }
