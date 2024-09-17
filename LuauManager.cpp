@@ -19,13 +19,6 @@ namespace RbxStu {
 #define _MakeSignature_FromIDA(signatureName, idaSignature)                                                            \
     const static Signature signatureName = SignatureByte::GetSignatureFromIDAString(idaSignature)
 
-    namespace LuauFunctionDefinitions {
-        using luaH_new = void *(__fastcall *) (void *L, int32_t narray, int32_t nhash);
-        using freeblock = void(__fastcall *)(lua_State *L, int32_t sizeClass, void *block);
-        using lua_pushvalue = void(__fastcall *)(lua_State *L, int idx);
-        using luaE_newthread = lua_State *(__fastcall *) (lua_State *L);
-    } // namespace LuauFunctionDefinitions
-
     namespace LuauSignatures {
         _MakeSignature_FromIDA(_luaD_throw, "48 83 EC ? 44 8B C2 48 8B D1 48 8D 4C 24 ? E8 ? ? ? ? 48 8D 15 ? ? ? ? 48 "
                                             "8D 4C 24 ? E8 ? ? ? ? CC CC CC");
@@ -59,12 +52,21 @@ namespace RbxStu {
         _MakeSignature_FromIDA(_luaV_gettable,
                                "48 89 5C 24 ? 55 41 54 41 55 41 56 41 57 48 83 EC ? 48 89 74 24 ? 4C 8D 2D ? ? ? ? 48 "
                                "89 7C 24 ? 4D 8B E1 4D 8B F8 48 8B DA 4C 8B F1 33 ED 83 7B 0C 06 75 76");
+
+        _MakeSignature_FromIDA(
+                _luau_load,
+                "48 89 5C 24 ? 48 89 4C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 49 8B E9 4D 8B F0 48 8B "
+                "FA 4C 8B F9 45 0F B6 28 44 88 6C 24 ? BE ? ? ? ? 45 84 ED 75 4C 48 C7 C3 ? ? ? ? 48 FF C3 80 3C 1A 00 "
+                "75 F7 4C 8B CB 4C 8B C7 BA ? ? ? ? 48 8D 8C 24 ? ? ? ? E8 ? ? ? ? 49 8D 4E ? 44 8D 4D ? 48 89 4C 24 ? "
+                "4C 8B C0 48 8D 15 ? ? ? ? 49 8B CF E8 ? ? ? ? E9 01 0E 00 00 41 8D 45 ? 3C 03 0F 87 A8 0D 00 00 48 8B "
+                "69 ? 48 89 6C 24 ? 48 8B 45 ? 48 39 45 48 72 12");
         const static std::map<std::string, Signature> s_luauSignatureMap = {
                 {"luaV_settable", _luaV_settable}, {"luaV_gettable", _luaV_gettable},
                 {"luaD_throw", _luaD_throw},       {"luau_execute", _luau_execute},
                 {"lua_pushvalue", _lua_pushvalue}, {"luaE_newthread", _luaE_newthread},
                 {"luaC_step", _luaC_step},         {"luaD_rawrununprotected", _luaD_rawrununprotected},
-                {"luaH_new", _luaH_new},           {"freeblock", _freeblock}};
+                {"luaH_new", _luaH_new},           {"freeblock", _freeblock},
+                {"luau_load", _luau_load}};
         // TODO: Assess whether freeblock is required once again to be hooked due to stability issues.
     } // namespace LuauSignatures
 

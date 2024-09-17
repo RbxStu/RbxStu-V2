@@ -7,6 +7,17 @@
 #include <memory>
 #include <string>
 
+#include "lua.h"
+namespace RbxStu {
+    namespace LuauFunctionDefinitions {
+        using luaH_new = void *(__fastcall *) (void *L, int32_t narray, int32_t nhash);
+        using freeblock = void(__fastcall *)(lua_State *L, int32_t sizeClass, void *block);
+        using lua_pushvalue = void(__fastcall *)(lua_State *L, int idx);
+        using luaE_newthread = lua_State *(__fastcall *) (lua_State *L);
+        using luau_load = lua_Status (__fastcall*)(lua_State *L, const char *chunkname, const char *data, size_t size,
+                                                   int env);
+    } // namespace LuauFunctionDefinitions
+} // namespace RbxStu
 /// @brief Manages the way RbxStu interacts with Luau.
 class LuauManager final {
     /// @brief Private, Static shared pointer into the instance.
