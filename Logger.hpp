@@ -73,6 +73,7 @@ namespace RbxStu {
     DefineSectionName(EnvironmentManager, "RbxStu::EnvironmentManager");
     DefineSectionName(Security, "RbxStu::Security");
 
+    DefineSectionName(DebuggerManager, "RbxStu::DebuggerManager");
     DefineSectionName(Anonymous, "RbxStu::Anonymous");
 
     DefineSectionName(HookedFunction, "RbxStu::HookedFunction<anonymous>");
