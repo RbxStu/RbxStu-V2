@@ -30,11 +30,11 @@ void rluau_execute__detour(lua_State *L) {
     if (!currentCl->isC) {
 
         if (debugManager->IsLocalPlayerScript(currentCl->l.p->source->data)) {
-            printf("LocalScript Found: %s\n", currentCl->l.p->source->data);
+            // printf("LocalScript Found: %s\n", currentCl->l.p->source->data);
         }
 
         if (debugManager->IsServerScript(currentCl->l.p->source->data)) {
-            printf("Server Script Found: %s\n", currentCl->l.p->source->data);
+            // printf("Server Script Found: %s\n", currentCl->l.p->source->data);
         }
     }
 
