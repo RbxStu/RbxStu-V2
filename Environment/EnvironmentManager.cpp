@@ -116,7 +116,7 @@ static std::vector<std::string> blockedFunctions = {
 static std::map<std::string, std::vector<std::string>> specificBlockage = {
         {std::string{"OpenCloudService"}, std::vector<std::string>{"RegisterOpenCloud"}},
         {std::string{"HttpService"}, std::vector<std::string>{"SetHttpEnabled"}},
-       {std::string{"BrowserService"},
+        {std::string{"BrowserService"},
          std::vector<std::string>{
                  "CopyAuthCookieFromBrowserToEngine",
                  "EmitHybridEvent",
@@ -303,7 +303,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                             if (indexAsString.find(func) != std::string::npos) {
                                 goto banned__index;
                             }
-                            if (func == "BLOCK_ALL")
+                            if (func == "BLOCK_ALL" && strcmp(loweredIndex.c_str(), "classname") != 0 &&
+                                strcmp(loweredIndex.c_str(), "name") != 0)
                                 goto banned__index; // Block all regardless.
                         }
                     }
