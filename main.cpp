@@ -18,6 +18,7 @@
 
 #include <obfus.h>
 
+#include "Debugger/DebuggerManager.hpp"
 #include "ModLoader/ModManager.hpp"
 
 static void watermark() {
@@ -167,6 +168,10 @@ int main() {
 
     std::thread(Communication::NewCommunication, "ws://localhost:8523").detach();
     std::thread(Communication::HandlePipe, "CommunicationPipe").detach();
+
+    logger->PrintInformation(RbxStu::MainThread, "-- Initializing DebuggerManager...");
+    const auto debuggerManager = DebuggerManager::GetSingleton();
+    debuggerManager->Initialize();
 
     logger->PrintInformation(RbxStu::MainThread, "Running mod initialization step...");
     modManager->InitializeMods();
