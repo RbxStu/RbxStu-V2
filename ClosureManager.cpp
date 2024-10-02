@@ -78,7 +78,7 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
     const auto callResult = lua_pcall(L, argc, LUA_MULTRET, 0);
     if (callResult != LUA_OK && callResult != LUA_YIELD &&
         std::strcmp(luaL_optstring(L, -1, ""), "attempt to yield across metamethod/C-call boundary") == 0) {
-        return lua_yield(L, 0);
+        return lua_yield(L, LUA_MULTRET);
     }
 
     if (callResult == LUA_ERRRUN)
@@ -362,8 +362,6 @@ int ClosureManager::newcclosure(lua_State *L) {
     clManager->FixClosure(L, closure);
     lua_pushcclosurek(L, ClosureManager::newcclosure_handler, functionName, 0, nullptr);
     const auto cclosure = lua_toclosure(L, closureIndex);
-    luaC_barrierfast(L, closure);
-    luaS_fix(cclosure);
     clManager->m_newcclosureMap[currentDataModel][cclosure] = closure;
     lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
     return 1;

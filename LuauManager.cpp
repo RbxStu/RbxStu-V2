@@ -74,19 +74,20 @@ namespace RbxStu {
 } // namespace RbxStu
 
 static void luau__freeblock(lua_State *L, uint32_t sizeClass, void *block) {
-    if (reinterpret_cast<std::uintptr_t>(block) > 0x00007FF000000000) {
-        Logger::GetSingleton()->PrintWarning(
-                RbxStu::HookedFunction,
-                std::format("Suspicious address caught (non-heap range): {}. Deallocation blocked!", block));
-        return;
-    }
-    if (!Utilities::IsPointerValid(static_cast<std::uintptr_t *>(block)) ||
-        !Utilities::IsPointerValid(reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) - 8)) ||
-        !Utilities::IsPointerValid(*reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) - 8))) {
-        Logger::GetSingleton()->PrintWarning(
-                RbxStu::HookedFunction, std::format("Suspicious address caught: {}. Deallocation blocked!", block));
-        return;
-    }
+    // This has been fixed, the pointer check no longer needs to exist.
+    // if (reinterpret_cast<std::uintptr_t>(block) > 0x00007FF000000000) {
+    //     Logger::GetSingleton()->PrintWarning(
+    //             RbxStu::HookedFunction,
+    //             std::format("Suspicious address caught (non-heap range): {}. Deallocation blocked!", block));
+    //     return;
+    // }
+    // if (!Utilities::IsPointerValid(static_cast<std::uintptr_t *>(block)) ||
+    //     !Utilities::IsPointerValid(reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) - 8))
+    //     || !Utilities::IsPointerValid(*reinterpret_cast<std::uintptr_t **>(reinterpret_cast<std::uintptr_t>(block) -
+    //     8))) { Logger::GetSingleton()->PrintWarning(
+    //             RbxStu::HookedFunction, std::format("Suspicious address caught: {}. Deallocation blocked!", block));
+    //     return;
+    // }
 
     return (reinterpret_cast<RbxStu::LuauFunctionDefinitions::freeblock>(
             LuauManager::GetSingleton()->GetHookOriginal("freeblock"))(L, sizeClass, block));
@@ -224,22 +225,23 @@ void LuauManager::Initialize() {
     logger->PrintInformation(RbxStu::LuauManager, "All cleaned up!");
 
     logger->PrintInformation(RbxStu::LuauManager, "Hooking functions... [3/4]");
+    logger->PrintInformation(RbxStu::LuauManager, "Hooks completed! [3/4]");
 
-    logger->PrintInformation(RbxStu::LuauManager, "- Installing pointer check hook into freeblock...");
-    this->m_mapHookMap["freeblock"] = new void *();
+    // logger->PrintInformation(RbxStu::LuauManager, "- Installing pointer check hook into freeblock...");
+    // this->m_mapHookMap["freeblock"] = new void *();
 
-    // Error checking, because Dottik didn't add it.
-    // - MakeSureDudeDies
-    if (MH_CreateHook(this->m_mapLuauFunctions["freeblock"], luau__freeblock, &this->m_mapHookMap["freeblock"]) !=
-        MH_OK) {
-        logger->PrintError(RbxStu::LuauManager, "Failed to create freeblock hook!");
-        throw std::exception("Creating freeblock hook failed.");
-    }
+    //// Error checking, because Dottik didn't add it.
+    //// - MakeSureDudeDies
+    // if (MH_CreateHook(this->m_mapLuauFunctions["freeblock"], luau__freeblock, &this->m_mapHookMap["freeblock"]) !=
+    //     MH_OK) {
+    //     logger->PrintError(RbxStu::LuauManager, "Failed to create freeblock hook!");
+    //     throw std::exception("Creating freeblock hook failed.");
+    // }
 
-    if (MH_EnableHook(this->m_mapLuauFunctions["freeblock"]) != MH_OK) {
-        logger->PrintError(RbxStu::LuauManager, "Failed to enable freeblock hook!");
-        throw std::exception("Enabling freeblock hook failed.");
-    }
+    // if (MH_EnableHook(this->m_mapLuauFunctions["freeblock"]) != MH_OK) {
+    //     logger->PrintError(RbxStu::LuauManager, "Failed to enable freeblock hook!");
+    //     throw std::exception("Enabling freeblock hook failed.");
+    // }
 
     // this->m_mapHookMap["luaE_newthread"] = new void *();
     // MH_CreateHook(this->m_mapLuauFunctions["luaE_newthread"], luaE__newthread,

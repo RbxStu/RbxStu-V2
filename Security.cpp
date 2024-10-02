@@ -36,40 +36,50 @@ std::unordered_map<std::string, std::pair<std::uint64_t, bool>> allCapabilities 
                                                                                    {"Chat", {0x1b, true}},
                                                                                    {"Animation", {0x1c, true}},
                                                                                    {"Avatar", {0x1d, true}},
+                                                                                   {"Input", {0x1e, true}},
+                                                                                   {"Environment", {0x1f, true}},
+                                                                                   {"RemoteEvent", {0x1f, true}},
+                                                                                   {"PluginOrOpenCloud", {0x1f, true}},
                                                                                    {"Assistant", {0x3e, true}}};
 
 std::unordered_map<std::int32_t, std::list<std::string>> identityCapabilities = {
         {3,
-         {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite", "Avatar"}},
+         {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite", "Avatar",
+          "RemoteEvent", "Environment", "Input"}},
         {2, {"CSG", "Chat", "Animation", "Avatar"}}, // These are needed for 'require' to work!
         {4, {"Plugin", "LocalUser", "Avatar"}},
         {6,
-         {"RunServerScript", "Plugin", "LocalUser", "Avatar", "RobloxScript", "RunClientScript", "AccessOutsideWrite"}},
+         {"RunServerScript", "Plugin", "LocalUser", "Avatar", "RobloxScript", "RunClientScript", "AccessOutsideWrite",
+          "Input", "Environment", "RemoteEvent", "PluginOrOpenCloud"}},
         {8,
-         {"ScriptGlobals",
-          "RunServerScript",
-          "Plugin",
-          "Chat",
-          "CreateInstances",
+         {"Plugin",
           "LocalUser",
-          "RobloxEngine",
           "WritePlayer",
           "RobloxScript",
-          "CSG",
+          "RobloxEngine",
           "NotAccessible",
           "RunClientScript",
+          "RunServerScript",
           "AccessOutsideWrite",
-          "Physics",
           "Unassigned",
           "AssetRequire",
-          "Avatar",
           "LoadString",
+          "ScriptGlobals",
+          "CreateInstances",
           "Basic",
           "Audio",
           "DataStore",
           "Network",
+          "Physics",
           "UI",
+          "CSG",
+          "Chat",
           "Animation",
+          "Avatar",
+          "Input",
+          "Environment",
+          "RemoteEvent",
+          "PluginOrOpenCloud",
           "Assistant"}}};
 
 std::shared_ptr<Security> Security::pInstance;
@@ -87,7 +97,7 @@ void Security::PrintCapabilities(std::uint32_t capabilities) {
     logger->PrintInformation(RbxStu::Security, std::format("0x{:X} got these capabilities:", capabilities));
     for (auto capability = allCapabilities.begin(); capability != allCapabilities.end(); ++capability) {
         if (capability->second.second == true) {
-            if ((capabilities) & (1 << capability->second.first)) {
+            if ((capabilities) & (1ull << capability->second.first)) {
                 logger->PrintInformation(RbxStu::Security, capability->first);
             }
         } else {
@@ -99,14 +109,15 @@ void Security::PrintCapabilities(std::uint32_t capabilities) {
 };
 
 std::uint64_t Security::IdentityToCapabilities(const std::uint32_t identity) {
-    std::uint64_t capabilities = 0x3FFFF00 | (1ull << 48ull); // Basic capability | Checkcaller check
+    std::uint64_t capabilities =
+            0x3FFFF00ull | (1ull << 48ull); // Basic capability | Checkcaller check, the capabilities work as flags.
 
     if (const auto capabilitiesForIdentity = identityCapabilities.find(identity);
         capabilitiesForIdentity != identityCapabilities.end()) {
         for (const auto &capability: capabilitiesForIdentity->second) {
             if (auto it = allCapabilities.find(capability); it != allCapabilities.end()) {
                 if (it->second.second == true) {
-                    capabilities |= (1 << it->second.first);
+                    capabilities |= (1ull << it->second.first);
                     continue;
                 }
 
@@ -126,8 +137,10 @@ void Security::SetThreadSecurity(lua_State *L, std::int32_t identity) {
         L->global->cb.userthread(L->global->mainthread,
                                  L); // If unallocated, then we must run the callback to create a valid RobloxExtraSpace
 
-    auto *plStateUd = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
-    auto capabilities = Security::GetSingleton()->IdentityToCapabilities(identity);
+    auto *plStateUd =
+            static_cast<RBX::Lua::ExtraSpace *const>(L->userdata); // Const is applied to whats on the left first, if
+                                                                   // there is nothing, it applies to that on the right
+    const auto capabilities = Security::GetSingleton()->IdentityToCapabilities(identity);
     plStateUd->contextInformation = RBX::Security::ExtendedIdentity{identity, 0, nullptr};
     plStateUd->capabilities = capabilities;
 }
@@ -146,11 +159,11 @@ bool Security::IsOurThread(lua_State *L) {
     /// This way, we can set the bit 47th, used to describe NOTHING, to set it as
     /// our thread. Then we & it to validate it is present on the integer with an AND, which it shouldn't be ever if
     /// its anything normal, but we aren't normal!
-    /// When doing the bit shift, in C by default numbers are int32_t, we must use int64_t, thus we must post-fix the
-    /// the number with 'll'
-    const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *>(L->userdata);
+    /// When doing the bit shift, in C++ by default numbers are std::int32_t, we must use std::uint64_t, thus we must
+    /// post-fix the the number with 'ull'
+    const auto extraSpace = static_cast<RBX::Lua::ExtraSpace *const>(L->userdata);
     const auto logger = Logger::GetSingleton();
-    const auto passed = (extraSpace->capabilities & (1ull << 48ll)) == (1ull << 48ull);
+    const auto passed = (extraSpace->capabilities & (1ull << 48ull)) == (1ull << 48ull);
     return passed;
 }
 
@@ -166,7 +179,7 @@ bool Security::SetLuaClosureSecurity(Closure *lClosure, std::uint32_t identity) 
     return true;
 }
 
-void walk_proto_wipe(lua_State *L, Proto *proto) {
+void walk_proto_wipe(lua_State *const L, Proto *const proto) {
     proto->debugname = nullptr;
     proto->source = luaS_new(L, "");
     proto->linedefined = -1;

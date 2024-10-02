@@ -10,13 +10,15 @@
 #include "Logger.hpp"
 #include "RobloxManager.hpp"
 
+static std::string ConsoleWindowTitle{"-- RbxStu V2 --"};
+
 namespace RbxStu {
     namespace Console {
         HWND CreateIfNotCreated() {
             if (const auto hWnd = GetConsoleWindow(); !hWnd || hWnd == INVALID_HANDLE_VALUE) {
                 AllocConsole();
                 Logger::GetSingleton()->OpenStandard();
-                SetConsoleTitleA("-- RbxStu V2 --");
+                SetConsoleTitleA(ConsoleWindowTitle.c_str());
                 Logger::GetSingleton()->PrintInformation(RbxStu::Anonymous, "-- roblox console created --");
             }
 
@@ -39,8 +41,8 @@ namespace RbxStu {
 
         int rconsolesettitle(lua_State *L) {
             CreateIfNotCreated();
-            const auto wndName = luaL_checkstring(L, 1);
-            SetConsoleTitleA(wndName);
+            ConsoleWindowTitle = luaL_checkstring(L, 1);
+            SetConsoleTitleA(ConsoleWindowTitle.c_str());
             return 0;
         }
 

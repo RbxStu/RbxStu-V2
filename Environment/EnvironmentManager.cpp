@@ -12,7 +12,6 @@
 #include "Libraries/Closures.hpp"
 #include "Libraries/Console.hpp"
 #include "Libraries/Debug.hpp"
-#include "Libraries/Debugger.hpp"
 #include "Libraries/Filesystem.hpp"
 #include "Libraries/Globals.hpp"
 #include "Libraries/Http.hpp"
@@ -59,7 +58,6 @@ std::shared_ptr<EnvironmentManager> EnvironmentManager::GetSingleton() {
         EnvironmentManager::pInstance->m_vLibraryList.push_back(new Instance{});
         EnvironmentManager::pInstance->m_vLibraryList.push_back(new Input{});
         EnvironmentManager::pInstance->m_vLibraryList.push_back(new Http{});
-        EnvironmentManager::pInstance->m_vLibraryList.push_back(new Debugger{});
     }
 
     return EnvironmentManager::pInstance;
@@ -300,7 +298,8 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
                 for (const auto &[bannedName, sound]: specificBlockage) {
                     if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
                         for (const auto &func: sound) {
-                            if (indexAsString.find(func) != std::string::npos) {
+                            if (indexAsString.find(func) != std::string::npos &&
+                                strstr(indexAsString.c_str(), func.c_str()) == indexAsString.c_str()) {
                                 goto banned__index;
                             }
                             if (func == "BLOCK_ALL" && strcmp(loweredIndex.c_str(), "classname") != 0 &&

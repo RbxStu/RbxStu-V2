@@ -66,8 +66,6 @@ add_library(Module SHARED
         Environment/Libraries/WebSocket.hpp
         Environment/Libraries/Http.cpp
         Environment/Libraries/Http.hpp
-        Environment/Libraries/Debugger.cpp
-        Environment/Libraries/Debugger.hpp
 
         # Disassembler abstraction
         Disassembler/Disassembler.cpp

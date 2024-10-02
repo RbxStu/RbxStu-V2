@@ -105,27 +105,26 @@ void *rbx__scriptcontext__resumeWaitingThreads(
     const auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getDataModel>(
             robloxManager->GetRobloxFunction("RBX::ScriptContext::getDataModel"));
 
-    {
-        const auto dataModel = getDataModel(scriptContext);
-        if (const auto debuggerManager = DebuggerManager::GetSingleton();
-            dataModel->m_bIsOpen && !debuggerManager->IsInitialized()) {
-            const auto globalState = robloxManager->GetGlobalState(scriptContext);
-            debuggerManager->RegisterCallbackCopy(lua_callbacks(globalState.value()));
-        }
-
-        if (dataModel->m_bIsOpen)
-            robloxManager->SetScriptContext(robloxManager->GetDataModelType(dataModel), &scriptContext);
-    }
     if (!scheduler->IsInitialized() && luauManager->IsInitialized()) { // !scheduler->is_initialized()
         if (getDataModel == nullptr) {
             logger->PrintWarning(RbxStu::HookedFunction, "Initialization of Scheduler may be unstable! Cannot "
                                                          "determine DataModel for the obtained ScriptContext!");
         } else {
             const auto expectedDataModel = robloxManager->GetCurrentDataModel(scheduler->GetExecutionDataModel());
+
             if (!expectedDataModel.has_value() || getDataModel(scriptContext) != expectedDataModel.value() ||
                 !robloxManager->IsDataModelValid(scheduler->GetExecutionDataModel())) {
                 goto __scriptContext_resumeWaitingThreads__cleanup;
             }
+        }
+
+        if (const auto debuggerManager = DebuggerManager::GetSingleton(); !debuggerManager->IsInitialized()) {
+            const auto dataModel = getDataModel(scriptContext);
+            const auto globalState = robloxManager->GetGlobalState(scriptContext);
+            debuggerManager->RegisterCallbackCopy(lua_callbacks(globalState.value()));
+
+            if (dataModel->m_bIsOpen)
+                robloxManager->SetScriptContext(robloxManager->GetDataModelType(dataModel), &scriptContext);
         }
 
         // HACK!: We do not want to initialize the scheduler on the
@@ -741,6 +740,7 @@ void *RobloxManager::GetRobloxFunction(const std::string &functionName) {
     if (this->m_mapRobloxFunctions.contains(functionName)) {
         return this->m_mapRobloxFunctions[functionName];
     }
+
     return nullptr;
 }
 

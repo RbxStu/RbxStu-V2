@@ -8,7 +8,6 @@
 
 #include "Communication/PacketSerdes.hpp"
 #include "Disassembler/Disassembler.hpp"
-#include "Environment/Libraries/Debugger.hpp"
 #include "Luau/Compiler.h"
 #include "LuauManager.hpp"
 #include "RobloxManager.hpp"
@@ -25,18 +24,18 @@ RbxStu::LuauFunctionDefinitions::luau_load original_rluau_load;
 RBX::Studio::FunctionTypes::luau_execute original_rluau_execute;
 
 void rluau_execute__detour(lua_State *L) {
-    const auto debugManager = DebuggerManager::GetSingleton();
-    const auto currentCl = clvalue(L->ci->func);
-    if (!currentCl->isC) {
-
-        if (debugManager->IsLocalPlayerScript(currentCl->l.p->source->data)) {
-            // printf("LocalScript Found: %s\n", currentCl->l.p->source->data);
-        }
-
-        if (debugManager->IsServerScript(currentCl->l.p->source->data)) {
-            // printf("Server Script Found: %s\n", currentCl->l.p->source->data);
-        }
-    }
+    // const auto debugManager = DebuggerManager::GetSingleton();
+    // const auto currentCl = clvalue(L->ci->func);
+    // if (!currentCl->isC) {
+    //
+    //     if (debugManager->IsLocalPlayerScript(currentCl->l.p->source->data)) {
+    //         // printf("LocalScript Found: %s\n", currentCl->l.p->source->data);
+    //     }
+    //
+    //     if (debugManager->IsServerScript(currentCl->l.p->source->data)) {
+    //         // printf("Server Script Found: %s\n", currentCl->l.p->source->data);
+    //     }
+    // }
 
     return original_rluau_execute(L);
 }
@@ -83,25 +82,24 @@ void DebuggerManager::Initialize() {
         logger->PrintInformation(RbxStu::DebuggerManager, std::format("- '{}' at address {}.", funcName, funcAddress));
     }
 
-    logger->PrintInformation(RbxStu::DebuggerManager, "Setting up hook on luau_load to track bytecode load-ins...");
+    // logger->PrintInformation(RbxStu::DebuggerManager, "Setting up hook on luau_load to track bytecode load-ins...");
 
-    const auto rLuauLoad =
-            reinterpret_cast<RbxStu::LuauFunctionDefinitions::luau_load>(luauManager->GetFunction("luau_load"));
+    // const auto rLuauLoad =
+    //         reinterpret_cast<RbxStu::LuauFunctionDefinitions::luau_load>(luauManager->GetFunction("luau_load"));
 
-    MH_CreateHook(rLuauLoad, rluau_load__detour, reinterpret_cast<void **>(&original_rluau_load));
-    MH_EnableHook(rLuauLoad);
+    // MH_CreateHook(rLuauLoad, rluau_load__detour, reinterpret_cast<void **>(&original_rluau_load));
+    // MH_EnableHook(rLuauLoad);
+    // logger->PrintInformation(RbxStu::DebuggerManager, "Set hook. luau_load -> Instrument bytecode loading");
 
-    logger->PrintInformation(RbxStu::DebuggerManager, "Set hook. luau_load -> Instrument bytecode loading");
+    // logger->PrintInformation(RbxStu::DebuggerManager, "Setting up hook on luau_execute to track execution.");
 
-    logger->PrintInformation(RbxStu::DebuggerManager, "Setting up hook on luau_execute to track execution.");
+    // const auto rLuauExecute =
+    //         reinterpret_cast<RBX::Studio::FunctionTypes::luau_execute>(luauManager->GetFunction("luau_execute"));
 
-    const auto rLuauExecute =
-            reinterpret_cast<RBX::Studio::FunctionTypes::luau_execute>(luauManager->GetFunction("luau_execute"));
+    // MH_CreateHook(rLuauExecute, rluau_execute__detour, reinterpret_cast<void **>(&original_rluau_execute));
+    // MH_EnableHook(rLuauExecute);
 
-    MH_CreateHook(rLuauExecute, rluau_execute__detour, reinterpret_cast<void **>(&original_rluau_execute));
-    MH_EnableHook(rLuauExecute);
-
-    logger->PrintInformation(RbxStu::DebuggerManager, "Set hook. luau_execute -> Instrument script execution.");
+    // logger->PrintInformation(RbxStu::DebuggerManager, "Set hook. luau_execute -> Instrument script execution.");
 }
 void DebuggerManager::PushScriptTracking(const char *chunkname, lua_State *scriptState) {
 

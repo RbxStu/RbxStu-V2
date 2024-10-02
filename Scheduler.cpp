@@ -103,9 +103,11 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         if (robloxManager->GetRobloxTaskDefer().has_value()) {
             const auto defer = robloxManager->GetRobloxTaskDefer().value();
+            logger->PrintInformation(RbxStu::Scheduler, "Scheduling via RBX::ScriptContext::task_defer...");
             defer(L);
         } else if (robloxManager->GetRobloxTaskSpawn().has_value()) {
             const auto spawn = robloxManager->GetRobloxTaskSpawn().value();
+            logger->PrintInformation(RbxStu::Scheduler, "Scheduling via RBX::ScriptContext::task_spawn...");
             spawn(L);
         } else {
             logger->PrintError(RbxStu::Scheduler,
