@@ -277,7 +277,7 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     opts.debugLevel = 2;
     opts.optimizationLevel = 0;
     const auto bytecode =
-            Luau::compile(std::format("print\"hi\"; return game:GetService(\"RunService\").Heartbeat:Connect({})",
+            Luau::compile(std::format("print(\"RbxStu V2: Scheduler initialized!\"); return game:GetService(\"RunService\").Heartbeat:Connect({})",
                                       std::format("scheduler_", reinterpret_cast<std::uintptr_t>(L))),
                           opts);
 
