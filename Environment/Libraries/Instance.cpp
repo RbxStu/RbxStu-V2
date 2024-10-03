@@ -43,6 +43,35 @@ namespace RbxStu {
             return 0;
         }
 
+        int firetouchinterest(lua_State *L) {
+            luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+            luaL_checktype(L, 2, lua_Type::LUA_TUSERDATA);
+            luaL_checktype(L, 3, lua_Type::LUA_TNUMBER);
+
+            Utilities::checkInstance(L, 1, "BasePart");
+            Utilities::checkInstance(L, 2, "BasePart");
+            const auto touchType = lua_tointeger(L, 3);
+
+            // -- workspace ref not required
+            // Utilities::GetService(L, "Workspace");
+            // auto world = reinterpret_cast<void *>(lua_touserdata(L, -1));
+
+            const auto robloxManager = RobloxManager::GetSingleton();
+            const auto fireTouchSignals =
+                    reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_fireTouchSignals>(
+                            robloxManager->GetRobloxFunction("RBX::BasePart::fireTouchSignals"));
+
+            // Simulate that the touch comes from the server :>
+
+            fireTouchSignals(*static_cast<void **>(lua_touserdata(L, 1)), static_cast<void **>(lua_touserdata(L, 2)),
+                             static_cast<RBX::TouchEventType>(static_cast<std::uint8_t>(touchType)), false);
+
+            fireTouchSignals(*static_cast<void **>(lua_touserdata(L, 2)), static_cast<void **>(lua_touserdata(L, 1)),
+                             static_cast<RBX::TouchEventType>(static_cast<std::uint8_t>(touchType)), false);
+
+            return 0;
+        }
+
         int isnetworkowner(lua_State *L) {
             Utilities::checkInstance(L, 1, "BasePart");
             auto part = *static_cast<void **>(lua_touserdata(L, 1));
@@ -186,6 +215,7 @@ std::string Instance::GetLibraryName() { return "instances"; }
 luaL_Reg *Instance::GetLibraryFunctions() {
     const auto reg = new luaL_Reg[]{{"gethui", RbxStu::Instance::gethui},
                                     {"fireproximityprompt", RbxStu::Instance::fireproximityprompt},
+                                    {"firetouchinterest", RbxStu::Instance::firetouchinterest},
 
                                     {"isnetworkowner", RbxStu::Instance::isnetworkowner},
 

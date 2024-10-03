@@ -42,6 +42,10 @@ namespace RbxStu {
                                                               bool isError, char const *szErrorMessage);
         using r_RBX_BasePart_getNetworkOwner =
                 RBX::SystemAddress *(__fastcall *) (void *basePart, RBX::SystemAddress *returnSystemAddress);
+
+        // other is wrapped in a std::shared_ptr
+        using r_RBX_BasePart_fireTouchSignals = void (__fastcall *)(void *basePart, void ** other, RBX::TouchEventType type, bool isLocal);
+
         using r_RBX_Player_findPlayerWithAddress =
                 std::shared_ptr<void> *(__fastcall *) (std::shared_ptr<void> *__return,
                                                        const RBX::SystemAddress *playerAddress, const void *context);
@@ -173,6 +177,15 @@ namespace RbxStu {
          */
         MakeSignature_FromIDA(RBX_Player_getPeerId, "8B 81 08 06 00 00 89 02 48 8B C2 C3");
 
+        /*
+         * Search for DataModel::physicsStepped, above of the %4.7f string there will be a function call, inside a call
+         * to this function resides.
+         */
+        MakeSignature_FromIDA(RBX_BasePart_fireTouchSignals,
+                              "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 4C 89 74 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 45 "
+                              "0F B6 F1 41 0F B6 F0 48 8B DA 48 8B F9 E8 ? ? ? ? 48 85 C0 0F 84 6F 01 00 ? 48 8B CF E8 "
+                              "? ? ? ? 48 8B F8 0F 57 C0 F3 0F 7F 45 ? 48 8B 90 ? ? ? ? 48 85 D2 74 15 8B 42 ?");
+
         static const std::map<std::string, Signature> s_signatureMap = {
                 {"RBX::ScriptContext::resumeDelayedThreads", RBX_ScriptContext_resumeDelayedThreads},
                 {"RBX::ScriptContext::scriptStart", RBX_ScriptContext_scriptStart},
@@ -201,6 +214,8 @@ namespace RbxStu {
                 {"RBX::Instance::getTopAncestor", RBX_Instance_getTopAncestor},
 
                 {"RBX::BasePart::getNetworkOwner", RBX_BasePart_getNetworkOwner},
+                {"RBX::BasePart::fireTouchSignals", RBX_BasePart_fireTouchSignals},
+
                 {"RBX::Player::getPeerId", RBX_Player_getPeerId},
 
                 {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose},

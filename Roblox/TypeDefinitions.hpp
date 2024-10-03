@@ -16,6 +16,7 @@ namespace RbxStu::Concepts {
 }
 
 namespace RBX {
+    enum TouchEventType : std::uint8_t { Touch = 0x0, Untouch = 0x1 };
     namespace Security {
         enum Permissions : uint32_t;
         struct ExtendedIdentity {
