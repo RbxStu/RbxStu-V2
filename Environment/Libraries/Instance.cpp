@@ -61,7 +61,11 @@ namespace RbxStu {
                     reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_fireTouchSignals>(
                             robloxManager->GetRobloxFunction("RBX::BasePart::fireTouchSignals"));
 
-            // Simulate that the touch comes from the server :>
+            /*
+             *  Roblox touch signals are super fun.
+             *  we can just fake we are the server replicating touches, we just need to replicate the RBX::fireTouchedRemotely function
+             *  then, profit!
+             */
 
             fireTouchSignals(*static_cast<void **>(lua_touserdata(L, 1)), static_cast<void **>(lua_touserdata(L, 2)),
                              static_cast<RBX::TouchEventType>(static_cast<std::uint8_t>(touchType)), false);
