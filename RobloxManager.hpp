@@ -139,10 +139,6 @@ namespace RbxStu {
         MakeSignature_FromIDA(RBX_Instance_remove, "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B "
                                                    "D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 41 05 00 00 00 75 12");
 
-        MakeSignature_FromIDA(RBX_ScriptContext_setThreadIdentityAndSandbox,
-                              "48 89 5C 24 ? 55 56 41 54 41 56 41 57 48 83 EC ? 45 33 F6 4D 8B F8 44 38 35 ? ? ? 06 "
-                              "4C 8B E2 48 8B D9 44 89 B4 24 90 00 00 ? 41 8D 76 ? 74 07");
-
         MakeSignature_FromIDA(LuaVM_Load, "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D ? ? ? 48 81 EC ? ? ? "
                                           "? 4D 8B E1 49 8B D8 4C 8B EA");
 
@@ -194,7 +190,6 @@ namespace RbxStu {
                 {"RBX::ScriptContext::task_spawn", RBX_ScriptContext_task_spawn},
                 {"RBX::ScriptContext::task_delay", RBX_ScriptContext_task_delay},
                 {"RBX::ScriptContext::getDataModel", RBX_ScriptContext_getDataModel},
-                {"RBX::ScriptContext::setThreadIdentityAndSandbox", RBX_ScriptContext_setThreadIdentityAndSandbox},
                 {"RBX::ScriptContext::resume", RBX_ScriptContext_resume},
                 {"RBX::ScriptContext::validateThreadAccess", RBX_ScriptContext_validateThreadAccess},
 
