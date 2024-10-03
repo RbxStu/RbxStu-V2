@@ -46,8 +46,8 @@ std::unordered_map<std::int32_t, std::list<std::string>> identityCapabilities = 
         {3,
          {"RunServerScript", "Plugin", "LocalUser", "RobloxScript", "RunClientScript", "AccessOutsideWrite", "Avatar",
           "RemoteEvent", "Environment", "Input"}},
-        {2, {"CSG", "Chat", "Animation", "Avatar"}}, // These are needed for 'require' to work!
-        {4, {"Plugin", "LocalUser", "Avatar"}},
+        {2, {"CSG", "Chat", "Animation", "RemoteEvent", "Avatar"}}, // These are needed for 'require' to work!
+        {4, {"Plugin", "LocalUser", "RemoteEvent", "Avatar"}},
         {6,
          {"RunServerScript", "Plugin", "LocalUser", "Avatar", "RobloxScript", "RunClientScript", "AccessOutsideWrite",
           "Input", "Environment", "RemoteEvent", "PluginOrOpenCloud"}},
@@ -110,7 +110,7 @@ void Security::PrintCapabilities(std::uint32_t capabilities) {
 
 std::uint64_t Security::IdentityToCapabilities(const std::uint32_t identity) {
     std::uint64_t capabilities =
-            0x3FFFF00ull | (1ull << 48ull); // Basic capability | Checkcaller check, the capabilities work as flags.
+            0x1FFFFFF00ull | (1ull << 48ull); // Basic capability | Checkcaller check, the capabilities work as flags.
 
     if (const auto capabilitiesForIdentity = identityCapabilities.find(identity);
         capabilitiesForIdentity != identityCapabilities.end()) {
