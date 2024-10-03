@@ -658,5 +658,7 @@ getgenv().GetObjects = function(assetId)
 	setIdentity_c(oldId)
 	return obj
 end
+
+getgenv().scheduler_ = nil
 )"));
 }
