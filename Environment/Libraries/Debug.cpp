@@ -381,8 +381,10 @@ namespace RbxStu {
 
             auto proto = closure->l.p->p[index - 1];
 
+            lua_newtable(L);
             setclvalue(L, L->top, luaF_newLclosure(L, proto->nups, closure->env, proto));
             L->top++;
+            lua_rawseti(L, -2, 1);
 
             return 1;
         }
