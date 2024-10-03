@@ -52,6 +52,9 @@ namespace RbxStu {
             Utilities::checkInstance(L, 2, "BasePart");
             const auto touchType = lua_tointeger(L, 3);
 
+            if (touchType != 0 && touchType != 1)
+                luaL_argerror(L, 3, "touch type must be either Touch (Integer<0>) or TouchEnded (Integer<1>).");
+
             // -- workspace ref not required
             // Utilities::GetService(L, "Workspace");
             // auto world = reinterpret_cast<void *>(lua_touserdata(L, -1));
@@ -63,8 +66,8 @@ namespace RbxStu {
 
             /*
              *  Roblox touch signals are super fun.
-             *  we can just fake we are the server replicating touches, we just need to replicate the RBX::fireTouchedRemotely function
-             *  then, profit!
+             *  we can just fake we are the server replicating touches, we just need to replicate the
+             * RBX::fireTouchedRemotely function then, profit!
              */
 
             fireTouchSignals(*static_cast<void **>(lua_touserdata(L, 1)), static_cast<void **>(lua_touserdata(L, 2)),
