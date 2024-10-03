@@ -64,10 +64,14 @@ namespace RbxStu {
                     reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_BasePart_fireTouchSignals>(
                             robloxManager->GetRobloxFunction("RBX::BasePart::fireTouchSignals"));
 
+            if (fireTouchSignals == nullptr)
+                luaL_error(L, "cannot firetouchinterest; RBX::BasePart::fireTouchSignals was not found during the "
+                              "scanning step! If you believe this was caused by an update, contact the developers!");
+
             /*
              *  Roblox touch signals are super fun.
              *  we can just fake we are the server replicating touches, we just need to replicate the
-             * RBX::fireTouchedRemotely function then, profit!
+             *  RBX::fireTouchedRemotely function then, profit!
              */
 
             fireTouchSignals(*static_cast<void **>(lua_touserdata(L, 1)), static_cast<void **>(lua_touserdata(L, 2)),

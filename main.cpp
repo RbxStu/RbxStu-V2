@@ -231,6 +231,13 @@ int main() {
                     "RBX::DataModel::getStudioGameStateType could not be found; This makes initialization impossible");
         }
 
+        if (robloxManager->GetRobloxFunction("RBX::BasePart::fireTouchSignals") == nullptr) {
+            logger->PrintError(RbxStu::MainThread, "firetouchinterest will be unavailable and when error when invoked! "
+                                                   "Failed to find the required internal Roblox function!");
+
+            hasFailedAnyCheck = true;
+        }
+
         if (!robloxManager->GetFastVariable("TaskSchedulerTargetFps").has_value()) {
             logger->PrintError(RbxStu::MainThread, "setfpscap and getfpscap are unavailable and will error when "
                                                    "invoked! Failed to find required IntFastFlag!");
