@@ -3,6 +3,7 @@
 //
 #include "ClosureManager.hpp"
 #include <lua.h>
+#include <regex>
 
 #include "Communication/Communication.hpp"
 #include "Environment/Libraries/Globals.hpp"
@@ -34,17 +35,17 @@ void ClosureManager::ResetManager(const RBX::DataModelType &resetTarget) {
 
 int ClosureManager::newcclosure_handler(lua_State *L) {
     const auto argc = lua_gettop(L);
-    const auto manager = RobloxManager::GetSingleton();
+    const auto robloxManager = RobloxManager::GetSingleton();
 
-    const auto scriptContext = manager->GetScriptContext(L);
+    const auto scriptContext = robloxManager->GetScriptContext(L);
     if (!scriptContext.has_value())
         luaL_error(L, "call resolution failed; ScriptContext unavailable");
 
-    const auto dataModel = manager->GetDataModelFromScriptContext(scriptContext.value());
+    const auto dataModel = robloxManager->GetDataModelFromScriptContext(scriptContext.value());
     if (!dataModel.has_value())
         luaL_error(L, "call resolution failed; DataModel unavailable");
 
-    const auto currentDataModel = manager->GetDataModelType(dataModel.value());
+    const auto currentDataModel = robloxManager->GetDataModelType(dataModel.value());
 
     const auto clManager = ClosureManager::GetSingleton();
     if (!clManager->m_newcclosureMap[currentDataModel].contains(clvalue(L->ci->func)))
@@ -52,20 +53,20 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
 
     // Due to the nature of the Lua Registry, our closures can be replaced with complete garbage.
     // Thus we must be careful, and validate that the Lua Registry ref IS present.
-    Closure *closure = clManager->m_newcclosureMap[currentDataModel].at(clvalue(L->ci->func));
+    ClosureWrapInformation closure = clManager->m_newcclosureMap[currentDataModel].at(clvalue(L->ci->func));
 
     luaC_threadbarrier(L);
 
-    L->top->value.p = closure;
+    L->top->value.p = closure.closure;
     L->top->tt = lua_Type::LUA_TFUNCTION;
     L->top++;
 
     const auto scheduler = Scheduler::GetSingleton();
 
-    if (!RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel].contains(closure))
+    if (!RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel].contains(closure.closure))
         luaL_error(L, "call resolution failed, invalid closure state.");
-    lua_getref(L, RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel][closure]);
-    if (lua_type(L, -1) == LUA_TFUNCTION && lua_toclosure(L, -1) == closure) {
+    lua_getref(L, RbxStu::s_mRefsMapBasedOnDataModel[currentDataModel][closure.closure]);
+    if (lua_type(L, -1) == LUA_TFUNCTION && lua_toclosure(L, -1) == closure.closure) {
         lua_pop(L, 1);
     } else {
         luaL_error(L, "call resolution failed, invalid ref."); // If the pointers aren't the same, and the lua type
@@ -73,7 +74,70 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
                                                                // on the devil, but we don't have a crucifix to remove
                                                                // him, so just crash.
     }
+
     lua_insert(L, 1);
+
+    if (closure.requiresYielding) {
+        /*
+         *  Due to the very clear possibility of the current thread not being yieldable, we must re-schedule the closure
+         *  into a new thread, then we must exchange the returns of that thread into our own, whilst keeping this one
+         *  waiting for whatever that function returns (Yielding on this side until that other function answers and
+         * fulfills the request!)
+         */
+
+        if (robloxManager->GetRobloxTaskDefer().has_value()) {
+            const auto defer = robloxManager->GetRobloxTaskDefer().value();
+            defer(L);
+        } else if (robloxManager->GetRobloxTaskSpawn().has_value()) {
+            const auto spawn = robloxManager->GetRobloxTaskSpawn().value();
+            spawn(L);
+        } else {
+            throw std::exception("cannot handle yieldable newcclosure; no schedule function available");
+        }
+
+        const auto nL = lua_tothread(L, -1);
+        nL->namecall = L->namecall;
+
+        scheduler->ScheduleJob(SchedulerJob(
+                L, [nL](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
+                    printf("waiting for ex...\n");
+                    while (lua_costatus(L, nL) != lua_CoStatus::LUA_COFIN &&
+                           lua_costatus(L, nL) != lua_CoStatus::LUA_COERR) {
+                        _mm_pause();
+                    }
+                    printf("call complete!\n");
+
+                    // ready to resume into original thread, the call has been successfully dispatched.
+
+                    *callbackToExecute = std::async(std::launch::async, [nL]() -> std::function<int(lua_State *)> {
+                        return [nL](lua_State *L) -> int {
+                            if (lua_status(nL) == lua_CoStatus::LUA_COERR) {
+                                // We must move to the original thread again, except just the first argument and signal
+                                // the scheduler the task failed.
+                                lua_xmove(nL, L, 1);
+
+                                /*
+                                 *  When we throw from Luau, we are using Roblox's rawrununprotected and we are going
+                                 *  through its VM this leads for our pusherror modificaton to never run; meaning the
+                                 *  callstack information will be present on the error message. To prevent this, we must
+                                 *  manually strip the data with a few string operations. this guarantees our metamethod
+                                 *  hooks to be undetected, whilst the error message doesn't change.
+                                 */
+                                const auto newError = Utilities::StripLuaErrorMessage(lua_tostring(L, -1));
+                                lua_pop(L, 1);
+                                lua_pushstring(L, newError.c_str());
+                                return -1;
+                            }
+
+                            lua_xmove(nL, L, lua_gettop(nL));
+
+                            return lua_gettop(L);
+                        };
+                    });
+                }));
+
+        return lua_yield(L, 0);
+    }
 
     const auto callResult = lua_pcall(L, argc, LUA_MULTRET, 0);
     if (callResult != LUA_OK && callResult != LUA_YIELD &&
@@ -81,8 +145,12 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
         return lua_yield(L, LUA_MULTRET);
     }
 
-    if (callResult == LUA_ERRRUN)
+    if (callResult == LUA_ERRRUN) {
+        const auto newError = Utilities::StripLuaErrorMessage(lua_tostring(L, -1));
+        lua_pop(L, 1);
+        lua_pushstring(L, newError.c_str());
         lua_error(L); // error string at stack top
+    }
 
     return lua_gettop(L);
 }
@@ -107,9 +175,9 @@ bool ClosureManager::IsWrapped(lua_State *L, const Closure *closure) {
 
     const auto currentDataModel = manager->GetDataModelType(dataModel.value());
 
-    return std::ranges::any_of(this->m_newcclosureMap[currentDataModel].begin(),
-                               this->m_newcclosureMap[currentDataModel].end(),
-                               [&closure](const std::pair<Closure *, Closure *> cl) { return closure == cl.second; });
+    return std::ranges::any_of(
+            this->m_newcclosureMap[currentDataModel].begin(), this->m_newcclosureMap[currentDataModel].end(),
+            [&closure](const std::pair<Closure *, ClosureWrapInformation> cl) { return closure == cl.second.closure; });
 }
 
 int ClosureManager::hookfunction(lua_State *L) {
@@ -200,7 +268,7 @@ int ClosureManager::hookfunction(lua_State *L) {
                                            [hookTarget]; // We must substitute the refs on original to point to the new,
                                                          // but we must keep the clones'.
 
-        clManager->m_newcclosureMap[currentDataModel][hookTarget] = hookWith;
+        clManager->m_newcclosureMap[currentDataModel][hookTarget] = {hookWith, false};
         L->top->value.p = cl;
         L->top->tt = LUA_TFUNCTION;
         L->top++;
@@ -341,13 +409,27 @@ void ClosureManager::FixClosure(lua_State *L, Closure *closure) {
 int ClosureManager::newcclosure(lua_State *L) {
     // Using relative offsets, since this function may be called by other functions! (hookfunc)
     auto closureIndex = -1;
-    if (lua_type(L, -1) == LUA_TSTRING)
+    auto nameIndex = -1;
+    if (lua_type(L, -2) == LUA_TSTRING || lua_type(L, -2) == LUA_TNIL) {
         closureIndex--;
+        closureIndex--;
+        nameIndex--;
+    }
+
+    if (lua_type(L, -1) == LUA_TSTRING || lua_type(L, -1) == LUA_TNIL) {
+        closureIndex--;
+    }
 
     luaL_checktype(L, closureIndex, LUA_TFUNCTION);
+    bool mustYield = false;
+
     const char *functionName = nullptr;
-    if (lua_type(L, -1) == LUA_TSTRING)
-        functionName = luaL_optstring(L, -1, nullptr);
+
+    if (lua_type(L, nameIndex) == LUA_TSTRING)
+        functionName = luaL_optstring(L, nameIndex, nullptr);
+
+    if (lua_type(L, nameIndex + 1) == LUA_TBOOLEAN)
+        mustYield = static_cast<bool>(lua_toboolean(L, nameIndex + 1));
 
     const auto manager = RobloxManager::GetSingleton();
 
@@ -361,8 +443,8 @@ int ClosureManager::newcclosure(lua_State *L) {
     const auto closure = lua_toclosure(L, closureIndex);
     clManager->FixClosure(L, closure);
     lua_pushcclosurek(L, ClosureManager::newcclosure_handler, functionName, 0, nullptr);
-    const auto cclosure = lua_toclosure(L, closureIndex);
-    clManager->m_newcclosureMap[currentDataModel][cclosure] = closure;
+    const auto cclosure = lua_toclosure(L, -1);
+    clManager->m_newcclosureMap[currentDataModel][cclosure] = ClosureWrapInformation{closure, mustYield};
     lua_remove(L, lua_gettop(L) - 1); // Balance lua stack.
     return 1;
 }

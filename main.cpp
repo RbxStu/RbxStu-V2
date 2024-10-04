@@ -47,7 +47,7 @@ long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
     }
 
 
-    printf("Thread      RI P         @ %p\r\n", reinterpret_cast<void *>(pExceptionPointers->ContextRecord->Rip));
+    printf("Thread      RIP          @ %p\r\n", reinterpret_cast<void *>(pExceptionPointers->ContextRecord->Rip));
     printf("Module.dll               @ %p\r\n", reinterpret_cast<void *>(GetModuleHandleA("Module.dll")));
     printf("Rebased Module           @ %p\r\n",
            reinterpret_cast<void *>(pExceptionPointers->ContextRecord->Rip -
@@ -129,7 +129,7 @@ long exception_filter(PEXCEPTION_POINTERS pExceptionPointers) {
     printf("Stack frames captured - Waiting for 30s before handing to executee... \r\n");
     Sleep(30000);
 
-    return EXCEPTION_EXECUTE_HANDLER;
+    return EXCEPTION_CONTINUE_EXECUTION;
 }
 
 int main() {
@@ -155,6 +155,11 @@ int main() {
     logger->PrintInformation(RbxStu::MainThread,
                              std::format("-- RbxStu Base: {}", static_cast<void *>(GetModuleHandle("Module.dll"))));
     SetConsoleTitleA("-- RbxStu V2 --");
+
+    logger->PrintInformation(RbxStu::MainThread, "-- Initializing Internal Utilities...");
+    Utilities::Initialize();
+    logger->PrintInformation(RbxStu::MainThread, "-- Initialized.");
+
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing ModManager...");
     auto modManager = ModManager::GetSingleton();
     modManager->LoadMods();

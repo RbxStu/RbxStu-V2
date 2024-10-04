@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <filesystem>
 #include <hex.h>
+#include <regex>
 #include <sha.h>
 #include <sstream>
 #include <string>
@@ -13,6 +14,12 @@
 
 #include "Logger.hpp"
 #include "lualib.h"
+
+namespace RbxStu {
+    namespace Regexes {
+        static std::regex LUA_ERROR_CALLSTACK_REGEX;
+    }
+} // namespace RbxStu
 
 class Utilities final {
     struct ThreadInformation {
@@ -100,6 +107,9 @@ public:
             this->state = RESUMED;
         }
     };
+
+    static void Initialize();
+
     __forceinline static std::pair<bool, std::string> getInstanceType(lua_State *L, int index) {
         luaL_checktype(L, index, LUA_TUSERDATA);
 
@@ -120,6 +130,8 @@ public:
         lua_pop(L, 1);
         return {true, className};
     }
+
+    static std::string StripLuaErrorMessage(const std::string &message);
 
     __forceinline static void checkInstance(lua_State *L, int index, const char *expectedClassname) {
         luaL_checktype(L, index, LUA_TUSERDATA);

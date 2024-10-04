@@ -264,258 +264,310 @@ void EnvironmentManager::PushEnvironment(_In_ lua_State *L) {
 
         __index_game_original = __index->c.f;
         __index->c.f = [](lua_State *L) -> int {
-            if (lua_type(L, 2) != lua_Type::LUA_TSTRING)
+            if (lua_gettop(L) < 2 || lua_type(L, 1) != lua_Type::LUA_TUSERDATA ||
+                lua_type(L, 2) != lua_Type::LUA_TSTRING || !Security::GetSingleton()->IsOurThread(L))
                 return __index_game_original(L);
 
-            auto index = lua_tostring(L, 2);
+            try {
+                auto index = luaL_optstring(L, 2, nullptr);
 
-            const auto loweredIndex = Utilities::ToLower(index);
-            for (const auto &func: blockedFunctions) {
-                if (loweredIndex.find(func) != std::string::npos) {
-                    goto banned__index;
-                }
-            }
-
-            for (const auto &func: blockedServices) {
-                if (loweredIndex.find(func) != std::string::npos) {
-                    goto banned__index;
-                }
-            }
-
-            lua_getmetatable(L, 1);
-            lua_getfield(L, -1, "__type");
-
-            if (const auto s = lua_tostring(L, -1);
-                strcmp(s, "Instance") == 0 && Security::GetSingleton()->IsOurThread(L)) {
-                lua_pop(L, 3);
-                lua_pushstring(L, "ClassName");
-                __index_game_original(L);
-                const auto instanceClassName = Utilities::ToLower(lua_tostring(L, -1));
-                lua_pop(L, 2);
-                lua_pushstring(L, index);
-
-                const auto indexAsString = std::string(index);
-                for (const auto &[bannedName, sound]: specificBlockage) {
-                    if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
-                        for (const auto &func: sound) {
-                            if (indexAsString.find(func) != std::string::npos &&
-                                strstr(indexAsString.c_str(), func.c_str()) == indexAsString.c_str()) {
-                                goto banned__index;
-                            }
-                            if (func == "BLOCK_ALL" && strcmp(loweredIndex.c_str(), "classname") != 0 &&
-                                strcmp(loweredIndex.c_str(), "name") != 0)
-                                goto banned__index; // Block all regardless.
-                        }
-                    }
-                }
-            } else {
-                lua_pop(L, 2);
-            }
-
-
-            if (!Communication::GetSingleton()->CanAccessScriptSource() && strcmp(index, "Source") == 0) {
-                Utilities::checkInstance(L, 1, "LuaSourceContainer");
-                lua_pushstring(L, "");
-                return 1;
-            }
-
-            if (loweredIndex.find("getservice") != std::string::npos ||
-                loweredIndex.find("findservice") != std::string::npos ||
-                strstr(index, "service") !=
-                        nullptr) { // manages getservice, GetService, FindService and service all at once.
-                lua_pushcclosure(
-                        L,
-                        [](lua_State *L) -> int {
-                            luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
-                            auto dataModel = lua_topointer(L, 1);
-                            auto serviceName = luaL_checkstring(L, 2);
-                            const auto svcName = Utilities::ToLower(serviceName);
-                            for (const auto &func: blockedServices) {
-                                if (svcName.find(func) != std::string::npos) {
-                                    Logger::GetSingleton()->PrintWarning(
-                                            RbxStu::Anonymous, std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
-                                                                           "BLACKLISTED SERVICE! SERVICE ACCESSED: {}",
-                                                                           serviceName));
-
-                                    if (Communication::GetSingleton()->IsUnsafeMode())
-                                        break;
-
-                                    luaL_errorL(L, "This service has been blocked for security");
-                                }
-                            }
-                            lua_pop(L, 1);
-                            L->top->value.p = L->ci->func->value.p;
-                            L->top->tt = lua_Type::LUA_TFUNCTION;
-                            L->top++;
-                            lua_getupvalue(L, -1, 1);
-                            lua_remove(L, 2);
-                            __index_game_original(L);
-                            lua_pushvalue(L, 1);
-                            lua_pushstring(L, serviceName);
-                            lua_pcall(L, 2, 1, 0);
-                            return 1;
-                        },
-                        nullptr, 1);
-                const auto cl = lua_toclosure(L, -1);
-                lua_pushstring(L, index);
-                lua_setupvalue(L, -2, 1);
-                return 1;
-            }
-
-            if (!Security::GetSingleton()->IsOurThread(L) || index == nullptr)
-                return __index_game_original(L);
-
-            if (loweredIndex.find("httpget") != std::string::npos ||
-                loweredIndex.find("httpgetasync") != std::string::npos) {
-                lua_getglobal(L, "httpget");
-                return 1;
-            }
-
-            if (loweredIndex.find("getobjects") != std::string::npos) {
-                lua_getglobal(L, "GetObjects");
-                return 1;
-            }
-
-
-            if (false) {
-            banned__index:
-                Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
-                                                     std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
-                                                                 "BLACKLISTED FUNCTION/SERVICE! FUNCTION ACCESSED: {}",
-                                                                 index));
-                if (Communication::GetSingleton()->IsUnsafeMode())
+                if (index == nullptr)
                     return __index_game_original(L);
 
-                luaL_errorL(L, "This service/function has been blocked for security");
+                const auto loweredIndex = Utilities::ToLower(index);
+                for (const auto &func: blockedFunctions) {
+                    if (loweredIndex.find(func) != std::string::npos) {
+                        goto banned__index;
+                    }
+                }
+
+                for (const auto &func: blockedServices) {
+                    if (loweredIndex.find(func) != std::string::npos) {
+                        goto banned__index;
+                    }
+                }
+
+                lua_getmetatable(L, 1);
+                lua_getfield(L, -1, "__type");
+
+                if (const auto s = lua_tostring(L, -1);
+                    strcmp(s, "Instance") == 0 && Security::GetSingleton()->IsOurThread(L)) {
+                    lua_pop(L, 3);
+                    lua_pushstring(L, "ClassName");
+                    __index_game_original(L);
+                    const auto instanceClassName = Utilities::ToLower(lua_tostring(L, -1));
+                    lua_pop(L, 2);
+                    lua_pushstring(L, index);
+
+                    const auto indexAsString = std::string(index);
+                    for (const auto &[bannedName, sound]: specificBlockage) {
+                        if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
+                            for (const auto &func: sound) {
+                                if (indexAsString.find(func) != std::string::npos &&
+                                    strstr(indexAsString.c_str(), func.c_str()) == indexAsString.c_str()) {
+                                    goto banned__index;
+                                }
+                                if (func == "BLOCK_ALL" && strcmp(loweredIndex.c_str(), "classname") != 0 &&
+                                    strcmp(loweredIndex.c_str(), "name") != 0)
+                                    goto banned__index; // Block all regardless.
+                            }
+                        }
+                    }
+                } else {
+                    lua_pop(L, 2);
+                }
+
+                if (index == nullptr)
+                    return __index_game_original(L);
+
+                if (!Communication::GetSingleton()->CanAccessScriptSource() && strcmp(index, "Source") == 0) {
+                    Utilities::checkInstance(L, 1, "LuaSourceContainer");
+                    lua_pushstring(L, "");
+                    return 1;
+                }
+
+                if (loweredIndex.find("getservice") != std::string::npos ||
+                    loweredIndex.find("findservice") != std::string::npos ||
+                    strstr(index, "service") !=
+                            nullptr) { // manages getservice, GetService, FindService and service all at once.
+                    lua_pushcclosure(
+                            L,
+                            [](lua_State *L) -> int {
+                                luaL_checktype(L, 1, lua_Type::LUA_TUSERDATA);
+                                auto dataModel = lua_topointer(L, 1);
+                                auto serviceName = luaL_checkstring(L, 2);
+                                const auto svcName = Utilities::ToLower(serviceName);
+                                for (const auto &func: blockedServices) {
+                                    if (svcName.find(func) != std::string::npos) {
+                                        Logger::GetSingleton()->PrintWarning(
+                                                RbxStu::Anonymous,
+                                                std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
+                                                            "BLACKLISTED SERVICE! SERVICE ACCESSED: {}",
+                                                            serviceName));
+
+                                        if (Communication::GetSingleton()->IsUnsafeMode())
+                                            break;
+
+                                        luaL_errorL(L, "This service has been blocked for security");
+                                    }
+                                }
+                                lua_pop(L, 1);
+                                L->top->value.p = L->ci->func->value.p;
+                                L->top->tt = lua_Type::LUA_TFUNCTION;
+                                L->top++;
+                                lua_getupvalue(L, -1, 1);
+                                lua_remove(L, 2);
+                                __index_game_original(L);
+                                lua_pushvalue(L, 1);
+                                lua_pushstring(L, serviceName);
+                                try {
+                                    lua_pcall(L, 2, 1, 0);
+                                } catch (const std::exception &ex) {
+                                    Logger::GetSingleton()->PrintWarning(
+                                            RbxStu::Anonymous,
+                                            std::format(
+                                                    "RBX::CRASH! AN IRRECOVERABLE ERROR HAS OCCURRED THAT SHOULD NOT "
+                                                    "HAVE OCCURRED! REDIRECTING CALL!"));
+                                    lua_pushstring(L, "fatal error while trying to call DataModel.GetService()");
+                                    lua_error(L);
+                                    return 1;
+                                }
+                                return 1;
+                            },
+                            nullptr, 1);
+                    const auto cl = lua_toclosure(L, -1);
+                    lua_pushstring(L, index);
+                    lua_setupvalue(L, -2, 1);
+                    return 1;
+                }
+
+                if (loweredIndex.find("httpget") != std::string::npos ||
+                    loweredIndex.find("httpgetasync") != std::string::npos) {
+                    lua_getglobal(L, "httpget");
+                    return 1;
+                }
+
+                if (loweredIndex.find("getobjects") != std::string::npos) {
+                    lua_getglobal(L, "GetObjects");
+                    return 1;
+                }
+
+
+                if (false) {
+                banned__index:
+                    Logger::GetSingleton()->PrintWarning(
+                            RbxStu::Anonymous, std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
+                                                           "BLACKLISTED FUNCTION/SERVICE! FUNCTION ACCESSED: {}",
+                                                           index));
+                    if (Communication::GetSingleton()->IsUnsafeMode())
+                        return __index_game_original(L);
+
+                    luaL_errorL(L, "This service/function has been blocked for security");
+                }
+            } catch (const std::exception &ex) {
+                // Logger::GetSingleton()->PrintWarning(
+                //         RbxStu::Anonymous, std::format("FATAL ERROR CAUGHT ON DATAMODEL::__INDEX -> {}", ex.what()));
+            } catch (...) {
+                // Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
+                //                                      "FATAL ERROR CAUGHT ON DATAMODEL::__INDEX -> UNKNOWN");
             }
 
-
+            if (lua_gettop(L) > 2 &&
+                lua_type(L, -1) == lua_Type::LUA_TSTRING) // The lua stack should only have self and the index.
+                lua_error(L);
             return __index_game_original(L);
         };
         lua_pop(L, 1);
         lua_rawgetfield(L, -1, "__namecall");
+
         auto __namecall = lua_toclosure(L, -1);
         __namecall_game_original = __namecall->c.f;
         __namecall->c.f = [](lua_State *L) -> int {
-            auto namecall = L->namecall->data;
+            auto lastStackElement = luaA_toobject(L, -1);
 
-            const auto loweredNamecall = Utilities::ToLower(namecall);
-            for (const auto &func: blockedFunctions) {
-                if (loweredNamecall.find(func) != std::string::npos) {
-                    goto banned__namecall;
-                }
-            }
-
-            for (const auto &func: blockedServices) {
-                if (loweredNamecall.find(func) != std::string::npos) {
-                    goto banned__namecall;
-                }
-            }
-
-            lua_getmetatable(L, 1);
-            lua_getfield(L, -1, "__type");
-
-            if (const auto s = lua_tostring(L, -1); strcmp(s, "Instance") == 0) {
-                lua_pushvalue(L, 1);
-                lua_getfield(L, -1, "ClassName");
-                const auto instanceClassName = Utilities::ToLower(lua_tostring(L, -1));
-                lua_pop(L, 4);
-
-                const auto namecallAsString = std::string(namecall);
-
-                for (const auto &[bannedName, sound]: specificBlockage) {
-                    if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
-                        for (const auto &func: sound) {
-                            if (namecallAsString.find(func) != std::string::npos) {
-                                goto banned__namecall;
-                            }
-                            if (func == "BLOCK_ALL")
-                                goto banned__namecall; // Block all regardless.
-                        }
-                    }
-                }
-            } else {
-                lua_pop(L, 2);
-            }
-
-            if (false) {
-            banned__namecall:
-                Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
-                                                     std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
-                                                                 "BLACKLISTED FUNCTION/SERVICE! FUNCTION ACCESSED: {}",
-                                                                 namecall));
-                if (Communication::GetSingleton()->IsUnsafeMode())
+            try {
+                if (!Security::GetSingleton()->IsOurThread(L) || lua_gettop(L) == 0 ||
+                    lua_type(L, 1) != lua_Type::LUA_TUSERDATA)
                     return __namecall_game_original(L);
 
-                luaL_errorL(L, "This service/function has been blocked for security");
-            }
+                auto namecall = lua_namecallatom(L, nullptr);
 
-            if (!Security::GetSingleton()->IsOurThread(L) || namecall == nullptr)
-                return __namecall_game_original(L);
+                if (namecall == nullptr)
+                    return __namecall_game_original(L);
 
-            if (loweredNamecall.find("getservice") != std::string::npos ||
-                loweredNamecall.find("findservice") != std::string::npos || strcmp(namecall, "service") == 0) {
-                // getservice / findservice
-                auto serviceName = luaL_checkstring(L, 2);
-                const auto svcName = Utilities::ToLower(serviceName);
-                for (const auto &func: blockedServices) {
-                    if (svcName.find(func) != std::string::npos) {
-                        Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
-                                                             std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
-                                                                         "BLACKLISTED SERVICE! SERVICE ACCESSED: {}",
-                                                                         serviceName));
+                const auto stack = lua_gettop(L);
 
-                        if (Communication::GetSingleton()->IsUnsafeMode())
-                            break;
-
-                        luaL_errorL(L, "This service has been blocked for security");
+                const auto loweredNamecall = Utilities::ToLower(namecall);
+                for (const auto &func: blockedFunctions) {
+                    if (loweredNamecall.find(func) != std::string::npos) {
+                        goto banned__namecall;
                     }
                 }
-                __namecall_game_original(L);
 
-                return 1;
+                for (const auto &func: blockedServices) {
+                    if (loweredNamecall.find(func) != std::string::npos) {
+                        goto banned__namecall;
+                    }
+                }
+
+                lua_getmetatable(L, 1);
+                lua_getfield(L, -1, "__type");
+
+                if (const auto s = lua_tostring(L, -1); strcmp(s, "Instance") == 0) {
+                    lua_pushvalue(L, 1);
+                    lua_getfield(L, -1, "ClassName");
+                    const auto instanceClassName = Utilities::ToLower(lua_tostring(L, -1));
+                    lua_settop(L, stack);
+
+                    const auto namecallAsString = std::string(namecall);
+
+                    for (const auto &[bannedName, sound]: specificBlockage) {
+                        if (Utilities::ToLower(bannedName).find(instanceClassName) != std::string::npos) {
+                            for (const auto &func: sound) {
+                                if (namecallAsString.find(func) != std::string::npos) {
+                                    goto banned__namecall;
+                                }
+                                if (func == "BLOCK_ALL")
+                                    goto banned__namecall; // Block all regardless.
+                            }
+                        }
+                    }
+                } else {
+                    lua_settop(L, stack);
+                }
+
+                if (false) {
+                banned__namecall:
+                    Logger::GetSingleton()->PrintWarning(
+                            RbxStu::Anonymous, std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
+                                                           "BLACKLISTED FUNCTION/SERVICE! FUNCTION ACCESSED: {}",
+                                                           namecall));
+                    if (Communication::GetSingleton()->IsUnsafeMode())
+                        return __namecall_game_original(L);
+
+                    luaL_errorL(L, "This service/function has been blocked for security");
+                }
+
+                if (loweredNamecall.find("getservice") != std::string::npos ||
+                    loweredNamecall.find("findservice") != std::string::npos ||
+                    loweredNamecall.find("service") != std::string::npos) {
+                    // getservice / findservice / service
+                    if (lua_type(L, 2) != lua_Type::LUA_TSTRING)
+                        return __namecall_game_original(L);
+
+                    auto serviceName = luaL_checkstring(L, 2);
+                    const auto svcName = Utilities::ToLower(serviceName);
+                    for (const auto &func: blockedServices) {
+                        if (svcName.find(func) != std::string::npos) {
+                            Logger::GetSingleton()->PrintWarning(
+                                    RbxStu::Anonymous, std::format("WARNING! AN ELEVATED THREAD HAS ACCESSED A "
+                                                                   "BLACKLISTED SERVICE! SERVICE ACCESSED: {}",
+                                                                   serviceName));
+
+                            if (Communication::GetSingleton()->IsUnsafeMode())
+                                break;
+
+                            luaL_errorL(L, "This service has been blocked for security");
+                        }
+                    }
+                    return __namecall_game_original(L);
+                }
+
+                if (loweredNamecall.find("httpget") != std::string::npos ||
+                    loweredNamecall.find("httpgetasync") != std::string::npos) {
+                    if (lua_type(L, 2) != lua_Type::LUA_TSTRING)
+                        return __namecall_game_original(L);
+                    luaL_checkstring(L, 2);
+                    lua_getglobal(L, "httpget");
+                    lua_pushvalue(L, 2);
+                    const auto err = lua_pcall(L, 1, 1, 0);
+                    if (lua_type(L, -1) == lua_Type::LUA_TSTRING &&
+                        strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
+                        return lua_yield(L, 1);
+
+                    if (err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
+                        lua_error(L);
+
+                    return 1;
+                }
+
+                if (loweredNamecall.find("getobjects") != std::string::npos) {
+                    lua_getglobal(L, "GetObjects");
+                    lua_pushvalue(L, 2);
+                    const auto err = lua_pcall(L, 1, 1, 0);
+                    if (lua_type(L, -1) == lua_Type::LUA_TSTRING &&
+                        strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
+                        return lua_yield(L, 1);
+                    if (err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
+                        lua_error(L);
+
+                    if (err == LUA_YIELD)
+                        return lua_yield(L, 1);
+
+                    return 1;
+                }
+            } catch (const std::exception &ex) {
+                // Logger::GetSingleton()->PrintWarning(
+                //         RbxStu::Anonymous, std::format("FATAL ERROR CAUGHT ON DATAMODEL::__NAMECALL -> {}",
+                //         ex.what()));
+            } catch (...) {
+                // Logger::GetSingleton()->PrintWarning(RbxStu::Anonymous,
+                //                                      "FATAL ERROR CAUGHT ON DATAMODEL::__NAMECALL -> UNKNOWN");
             }
 
-            if (loweredNamecall.find("httpget") != std::string::npos ||
-                loweredNamecall.find("httpgetasync") != std::string::npos) {
-                luaL_checkstring(L, 2);
-                lua_getglobal(L, "httpget");
-                lua_pushvalue(L, 2);
-                const auto err = lua_pcall(L, 1, 1, 0);
-                if (lua_type(L, -1) == lua_Type::LUA_TSTRING &&
-                    strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
-                    return lua_yield(L, 1);
-
-                if (err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
-                    lua_error(L);
-
-                return 1;
-            }
-
-            if (loweredNamecall.find("getobjects") != std::string::npos) {
-                lua_getglobal(L, "GetObjects");
-                lua_pushvalue(L, 2);
-                const auto err = lua_pcall(L, 1, 1, 0);
-                if (lua_type(L, -1) == lua_Type::LUA_TSTRING &&
-                    strcmp(lua_tostring(L, -1), "attempt to yield across metamethod/C-call boundary") == 0)
-                    return lua_yield(L, 1);
-                if (err == LUA_ERRRUN || err == LUA_ERRMEM || err == LUA_ERRERR)
-                    lua_error(L);
-
-                if (err == LUA_YIELD)
-                    return lua_yield(L, 1);
-
-                return 1;
+            if (L->top - 1 != lastStackElement && lua_type(L, -1) == lua_Type::LUA_TSTRING) {
+                lua_error(L);
             }
 
             return __namecall_game_original(L);
         };
 
-        lua_pop(L, lua_gettop(L));
+        lua_settop(L, 0);
     } catch (const std::exception &ex) {
         logger->PrintError(RbxStu::EnvironmentManager,
                            std::format("Failed to initialize RbxStu Environment. Error from Lua: {}", ex.what()));
     }
+
 
     Scheduler::GetSingleton()->ScheduleJob(SchedulerJob(
             R"(

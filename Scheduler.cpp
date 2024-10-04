@@ -35,8 +35,19 @@ SchedulerJob Scheduler::GetSchedulerJob(bool pop) {
     if (this->m_qSchedulerJobs.empty())
         return SchedulerJob("");
     auto job = this->m_qSchedulerJobs.front();
-    if (pop)
+
+    // Due to yielding jobs possibly depending on others, we must leave yielding jobs to be re-scheduled to be last
+    // executed if they were not ready last tick! This allows us to keep multiple yielding jobs and they resuming
+    // without any deadlocks!
+
+    if (pop) {
         this->m_qSchedulerJobs.pop();
+    } else if (job.bIsYieldingJob && !job.IsJobCompleted()) {
+        // Logger::GetSingleton()->PrintWarning(RbxStu::Scheduler, "Re-Organizing yielding job...");
+        this->m_qSchedulerJobs.pop();
+        this->m_qSchedulerJobs.push(job);
+    }
+
     return job;
 }
 
@@ -277,7 +288,7 @@ void Scheduler::InitializeWith(lua_State *L, lua_State *rL, RBX::DataModel *data
     opts.debugLevel = 2;
     opts.optimizationLevel = 0;
     const auto bytecode =
-            Luau::compile(std::format("print(\"RbxStu V2: Scheduler initialized!\"); return game:GetService(\"RunService\").Heartbeat:Connect({})",
+            Luau::compile(std::format("print\"hi\"; return game:GetService(\"RunService\").Heartbeat:Connect({})",
                                       std::format("scheduler_", reinterpret_cast<std::uintptr_t>(L))),
                           opts);
 

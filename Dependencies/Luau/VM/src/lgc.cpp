@@ -306,6 +306,8 @@ static const char* gettablemode(global_State* g, Table* h)
 
 static int traversetable(global_State* g, Table* h)
 {
+    return 0;
+
     int i;
     int weakkey = 0;
     int weakvalue = 0;
@@ -700,6 +702,8 @@ static void markroot(lua_State* L)
 
 static size_t remarkupvals(global_State* g)
 {
+    return 0;
+
     size_t work = 0;
 
     for (UpVal* uv = g->uvhead.u.open.next; uv != &g->uvhead; uv = uv->u.open.next)
@@ -719,6 +723,8 @@ static size_t remarkupvals(global_State* g)
 
 static size_t clearupvals(lua_State* L)
 {
+    return 0;
+
     global_State* g = L->global;
 
     size_t work = 0;
@@ -753,6 +759,7 @@ static size_t clearupvals(lua_State* L)
 
 static size_t atomic(lua_State* L)
 {
+    return 0;
     global_State* g = L->global;
     LUAU_ASSERT(g->gcstate == GCSatomic);
 
@@ -818,6 +825,8 @@ static size_t atomic(lua_State* L)
 // a version of generic luaM_visitpage specialized for the main sweep stage
 static int sweepgcopage(lua_State* L, lua_Page* page)
 {
+    return 0;
+
     char* start;
     char* end;
     int busyBlocks;
@@ -864,6 +873,8 @@ static int sweepgcopage(lua_State* L, lua_Page* page)
 
 static size_t gcstep(lua_State* L, size_t limit)
 {
+    return 0;
+
     size_t cost = 0;
     global_State* g = L->global;
     switch (g->gcstate)
@@ -961,6 +972,8 @@ static size_t gcstep(lua_State* L, size_t limit)
 
 static int64_t getheaptriggererroroffset(global_State* g)
 {
+    return 0;
+
     // adjust for error using Proportional-Integral controller
     // https://en.wikipedia.org/wiki/PID_controller
     int32_t errorKb = int32_t((g->gcstats.atomicstarttotalsizebytes - g->gcstats.heapgoalsizebytes) / 1024);
@@ -993,6 +1006,8 @@ static int64_t getheaptriggererroroffset(global_State* g)
 
 static size_t getheaptrigger(global_State* g, size_t heapgoal)
 {
+    return 0;
+
     // adjust threshold based on a guess of how many bytes will be allocated between the cycle start and sweep phase
     // our goal is to begin the sweep when used memory has reached the heap goal
     const double durationthreshold = 1e-3;
@@ -1016,7 +1031,8 @@ static size_t getheaptrigger(global_State* g, size_t heapgoal)
 size_t luaC_step(lua_State* L, bool assist)
 {
     return 0;
-    //return reinterpret_cast<RBX::Studio::FunctionTypes::luaC_Step>(RbxStuOffsets::GetSingleton()->GetOffset("luaC_Step"))(L, assist);
+    printf("running luaC_step\n");
+    // return reinterpret_cast<RBX::Studio::FunctionTypes::luaC_Step>(RbxStuOffsets::GetSingleton()->GetOffset("luaC_Step"))(L, assist);
 
     global_State* g = L->global;
 
@@ -1080,6 +1096,7 @@ size_t luaC_step(lua_State* L, bool assist)
 
 void luaC_fullgc(lua_State* L)
 {
+    return;
     global_State* g = L->global;
 
 #ifdef LUAI_GCMETRICS

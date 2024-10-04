@@ -121,7 +121,7 @@ int luaD_rawrunprotected(lua_State* L, Pfunc f, void* ud)
                                                                                         ->GetOffset("luaD_rawrununprotected"))(L, f, ud);
 
     int status = 0;
-
+    printf("Using RbxStu V2's luaD_rawrununprotected!\n");
     try
     {
         f(L, ud);
@@ -160,6 +160,7 @@ l_noret luaD_throw(lua_State* L, int errcode)
 {
     if (nullptr != RbxStuOffsets::GetSingleton()->GetOffset("luaD_throw"))
         return reinterpret_cast<RBX::Studio::FunctionTypes::luaD_throw>(RbxStuOffsets::GetSingleton()->GetOffset("luaD_throw"))(L, errcode);
+    printf("Using RbxStu V2's luaD_throw!\n");
     // throw lua_exception(L, errcode);
 }
 #endif

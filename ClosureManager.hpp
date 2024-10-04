@@ -23,12 +23,17 @@ struct LuauHookInformation {
     Closure *hookedClosure;
 };
 
+struct ClosureWrapInformation {
+    Closure *closure;
+    bool requiresYielding;
+};
+
 class ClosureManager final {
     static std::shared_ptr<ClosureManager> pInstance;
 
     std::map<RBX::DataModelType, std::map<Closure *, LuauHookInformation>>
             m_hookMap; // TODO: Make hook map use DataModel Types'
-    std::map<RBX::DataModelType, std::map<Closure *, Closure *>> m_newcclosureMap;
+    std::map<RBX::DataModelType, std::map<Closure *, ClosureWrapInformation>> m_newcclosureMap;
 
     /// @brief Handles a newcclosure call.
     static int newcclosure_handler(lua_State *L);

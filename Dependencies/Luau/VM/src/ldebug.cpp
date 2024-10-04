@@ -308,7 +308,7 @@ l_noret luaG_readonlyerror(lua_State* L)
 static void pusherror(lua_State* L, const char* msg)
 {
     CallInfo* ci = L->ci;
-    if (isLua(ci))
+    if (isLua(ci) && clvalue(ci->func)->l.p->linedefined != -1)
     {
         TString* source = getluaproto(ci)->source;
         char chunkbuf[LUA_IDSIZE]; // add file:line information
