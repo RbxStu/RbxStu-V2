@@ -16,7 +16,82 @@ namespace RbxStu::Concepts {
 }
 
 namespace RBX {
+    struct Instance;
+    struct Vector3 {
+        float x;
+        float y;
+        float z;
+    };
+    struct Humanoid {
+        char _0[0xc];
+        char _c[0xc];
+        char _18[4];
+        char _1c[4];
+        char _20[4];
+        char _24[4];
+        char _28[4];
+        char _2c[8];
+        char _34[0xc];
+        char _40[4];
+        char _44[4];
+        char _48[4];
+        char _4c[4];
+        char _50[4];
+        char _54[4];
+        char _58[4];
+        char _5c[8];
+        char _64[4];
+        std::shared_ptr<RBX::Instance *> pTargetPart;
+        char _70[8];
+        char _78[8];
+        char _80[4];
+        char _84[4];
+        char _88[4];
+        char _8c[4];
+        char _90[4];
+        char _94[4];
+        char _98[4];
+        RBX::Vector3 vec3WalkDirection;
+        RBX::Vector3 vec3WalkToPoint;
+        RBX::Vector3 vec3CameraOffset;
+        char _c0[4];
+        float sfHealth;
+        int32_t dwHumanoidState;
+        int32_t dwCollisionType;
+        int32_t dwDisplayDistanceType;
+        float sfHealthDisplayDistance;
+        int32_t dwHealthDisplayType;
+        float sfHipHeight;
+        char _e0[8];
+        float sfJumpHeight;
+        float sfJumpPower;
+        float sfMaxHealth;
+        float sfMaxSlopeAngle;
+        float sfNameDisplayDistance;
+        float sfNameOcclusionMode;
+        int32_t dwRigType;
+        float sfWalkAngleError;
+        float sfWalkSpeed;
+        bool bIsJumping;
+        bool bIsAutoJumpEnabled;
+        bool bIsAutoRotate;
+        bool bAutomaticScalingEnabled;
+        bool bBreakJointsOnDeath;
+        bool bEvaluateStateMachine;
+        bool bIsPlatformStanding;
+        bool bRequiresNeck;
+        char _114[2];
+        bool bUseJumpPower;
+        char _118[8];
+        char _120[0x20];
+        char _140[4];
+        RBX::Vector3 vec3MoveDirection;
+        char _150[8];
+    };
+
+
     enum TouchEventType : std::uint8_t { Touch = 0x0, Untouch = 0x1 };
+
     namespace Security {
         enum Permissions : uint32_t;
         struct ExtendedIdentity {
