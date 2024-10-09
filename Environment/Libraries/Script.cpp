@@ -68,7 +68,7 @@ namespace RbxStu {
 
         int gettenv(lua_State *L) {
             luaL_checktype(L, 1, LUA_TTHREAD);
-            const auto th = lua_tothread(L, -1);
+            const auto th = lua_tothread(L, 1);
             lua_pushvalue(th, LUA_GLOBALSINDEX);
             lua_xmove(th, L, 1);
 
