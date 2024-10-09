@@ -765,7 +765,9 @@ void RobloxManager::ResumeScript(RBX::Lua::WeakThreadRef *threadRef, const std::
 
     auto scriptContext = extraSpace->sharedExtraSpace->scriptContext;
 
-    int64_t out[0x2]{0};
+    /// Please future me I SWEAR do NOT change int64_t to int32_t, it is NOT a fucking long long its a long, STOP
+    /// changing it back to test you will corrupt your stack at random I SWEAR STOP.
+    std::int64_t out[0x2]{0};
     logger->PrintInformation(RbxStu::RobloxManager,
                              std::format("Resuming thread {}!", reinterpret_cast<void *>(threadRef->thread)));
 
