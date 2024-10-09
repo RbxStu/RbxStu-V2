@@ -100,12 +100,10 @@ int ClosureManager::newcclosure_handler(lua_State *L) {
 
         scheduler->ScheduleJob(SchedulerJob(
                 L, [nL](lua_State *L, std::shared_future<std::function<int(lua_State *)>> *callbackToExecute) {
-                    printf("waiting for ex...\n");
                     while (lua_costatus(L, nL) != lua_CoStatus::LUA_COFIN &&
                            lua_costatus(L, nL) != lua_CoStatus::LUA_COERR) {
                         _mm_pause();
                     }
-                    printf("call complete!\n");
 
                     // ready to resume into original thread, the call has been successfully dispatched.
 
