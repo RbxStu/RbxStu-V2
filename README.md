@@ -1,7 +1,5 @@
 # RbxStu V2
 
-this should be private
-
 [![CodeFactor](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2/badge)](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2)
 
 The Roblox Studio Executor.
