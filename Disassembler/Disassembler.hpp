@@ -2,8 +2,6 @@
 // Created by Dottik on 26/8/2024.
 //
 #pragma once
-#include <complex.h>
-
 #include <map>
 #include <memory>
 #include <optional>
@@ -26,5 +24,5 @@ public:
     std::optional<std::unique_ptr<DisassembledChunk>> GetInstructions(_In_ DisassemblyRequest &disassemblyRequest);
     std::optional<void *> TranslateRelativeLeaIntoRuntimeAddress(const cs_insn &insn);
     void *ObtainPossibleStartOfFunction(void *mapped);
-    void * ObtainPossibleEndFromStart(void * mapped);
+    void *ObtainPossibleEndFromStart(void *mapped);
 };
