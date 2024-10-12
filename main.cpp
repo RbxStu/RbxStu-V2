@@ -165,6 +165,7 @@ int main() {
     modManager->LoadMods();
 
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing RobloxManager...");
+    std::this_thread::sleep_for(std::chrono::milliseconds{1000});
     const auto robloxManager = RobloxManager::GetSingleton();
     logger->PrintInformation(RbxStu::MainThread, "-- Initializing LuauManager...");
     const auto luauManager = LuauManager::GetSingleton();
@@ -238,6 +239,14 @@ int main() {
 
         if (robloxManager->GetRobloxFunction("RBX::BasePart::fireTouchSignals") == nullptr) {
             logger->PrintError(RbxStu::MainThread, "firetouchinterest will be unavailable and when error when invoked! "
+                                                   "Failed to find the required internal Roblox function!");
+
+            hasFailedAnyCheck = true;
+        }
+
+        if (robloxManager->GetRobloxFunction("RBX::Instance::pushInstance") == nullptr) {
+            logger->PrintError(RbxStu::MainThread, "cloneref and all of the cache lib will be unavailable! Fake "
+                                                   "functions will be on their place to maintain compatibility! "
                                                    "Failed to find the required internal Roblox function!");
 
             hasFailedAnyCheck = true;
