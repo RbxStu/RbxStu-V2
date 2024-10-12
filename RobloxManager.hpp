@@ -44,7 +44,8 @@ namespace RbxStu {
                 RBX::SystemAddress *(__fastcall *) (void *basePart, RBX::SystemAddress *returnSystemAddress);
 
         // other is wrapped in a std::shared_ptr
-        using r_RBX_BasePart_fireTouchSignals = void (__fastcall *)(void *basePart, void ** other, RBX::TouchEventType type, bool isLocal);
+        using r_RBX_BasePart_fireTouchSignals = void(__fastcall *)(void *basePart, void **other,
+                                                                   RBX::TouchEventType type, bool isLocal);
 
         using r_RBX_Player_findPlayerWithAddress =
                 std::shared_ptr<void> *(__fastcall *) (std::shared_ptr<void> *__return,
@@ -101,12 +102,15 @@ namespace RbxStu {
                 "33 D2 E8 ? ? ? ? 8B D8 48 8B CE E8 ? ? ? ? 44 8B CB 4C 8D 44 24 ? 48 8D 54 24 ? 48 8B C8 E8 ? ? ? ?");
 
         MakeSignature_FromIDA(RBX_ScriptContext_task_delay,
-                              "48 8B C4 48 89 58 ? 55 56 57 41 56 41 57 48 81 EC ? ? ? ? 0F 29 70 ? 0F 29 78 ? 48 8B E9 0F 57 FF 0F 57 D2 BA ? ? ? ? E8"
+                              "48 8B C4 48 89 58 ? 55 56 57 41 56 41 57 48 81 EC ? ? ? ? 0F 29 70 ? 0F 29 78 ? 48 8B "
+                              "E9 0F 57 FF 0F 57 D2 BA ? ? ? ? E8"
                               " ? ? ? ? 0F 28 F0 33 FF 44 8D 7F ? 66 0F 2F F8 77 4C");
 
-        MakeSignature_FromIDA(RBX_ScriptContext_task_wait,
-                              "48 89 5C 24 ? 55 56 57 48 81 EC ? ? ? ? 0F 29 74 24 ? 0F 29 7C 24 ? 48 8B D9 E8 ? ? ? ? 85 C0 0F 84 BE "
-                              "01 00 ? 0F 57 FF 0F 57 D2 BA ? ? ? ? 48 8B CB E8 ? ? ? ? 0F 28 F0 33 FF 66 0F 2F F8 77 4D");
+        MakeSignature_FromIDA(
+                RBX_ScriptContext_task_wait,
+                "48 89 5C 24 ? 55 56 57 48 81 EC ? ? ? ? 0F 29 74 24 ? 0F 29 7C 24 ? 48 8B D9 E8 ? ? ? ? 85 C0 0F 84 "
+                "BE "
+                "01 00 ? 0F 57 FF 0F 57 D2 BA ? ? ? ? 48 8B CB E8 ? ? ? ? 0F 28 F0 33 FF 66 0F 2F F8 77 4D");
 
         MakeSignature_FromIDA(RBX_ScriptContext_resumeDelayedThreads,
                               "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 8B ?? 80 3D ?? "
@@ -154,10 +158,7 @@ namespace RbxStu {
                 RBX_ScriptContext_validateThreadAccess,
                 "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B DA 48 8B E9 80");
 
-        MakeSignature_FromIDA(
-                RBX_Instance_pushInstance,
-                "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B D9 48 83 3A 00 74 5E 48 8B D1 48 8D 4C 24 ? "
-                "E8 ? ? ? ? 90 4C 8B 07 48 8D 54 24 ? 48 8B 4C 24 ? E8 ? ? ? ? 0F B6 F0 48 8B 4C 24 ? 48 85 C9 74 15");
+        MakeSignature_FromIDA(RBX_Instance_pushInstance, "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B D9 48 83 3A 00");
 
         MakeSignature_FromIDA(RBX_BasePart_getNetworkOwner, "48 8B 81 ? ? ? ? 8B 88 ? ? ? ? 48 8B C2 89 0A C3");
 
