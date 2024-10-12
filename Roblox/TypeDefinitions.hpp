@@ -377,6 +377,7 @@ namespace RBX {
             int32_t objectId;
         };
     } // namespace Lua
+
     namespace Console {
         enum MessageType : std::int32_t {
             Standard = 0,
