@@ -14,7 +14,20 @@ namespace RbxStu {
             const auto userdata = lua_touserdata(L, 1);
             const auto rawUserdata = *static_cast<void **>(userdata);
             const auto robloxManager = RobloxManager::GetSingleton();
-            lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
+
+            const auto rbxPushInstance = robloxManager->GetRobloxFunction("RBX::Instance::pushInstance");
+
+            if (rbxPushInstance == nullptr) {
+                Logger::GetSingleton()->PrintWarning(
+                        RbxStu::Anonymous,
+                        "Cannot perform cloneref! Could not found RBX::Instance::pushInstance on the function list! "
+                        "Returning the same instance (fake impl for compatibility reasons!)");
+                lua_pushvalue(L, 1);
+                return 1;
+            }
+
+            lua_pushlightuserdata(L, rbxPushInstance);
+
             lua_rawget(L, LUA_REGISTRYINDEX);
 
             lua_pushlightuserdata(L, rawUserdata);
@@ -24,8 +37,8 @@ namespace RbxStu {
             lua_pushnil(L);
             lua_rawset(L, -4);
 
-            reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Instance_pushInstance>(
-                    robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"))(L, userdata);
+            reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_Instance_pushInstance>(rbxPushInstance)(L,
+                                                                                                              userdata);
             lua_pushlightuserdata(L, rawUserdata);
             lua_pushvalue(L, -3);
             lua_rawset(L, -5);
@@ -38,7 +51,16 @@ namespace RbxStu {
             const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
             const auto robloxManager = RobloxManager::GetSingleton();
 
-            lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
+            const auto rbxPushInstance = robloxManager->GetRobloxFunction("RBX::Instance::pushInstance");
+
+            if (rbxPushInstance == nullptr) {
+                Logger::GetSingleton()->PrintWarning(
+                        RbxStu::Anonymous, "Cannot perform cache.invalidate! Could not found "
+                                           "RBX::Instance::pushInstance on the function list! Doing nothing...");
+                return 0;
+            }
+
+            lua_pushlightuserdata(L, rbxPushInstance);
             lua_gettable(L, LUA_REGISTRYINDEX);
 
             lua_pushlightuserdata(L, reinterpret_cast<void *>(rawUserdata));
@@ -54,7 +76,16 @@ namespace RbxStu {
             const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
             const auto robloxManager = RobloxManager::GetSingleton();
 
-            lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
+            const auto rbxPushInstance = robloxManager->GetRobloxFunction("RBX::Instance::pushInstance");
+
+            if (rbxPushInstance == nullptr) {
+                Logger::GetSingleton()->PrintWarning(
+                        RbxStu::Anonymous, "Cannot perform cache.replace! Could not found "
+                                           "RBX::Instance::pushInstance on the function list! Doing nothing...");
+                return 0;
+            }
+
+            lua_pushlightuserdata(L, rbxPushInstance);
             lua_gettable(L, LUA_REGISTRYINDEX);
 
             lua_pushlightuserdata(L, rawUserdata);
@@ -70,7 +101,18 @@ namespace RbxStu {
             const auto rawUserdata = *static_cast<void **>(lua_touserdata(L, 1));
             const auto robloxManager = RobloxManager::GetSingleton();
 
-            lua_pushlightuserdata(L, robloxManager->GetRobloxFunction("RBX::Instance::pushInstance"));
+            const auto rbxPushInstance = robloxManager->GetRobloxFunction("RBX::Instance::pushInstance");
+
+            if (rbxPushInstance == nullptr) {
+                Logger::GetSingleton()->PrintWarning(
+                        RbxStu::Anonymous, "Cannot perform cache.iscached! Could not found "
+                                           "RBX::Instance::pushInstance on the function list! Returning fake value for compatibility reasons!");
+                lua_pushboolean(L, 0);
+                return 1;
+            }
+
+
+            lua_pushlightuserdata(L, rbxPushInstance);
             lua_gettable(L, LUA_REGISTRYINDEX);
 
             lua_pushlightuserdata(L, rawUserdata);
