@@ -1,6 +1,7 @@
 # RbxStu V2
 
-[![CodeFactor](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2/badge)](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2)
+[![CodeFactor](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2/badge)](https://www.codefactor.io/repository/github/rbxstu/rbxstu-v2)</br>
+![Alt](https://repobeats.axiom.co/api/embed/6bc3a3ce38664097265c2df78e9c6cdbd244d2b2.svg "Repobeats analytics image")
 
 The Roblox Studio Executor.
 
