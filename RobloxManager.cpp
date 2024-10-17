@@ -99,8 +99,8 @@ void *rbx__scriptcontext__resumeWaitingThreads(
     __rbx__scriptcontext__resumeWaitingThreads__lock.lock();
     auto scriptContext = *reinterpret_cast<void **>(*static_cast<std::uintptr_t *>(waitingHybridScriptsJob) + 0x1F8);
 
-    // logger->PrintInformation(RbxStu::HookedFunction,
-    //                         std::format("ScriptContext::resumeWaitingThreads. ScriptContext: {:#x}", ScriptContext));
+    //logger->PrintInformation(RbxStu::HookedFunction,
+    //                         std::format("ScriptContext::resumeWaitingThreads. waitingHybridsScriptsJob: {:#x}", reinterpret_cast<uintptr_t>(waitingHybridScriptsJob)));
 
     const auto getDataModel = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_ScriptContext_getDataModel>(
             robloxManager->GetRobloxFunction("RBX::ScriptContext::getDataModel"));
@@ -218,7 +218,6 @@ std::int32_t rbx__datamodel__getstudiogamestatetype(RBX::DataModel *dataModel) {
     auto robloxManager = RobloxManager::GetSingleton();
     auto original = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_getStudioGameStateType>(
             robloxManager->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
-
     if (!robloxManager->IsInitialized())
         return original(dataModel);
 
