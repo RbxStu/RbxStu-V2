@@ -339,9 +339,9 @@ void RobloxManager::Initialize() {
                 const auto chunk = std::move(ret.value());
 
 
-                const auto isSub = chunk->ContainsInstruction("sub", ", dword ptr [rax", true);
-                const auto isAdd = chunk->ContainsInstruction("add", ", dword ptr [rax", true);
-                const auto isXor = chunk->ContainsInstruction("xor", ", dword ptr [rax", true);
+                const auto isSub = chunk->ContainsInstruction("sub", "ecx, eax", true);
+                const auto isAdd = chunk->ContainsInstruction("add", "ecx, eax", true);
+                const auto isXor = chunk->ContainsInstruction("xor", "ecx, eax", true);
 
                 if (isSub) {
                     logger->PrintInformation(RbxStu::RobloxManager,
