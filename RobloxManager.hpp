@@ -170,13 +170,6 @@ namespace RbxStu {
                               "48 8B 41 ? 48 85 C0 74 08 48 8B C8 E9 EF FF FF FF 48 8B C1 C3 CC CC");
 
         /*
-         * How to find: search for "SetNetworkOwner". SetNetworkOwner is a part function, that means that on its
-         * implementation, it will take in a shared pointer to the base part and the player object. The player object is
-         * dereferenced, and lower below its
-         */
-        MakeSignature_FromIDA(RBX_Player_getPeerId, "8B 81 08 06 00 00 89 02 48 8B C2 C3");
-
-        /*
          * Search for DataModel::physicsStepped, above of the %4.7f string there will be a function call, inside a call
          * to this function resides.
          */
@@ -213,8 +206,6 @@ namespace RbxStu {
 
                 {"RBX::BasePart::getNetworkOwner", RBX_BasePart_getNetworkOwner},
                 {"RBX::BasePart::fireTouchSignals", RBX_BasePart_fireTouchSignals},
-
-                {"RBX::Player::getPeerId", RBX_Player_getPeerId},
 
                 {"RBX::DataModel::doDataModelClose", RBX_DataModel_doDataModelClose},
                 {"RBX::DataModel::getStudioGameStateType", RBX_DataModel_getStudioGameStateType},
