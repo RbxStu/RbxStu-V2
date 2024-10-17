@@ -56,8 +56,8 @@ namespace RbxStu {
     namespace StudioSignatures {
         MakeSignature_FromIDA(
                 RBX_RBXCRASH,
-                "48 89 5C 24 ? 48 89 7C 24 ? 48 89 4C 24 ? 55 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B FA 48 8B D9 "
-                "48 8B 05 ? ? ? ? 48 85 C0 74 0A FF D0 84 C0 0F 84 D0 04 00 ? E8 ? ? ? ? 85 C0 0F 84 C3 04 00 ?");
+                "48 89 5C 24 ? 48 89 7C 24 ? 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8B FA 48 8B D9 48 8B 05 ? ? ? ? 48 85 C0 "
+                "74 0A FF D0 84 C0 0F 84 82 03 00 ? E8 ? ? ? ?");
 
         /**
          *  @brief Search for "Script Start".
@@ -140,8 +140,9 @@ namespace RbxStu {
         /**
          *  @brief First function call in `RBX::Instance::removeAllChildren`.
          **/
-        MakeSignature_FromIDA(RBX_Instance_remove, "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B "
-                                                   "D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 41 05 00 00 00 75 12");
+        MakeSignature_FromIDA(RBX_Instance_remove,
+            "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B D9 E8 ? ? ? ? 48 85 C0 74 1B 80 B8 61 05 "
+            "00 00 00 75 12 48 8B 0D ? ? ? ? 48 85 C9 74 06 48 8B 01 FF 50 ? 48 8B 7B ? 48 85 FF 74 08 F0 FF 47 ? 48 8B 7B ?");
 
         MakeSignature_FromIDA(LuaVM_Load, "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D ? ? ? 48 81 EC ? ? ? "
                                           "? 4D 8B E1 49 8B D8 4C 8B EA");
@@ -158,7 +159,10 @@ namespace RbxStu {
                 RBX_ScriptContext_validateThreadAccess,
                 "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B DA 48 8B E9 80");
 
-        MakeSignature_FromIDA(RBX_Instance_pushInstance, "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B D9 48 83 3A 00");
+        MakeSignature_FromIDA(RBX_Instance_pushInstance,
+            "48 89 5C 24 ? 57 48 83 EC ? 48 83 3A 00 48 8B FA 48 8B D9 75 0F 48 8B 5C 24 ? 48 83 C4 ? 5F E9 ? ? ? ? 45 "
+            "33 C0 48 8D 15 ? ? ? ? E8 ? ? ? ? BA F0 D8 FF FF 48 8B CB E8 ? ? ? ? 48 8B 17 45 33 C0 48 8B CB E8 ? ? ? ? B"
+            "A FE FF FF FF 48 8B CB E8 ? ? ? ? BA FF FF FF FF 48 8B CB E8 ? ? ? ? 85 C0 0F 85 9B 00 00 ?");
 
         MakeSignature_FromIDA(RBX_BasePart_getNetworkOwner, "48 8B 81 ? ? ? ? 8B 88 ? ? ? ? 48 8B C2 89 0A C3");
 
