@@ -126,7 +126,11 @@ namespace RbxStu {
          *
          *  @remarks This function does not seem to require DataModels' pointer encryption.
          **/
-        MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType, "8B 81 60 04 00 00 C3 CC CC CC CC");
+        MakeSignature_FromIDA(RBX_DataModel_getStudioGameStateType,
+            "8B 81 ? ? ? ? C3 CC CC CC CC CC CC CC CC CC 40 57 48 83 EC 20 48 85 C9 74 1F 48 8B 79 40 48 85 FF 74 21 "
+            "48 8B 4F 40 48 85 C9 74 08 E8 0E 07 58 FE 48 8B F8 48 85 FF 75 0E B8 04 00 00 00 48 83 C4 20 5F C3 48 8B "
+            "F9 48 89 5C 24 30 48 8B 5F 18 E8 FA CB FD FF 0F B7 93 84 03 00 00 48 8B 5C 24 30 0F B7 88 84 03 00 00 0F "
+            "B7 80 86 03 00 00 2B D1 3B D0 77 C4 48 81 C7 60 FE FF FF 74 BB 8B 87 78 04 00 00 48 83 C4 20 5F C3");
 
         MakeSignature_FromIDA(RBX_DataModel_doDataModelClose,
                               "40 53 48 83 ec ?? 80 3D ?? ?? ?? ?? 00 48 8b d9 74 ?? 80 3d ?? ?? ?? ?? 00 74 ?? 48 8B "
@@ -160,9 +164,7 @@ namespace RbxStu {
                 "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B DA 48 8B E9 80");
 
         MakeSignature_FromIDA(RBX_Instance_pushInstance,
-            "48 89 5C 24 ? 57 48 83 EC ? 48 83 3A 00 48 8B FA 48 8B D9 75 0F 48 8B 5C 24 ? 48 83 C4 ? 5F E9 ? ? ? ? 45 "
-            "33 C0 48 8D 15 ? ? ? ? E8 ? ? ? ? BA F0 D8 FF FF 48 8B CB E8 ? ? ? ? 48 8B 17 45 33 C0 48 8B CB E8 ? ? ? ? B"
-            "A FE FF FF FF 48 8B CB E8 ? ? ? ? BA FF FF FF FF 48 8B CB E8 ? ? ? ? 85 C0 0F 85 9B 00 00 ?");
+            "48 89 5C 24 ? 57 48 83 EC ? 48 8B FA 48 8B D9 E8 ? ? ? ? 48 8B CB 84 C0 74 12 48 8B D7 48 8B 5C 24 ? 48 83 C4 ? 5F E9 ? ? ? ?");
 
         MakeSignature_FromIDA(RBX_BasePart_getNetworkOwner, "48 8B 81 ? ? ? ? 8B 88 ? ? ? ? 48 8B C2 89 0A C3");
 
