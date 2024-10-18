@@ -109,41 +109,71 @@ std::shared_ptr<Scanner> Scanner::GetSingleton() {
 
     return Scanner::pInstance;
 }
-std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStartAddress) {
+
+std::vector<void *> Scanner::Scan(const Signature &signature) {
     const auto logger = Logger::GetSingleton();
 
-    if (lpStartAddress == nullptr) {
-        logger->PrintWarning(RbxStu::ByteScanner,
-                             "lpStartAddress was nullptr. Assuming the intent of the caller was for "
-                             "lpStartAddress to be equal to GetModuleHandle(nullptr).");
-        lpStartAddress = reinterpret_cast<void *>(GetModuleHandle(nullptr));
+    HMODULE hModule = GetModuleHandleA(nullptr);
+    if (hModule == nullptr) {
+        logger->PrintError(RbxStu::ByteScanner, "Failed to get module handle.");
+        return {};
     }
+
+    const auto dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(hModule);
+    if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
+        logger->PrintError(RbxStu::ByteScanner, "Invalid DOS header signature.");
+        return {};
+    }
+
+    const auto ntHeaders = reinterpret_cast<IMAGE_NT_HEADERS*>(reinterpret_cast<BYTE *>(hModule) + dosHeader->e_lfanew);
+    if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) {
+        logger->PrintError(RbxStu::ByteScanner, "Invalid NT headers signature.");
+        return {};
+    }
+
+    const size_t imageSize = ntHeaders->OptionalHeader.SizeOfImage;
+
+    logger->PrintDebug(RbxStu::ByteScanner,
+                       std::format("Beginning scan from address {:p} to {:p}!",
+                                   static_cast<void*>(hModule),
+                                   reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(hModule) + imageSize)));
+
 
     std::vector<std::future<std::vector<void *>>> scansVector{};
     std::vector<void *> results{};
     MEMORY_BASIC_INFORMATION memoryInfo{};
-    logger->PrintDebug(RbxStu::ByteScanner,
-                       std::format("Beginning scan from address {} to far beyond!", lpStartAddress));
-    auto startAddress = reinterpret_cast<std::uintptr_t>(lpStartAddress);
 
-    while (VirtualQuery(reinterpret_cast<void *>(startAddress), &memoryInfo, sizeof(MEMORY_BASIC_INFORMATION))) {
+    auto currentAddress = reinterpret_cast<uintptr_t>(hModule);
+    const uintptr_t endAddress = currentAddress + imageSize;
+
+    while (currentAddress < endAddress &&
+           VirtualQuery(reinterpret_cast<void *>(currentAddress), &memoryInfo, sizeof(MEMORY_BASIC_INFORMATION))) {
+        const auto regionStart = reinterpret_cast<uintptr_t>(memoryInfo.BaseAddress);
+        uintptr_t regionEnd = regionStart + memoryInfo.RegionSize;
+
+        if (regionEnd > endAddress) {
+            memoryInfo.RegionSize = endAddress - regionStart;
+            regionEnd = endAddress;
+        }
+
+        bool valid = memoryInfo.State == MEM_COMMIT;
+        valid &= (memoryInfo.Protect & PAGE_GUARD) == 0;
+        valid &= (memoryInfo.Protect & PAGE_NOACCESS) == 0;
+        valid &= (memoryInfo.Protect & PAGE_READWRITE) == 0;
+        valid &= (memoryInfo.Protect & PAGE_READONLY) == 0;
+        valid &= (memoryInfo.Protect & PAGE_EXECUTE_WRITECOPY) == 0;
+        valid &= (memoryInfo.Protect & PAGE_WRITECOPY) == 0;
+        valid &= memoryInfo.Type == MEM_PRIVATE || memoryInfo.Type == MEM_IMAGE;
+
+        if (!valid) {
+            logger->PrintDebug(
+                    RbxStu::ByteScanner,
+                    std::format("Memory block at address {} is invalid for scanning.", memoryInfo.BaseAddress));
+            currentAddress = regionEnd;
+            continue;
+        }
+
         scansVector.push_back(std::async(std::launch::async, [memoryInfo, &signature]() {
-            bool valid = memoryInfo.State == MEM_COMMIT;
-            valid &= (memoryInfo.Protect & PAGE_GUARD) == 0;
-            valid &= (memoryInfo.Protect & PAGE_NOACCESS) == 0;
-            valid &= (memoryInfo.Protect & PAGE_READWRITE) == 0;
-            valid &= (memoryInfo.Protect & PAGE_READONLY) == 0;
-            valid &= (memoryInfo.Protect & PAGE_EXECUTE_WRITECOPY) == 0;
-            valid &= (memoryInfo.Protect & PAGE_WRITECOPY) == 0;
-            valid &= memoryInfo.Type == MEM_PRIVATE || memoryInfo.Type == MEM_IMAGE;
-
-            if (!valid) {
-                const auto logger = Logger::GetSingleton();
-                logger->PrintDebug(
-                        RbxStu::ByteScanner,
-                        std::format("Memory block at address {} is invalid for scanning.", memoryInfo.BaseAddress));
-                return std::vector<void *>{};
-            }
             auto *buffer = new unsigned char[memoryInfo.RegionSize];
             memcpy(buffer, memoryInfo.BaseAddress, memoryInfo.RegionSize);
 
@@ -152,14 +182,12 @@ std::vector<void *> Scanner::Scan(const Signature &signature, const void *lpStar
             return scanResult;
         }));
 
-        startAddress += memoryInfo.RegionSize;
+        currentAddress = regionEnd;
     }
 
-    for (auto &i: scansVector) {
-        auto async_result = i.get();
-        for (const auto &e: async_result) {
-            results.push_back(e);
-        }
+    for (auto &futureResult : scansVector) {
+        auto asyncResult = futureResult.get();
+        results.insert(results.end(), asyncResult.begin(), asyncResult.end());
     }
 
     logger->PrintDebug(RbxStu::ByteScanner,
