@@ -175,8 +175,7 @@ __scriptContext_resumeWaitingThreads__cleanup:
             robloxManager->GetHookOriginal("RBX::ScriptContext::resumeDelayedThreads"))(waitingHybridScriptsJob);
 }
 void rbx__datamodel__dodatamodelclose(void **dataModelContainer) {
-    // DataModel = *(dataModelContainer + 0x8)
-    auto dataModel = *reinterpret_cast<void **>(reinterpret_cast<std::uintptr_t>(dataModelContainer) + 0x8);
+    auto dataModel = *dataModelContainer;
 
     const auto robloxManager = RobloxManager::GetSingleton();
     const auto original = reinterpret_cast<RbxStu::StudioFunctionDefinitions::r_RBX_DataModel_doCloseDataModel>(
@@ -190,7 +189,6 @@ void rbx__datamodel__dodatamodelclose(void **dataModelContainer) {
                     robloxManager->GetHookOriginal("RBX::DataModel::getStudioGameStateType"));
 
     const auto logger = Logger::GetSingleton();
-
     original(dataModelContainer);
 
     if (!getStudioGameStateType) {
@@ -210,7 +208,7 @@ void rbx__datamodel__dodatamodelclose(void **dataModelContainer) {
                                          "(Closed DataModel: {})",
                                          RBX::DataModelTypeToString(getStudioGameStateType(dataModel)),
                                          static_cast<std::int32_t>(getStudioGameStateType(dataModel)), dataModel));
-        robloxManager->SetCurrentDataModel(getStudioGameStateType(dataModel), static_cast<RBX::DataModel *>(dataModel));
+        robloxManager->SetCurrentDataModel(getStudioGameStateType(dataModel), nullptr);
     }
 }
 
@@ -567,6 +565,9 @@ void RobloxManager::Initialize() {
 
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
 
+    // We indeed love bandage fixes, dottik just somehow make the signature
+    this->m_mapRobloxFunctions["RBX::DataModel::doDataModelClose"] = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(GetModuleHandleA(nullptr)) + 0x0214dbd0);
+
     this->m_mapHookMap["RBX::ScriptContext::resumeDelayedThreads"] = new void *();
     MH_CreateHook(this->m_mapRobloxFunctions["RBX::ScriptContext::resumeDelayedThreads"],
                   rbx__scriptcontext__resumeWaitingThreads,
@@ -824,16 +825,7 @@ void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType,
                                              RBX::DataModelTypeToString(dataModelType)));
             return;
         }
-        if (dataModel == nullptr) {
-            Communication::GetSingleton()->OnDataModelUpdated(dataModelType, false);
-            logger->PrintError(
-                    RbxStu::RobloxManager,
-                    std::format("Attempted to change the DataModel pointer from {} to nullptr. This may lead to "
-                                "undefined behaviour from callers who expect the DataModel to be a valid pointer! The "
-                                "operation will not be allowed to continue.",
-                                static_cast<void *>(this->m_mapDataModelMap[dataModelType])));
-            return;
-        }
+
         this->m_mapDataModelMap[dataModelType] = dataModel;
         logger->PrintInformation(RbxStu::RobloxManager, std::format("DataModel of type {} modified to point to: {}",
                                                                     RBX::DataModelTypeToString(dataModelType),
