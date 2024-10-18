@@ -377,7 +377,7 @@ void RobloxManager::Initialize() {
         const auto __GenericFastVarDefineAob = SignatureByte::GetSignatureFromIDAString(
                 "CC CC 41 B8 ? ? ? ? 48 8D 15 ? ? ? ? 48 8D 0D ? ? ? ? E9 ? ? ? ? CC CC");
 
-        auto scanResult = scanner->Scan(__GenericFastVarDefineAob);
+        auto scanResult = scanner->Scan(__GenericFastVarDefineAob, GetModuleHandle(nullptr));
 
         logger->PrintInformation(RbxStu::RobloxManager,
                                  std::format("Found {} possible registrations in Studio.", scanResult.size()));
@@ -466,7 +466,7 @@ void RobloxManager::Initialize() {
         const auto __GenericClassDescriptorGetterAndInitializer =
                 SignatureByte::GetSignatureFromIDAString("0F 29 44 24 ? 0F 10 4C 24 ? 0F 29 4C ?");
 
-        auto scanResult = scanner->Scan(__GenericClassDescriptorGetterAndInitializer);
+        auto scanResult = scanner->Scan(__GenericClassDescriptorGetterAndInitializer, GetModuleHandle(nullptr));
 
         logger->PrintInformation(
                 RbxStu::RobloxManager,

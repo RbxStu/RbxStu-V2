@@ -46,9 +46,11 @@ public:
 
     /// @brief Scans from the given start address for the given signature.
     /// @param signature [in] A Vector containing the SignatureByte list that must be matched.
+    /// @param lpStartAddress [in, opt] The address to start scanning from.
     /// @return A std::vector<void *> containing the start of any matched memory blocks.
     /// @remarks Scan will skip non-executable segments in an effort to increase scanning speed. This leads to .rdata
     /// and .data being not able to be sigged, whilst the need for such behaviour is rather rare, and is a reason why it
     /// is not supported.
-    std::vector<void *> Scan(_In_ const Signature &signature);
+    std::vector<void *> Scan(_In_ const Signature &signature,
+                             _In_opt_ const void *lpStartAddress = GetModuleHandle(nullptr));
 };
