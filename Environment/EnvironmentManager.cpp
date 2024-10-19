@@ -667,7 +667,7 @@ getgenv().getsenv = newcclosure(function(scr)
 		end
 	end
 
-	return {}
+	return nil
 end)
 
 getgenv().getrunningscripts = newcclosure(function()
@@ -678,6 +678,7 @@ getgenv().getrunningscripts = newcclosure(function()
 			typeof(obj) == "Instance"
 			and (obj:IsA("LocalScript") or (obj:IsA("Script") and obj.RunContext == "Client"))
 			and obj.Enabled
+            and getsenv(obj) ~= nil
 		then
 			table.insert(scripts, obj)
 		end
