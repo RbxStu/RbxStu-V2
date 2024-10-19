@@ -5,6 +5,7 @@
 #include "Script.hpp"
 
 #include "ClosureManager.hpp"
+#include "Luau/Compiler.h"
 #include "Scheduler.hpp"
 #include "Security.hpp"
 #include "lgc.h"
@@ -122,6 +123,59 @@ namespace RbxStu {
             return 0;
         }
 
+        int getscriptbytecode(lua_State *L) {
+            Utilities::checkInstance(L, 1, "LuaSourceContainer");
+            auto scriptInstance = *static_cast<void**>(lua_touserdata(L, 1));
+            auto scriptSourceDataOffset = 0x0;
+            auto doesOffsetHaveSource = true;
+
+            /**
+             * In studio, LocalScripts have source and ModuleScripts have bytecode of the code, don't know why is there his mess
+             * In addition, both ModuleScript and LocalScript have different offsets for this data, average roblox mess
+             *
+             * So for LocalScripts, we have to compile the bytecode ourself, and for ModuleScripts we can return the bytecode
+             * And for more fun, sometimes the scripts dont have any source/bytecode, fun.
+             */
+
+            auto logger = Logger::GetSingleton();
+
+            lua_getfield(L, 1, "ClassName");
+            if (const auto className = lua_tostring(L, -1); strcmp(className, "LocalScript") == 0) {
+                logger->PrintDebug(RbxStu::Anonymous, "Using local script offset");
+                scriptSourceDataOffset = 0x1C0;
+            } else if (strcmp(className, "ModuleScript") == 0) {
+                logger->PrintDebug(RbxStu::Anonymous, "Using module script offset");
+                scriptSourceDataOffset = 0x378;
+                doesOffsetHaveSource = false;
+            }
+
+            if (!Utilities::IsPointerValid<void*>(static_cast<void **>(
+                        reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(scriptInstance) + scriptSourceDataOffset)))) {
+                luaG_runerrorL(L, "RbxStu V2 might have out of date offsets!");
+            }
+
+            auto scriptSourceData = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(scriptInstance) + scriptSourceDataOffset);
+            auto scriptSource = *reinterpret_cast<const char**>(reinterpret_cast<uintptr_t>(scriptSourceData) + 0x10);
+            if (scriptSource == nullptr) {
+                luaG_runerrorL(L, "Roblox mess have fucked up, please complain to bitdancer.");
+            }
+
+            Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Got source: {}", scriptSource));
+
+            if (doesOffsetHaveSource) {
+                auto opts = Luau::CompileOptions{};
+                opts.debugLevel = 2;
+                opts.optimizationLevel = 2;
+
+                const auto bytecode = Luau::compile(scriptSource, opts);
+                lua_pushstring(L, bytecode.c_str());
+                return 1;
+            } else {
+                lua_pushstring(L, scriptSource);
+                return 1;
+            }
+        }
+
         int checkcallstack(lua_State *L) {
             if (!Security::GetSingleton()->IsOurThread(L)) {
                 lua_pushboolean(L, false);
@@ -164,6 +218,7 @@ luaL_Reg *Script::GetLibraryFunctions() {
                                     {"getidentity", RbxStu::Script::getidentity},
                                     {"getthreadidentity", RbxStu::Script::getidentity},
                                     {"getthreadcontext", RbxStu::Script::getidentity},
+                                    {"getscriptbytecode", RbxStu::Script::getscriptbytecode},
 
                                     {"setidentity", RbxStu::Script::setidentity},
                                     {"setthreadcontext", RbxStu::Script::setidentity},
