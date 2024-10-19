@@ -42,6 +42,36 @@ because we are on a high security context we were never meant to truly use.
 - MSVC
 - Ninja build system (Prepackaged with CLion)
 
+## Building
+
+#### Requirements
+
+- CMake
+- MSVC
+- Ninja
+- vcpkg
+- CLion (contains all of the above besides MSVC)
+
+### Clion
+
+1. Set environment variable `VCPKG_ROOT` to the path of your vcpkg installation. (If windows feels goofy you might need to
+   restart your computer)
+2. Open the project in CLion.
+3. Set the CMake profile to any of the presets and enable it (example: `Release`, `Debug`, `RelWithDebInfo`).
+4. Build the project.
+
+### CMake/Ninja
+
+1. Set environment variable `VCPKG_ROOT` to the path of your vcpkg installation. (If windows feels goofy you might need to
+   restart your computer)
+3. Open `x64 Native Tools Command Prompt for VS 2022` or similar with access to msvc tools.
+2. Run the following commands in the project root directory:
+
+```shell
+cmake --preset={preset name here}
+cmake --build --preset={preset name here}
+```
+
 ## Significant Contributors:
 
 - [Dottik (SecondNewtonLaw/NaN)](https://github.com/SecondNewtonLaw): Lead Developer/Owner, Maintainer
