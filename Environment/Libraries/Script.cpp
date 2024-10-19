@@ -151,13 +151,13 @@ namespace RbxStu {
 
             if (!Utilities::IsPointerValid<void*>(static_cast<void **>(
                         reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(scriptInstance) + scriptSourceDataOffset)))) {
-                luaG_runerrorL(L, "RbxStu V2 might have out of date offsets!");
+                luaL_errorL(L, "RbxStu V2 might have out of date offsets!");
             }
 
             auto scriptSourceData = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(scriptInstance) + scriptSourceDataOffset);
             auto scriptSource = *reinterpret_cast<const char**>(reinterpret_cast<uintptr_t>(scriptSourceData) + 0x10);
             if (scriptSource == nullptr) {
-                luaG_runerrorL(L, "Roblox mess have fucked up, please complain to bitdancer.");
+                luaL_errorL(L, "Roblox mess have fucked up, please complain to bitdancer.");
             }
 
             logger->PrintDebug(RbxStu::Anonymous, std::format("Got source: {}", scriptSource));
