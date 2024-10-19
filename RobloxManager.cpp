@@ -838,7 +838,7 @@ void RobloxManager::SetCurrentDataModel(const RBX::DataModelType &dataModelType,
 bool RobloxManager::IsDataModelValid(const RBX::DataModelType &type) const {
     if (this->m_bInitialized && this->GetCurrentDataModel(type).has_value()) {
         const auto dataModel = this->GetCurrentDataModel(type).value();
-        return Utilities::IsPointerValid(dataModel) && dataModel->m_bIsOpen;
+        return Utilities::IsPointerValid(dataModel) && IsDataModelOpen(dataModel);
     }
 
     return false;
@@ -906,4 +906,9 @@ void RobloxManager::SetScriptContext(const RBX::DataModelType &dataModel, void *
     }
 
     m_mapScriptContextMap[dataModel] = static_cast<void *>(scriptContext);
+}
+
+bool RobloxManager::IsDataModelOpen(void *dataModel) {
+    const auto isOpen = reinterpret_cast<uintptr_t>(dataModel) + 0x561;
+    return isOpen != 0;
 }

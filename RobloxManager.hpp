@@ -345,4 +345,6 @@ public:
 
     std::optional<void *> GetScriptContextOfDataModel(RBX::DataModel *dataModel);
     void SetScriptContext(const RBX::DataModelType &dataModel, void **scriptContext);
+
+    static bool IsDataModelOpen(void* dataModel);
 };
