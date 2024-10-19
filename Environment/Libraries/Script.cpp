@@ -160,7 +160,7 @@ namespace RbxStu {
                 luaG_runerrorL(L, "Roblox mess have fucked up, please complain to bitdancer.");
             }
 
-            Logger::GetSingleton()->PrintDebug(RbxStu::Anonymous, std::format("Got source: {}", scriptSource));
+            logger->PrintDebug(RbxStu::Anonymous, std::format("Got source: {}", scriptSource));
 
             if (doesOffsetHaveSource) {
                 auto opts = Luau::CompileOptions{};
