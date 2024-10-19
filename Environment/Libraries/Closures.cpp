@@ -60,7 +60,7 @@ namespace RbxStu {
 
         int loadstring(lua_State *L) {
             const auto luauCode = luaL_checkstring(L, 1);
-            const auto chunkName = luaL_optstring(L, 2, "RbxStuV2_LoadString");
+            const auto chunkName = luaL_optstring(L, 2, "=RbxStuV2_LoadString");
             constexpr auto compileOpts = Luau::CompileOptions{1, 2};
             const auto bytecode = Luau::compile(luauCode, compileOpts);
 

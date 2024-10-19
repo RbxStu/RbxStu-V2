@@ -86,7 +86,7 @@ bool Scheduler::ExecuteSchedulerJob(lua_State *runOn, SchedulerJob *job) {
 
         security->SetThreadSecurity(L, 8);
 
-        if (luau_load(L, std::format("RbxStuV2__{}", job->luaJob.szOperationIdentifier).c_str(), bytecode.c_str(),
+        if (luau_load(L, std::format("=RbxStuV2__{}", job->luaJob.szOperationIdentifier).c_str(), bytecode.c_str(),
                       bytecode.size(), 0) != LUA_OK) {
             const char *err = lua_tostring(L, -1);
             logger->PrintError(RbxStu::Scheduler, err);
