@@ -87,7 +87,8 @@ static std::vector<std::string> blockedServices = {"linkingservice",
                                                    "platformcloudstorageservice",
                                                    "startpageservice",
                                                    "scripteditorservice",
-                                                   "avatareditorservice"};
+                                                   "avatareditorservice",
+                                                   "webviewservice"};
 
 static std::vector<std::string> blockedFunctions = {
         "openvideosfolder", "openscreenshotsfolder", "getrobuxbalance",
