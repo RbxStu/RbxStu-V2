@@ -566,7 +566,7 @@ void RobloxManager::Initialize() {
     logger->PrintInformation(RbxStu::RobloxManager, "Initializing hooks... [2/3]");
 
     // We indeed love bandage fixes, dottik just somehow make the signature
-    this->m_mapRobloxFunctions["RBX::DataModel::doDataModelClose"] = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(GetModuleHandleA(nullptr)) + 0x0214dbd0);
+    this->m_mapRobloxFunctions["RBX::DataModel::doDataModelClose"] = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(GetModuleHandleA(nullptr)) + 0x2231BB0);
 
     this->m_mapHookMap["RBX::ScriptContext::resumeDelayedThreads"] = new void *();
     MH_CreateHook(this->m_mapRobloxFunctions["RBX::ScriptContext::resumeDelayedThreads"],
